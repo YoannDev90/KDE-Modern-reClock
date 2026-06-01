@@ -8,6 +8,9 @@ import org.kde.plasma.plasmoid
 PlasmoidItem {
     id: root
 
+    // Setting the translation domain
+    Plasmoid.translationDomain: "plasma_applet_com.github.yoanndev90.modernreclock"
+
     // Setting background as transparent with a drop shadow
     Plasmoid.backgroundHints: PlasmaCore.Types.ShadowBackground | PlasmaCore.Types.ConfigurableBackground
 
@@ -34,6 +37,16 @@ PlasmoidItem {
     property string dayFormat: plasmoid.configuration.day_format
     property bool uppercaseDay: plasmoid.configuration.uppercase_day
     property bool uppercaseDate: plasmoid.configuration.uppercase_date
+
+    onLocaleNameChanged: updateClock()
+    onDateFormatChanged: updateClock()
+    onTimeFormatChanged: updateClock()
+    onDayFormatChanged: updateClock()
+    onUse24HourFormatChanged: updateClock()
+    onTimeCharacterChanged: updateClock()
+    onUppercaseDayChanged: updateClock()
+    onUppercaseDateChanged: updateClock()
+
     readonly property string default24HourFormat: "hh:mm"
     readonly property string default12HourFormat: "hh:mm AP"
 

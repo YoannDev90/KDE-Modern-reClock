@@ -1,66 +1,86 @@
 name: Release KDE Plasmoid
 
 on:
-  workflow_dispatch:  # Bouton manuel dans Actions
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
     inputs:
       version:
-        description: 'Version de la release (ex: 1.0.1)'
+        description: "Version (ex: 1.1.0)"
         required: true
-        default: '1.0.0'
+        default: "1.1.0"
       prerelease:
-        description: 'Marquer comme pré-release ?'
+        description: "Mark as pre-release ?"
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Pour les tags
+      - uses: actions/checkout@v4
 
-    - name: Vérifier structure package/
-      run: |
-        if [ ! -d "package" ]; then
-          echo "Erreur: dossier 'package/' manquant !"
-          exit 1
-        fi
-        if [ ! -f "package/metadata.json" ]; then
-          echo "Erreur: package/metadata.json manquant !"
-          exit 1
-        fi
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gettext zip
 
-    - name: Mettre à jour metadata.json
-      run: |
-        # Auto-update version dans metadata.json
-        sed -i "s/\"Version\": \".*\"/\"Version\": \"${{ github.event.inputs.version || '1.0.0' }}\"/" package/metadata.json
+      - name: Determine version
+        id: get_version
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=${{ github.event.inputs.version }}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-    - name: Créer plasmoid archive
-      run: |
-        cd package
-        zip -r ../KDE-Modern-reClock-${{ github.event.inputs.version || '1.0.0' }}.plasmoid .
-        cd ..
+      - name: Update metadata.json
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          sed -i "s/\"Version\": \".*\"/\"Version\": \"$VERSION\"/" package/metadata.json
 
-    - name: Créer Release GitHub
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: v${{ github.event.inputs.version || '1.0.0' }}
-        name: KDE Modern reClock v${{ github.event.inputs.version || '1.0.0' }}
-        body: |
-          # KDE Modern reClock v${{ github.event.inputs.version || '1.0.0' }}
-          
-          Thème moderne pour le widget reClock Plasma 6.
-          
-          ## Installation
-          1. Téléchargez `KDE-Modern-reClock-*.plasmoid`
-          2. Double-clic ou `plasmapkg3 --install KDE-Modern-reClock-*.plasmoid`
-          3. Ajoutez le widget reClock et appliquez le thème.
-          
-          [GitHub](https://github.com/YoannDev90/KDE-Modern-reClock)
-        files: |
-          KDE-Modern-reClock-${{ github.event.inputs.version || '1.0.0' }}.plasmoid
-        prerelease: ${{ github.event.inputs.prerelease }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compile translations
+        run: |
+          chmod +x package/translate/build.sh
+          ./package/translate/build.sh
+
+      - name: Create plasmoid archive
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          cd package
+          # On exclut le dossier translate du paquet final pour gagner de la place
+          zip -r ../com.github.yoanndev90.modernreclock-$VERSION.plasmoid . -x "translate/*"
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Modern reClock v${{ steps.get_version.outputs.version }}
+          body: |
+            # Modern reClock v${{ steps.get_version.outputs.version }}
+
+            A modern clock widget for your KDE Plasma 6 desktop.
+
+            ### New Features
+            - Translation support (French included).
+            - Real-time updates for language and format settings.
+            - Optimized structure for Plasma 6.
+
+            ### Installation
+            1. Download `com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid`.
+            2. Install it via :
+               ```bash
+               kpackagetool6 -t Plasma/Applet -i com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid
+               ```
+            3. Or use the Plasma installer ("Add Widgets" > "Install from Local File").
+          files: |
+            *.plasmoid
+          prerelease: ${{ github.event.inputs.prerelease || false }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

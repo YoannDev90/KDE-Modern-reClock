@@ -12,14 +12,12 @@
     "Id": "com.github.yoanndev90.modernreclock",
     "License": "GPLv3",
     "Name": "Modern reClock",
+    "TranslationDomain": "plasma_applet_com.github.yoanndev90.modernreclock",
     "Version": "1.1.0",
     "Website": "https://github.com/YoannDev90/KDE-Modern-reClock",
     "BugReportUrl": "https://github.com/YoannDev90/KDE-Modern-reClock/issues"
   },
   "X-Plasma-API-Minimum-Version": "6.0",
-  "X-Plasma-Provides": [
-    "org.kde.plasma.time",
-    "org.kde.plasma.date"
-  ],
+  "X-Plasma-Provides": ["org.kde.plasma.time", "org.kde.plasma.date"],
   "KPackageStructure": "Plasma/Applet"
 }

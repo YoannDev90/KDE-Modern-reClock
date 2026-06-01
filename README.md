@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://github.com/YoannDev90/KDE-Modern-reClock/blob/main/assets/logo.jpg" width=100/>
   <h2 align="center">Modern reClock for KDE</h2>
-  <p align="center">A modern looking clock widget!</center>
+  <p align="center">A modern looking clock widget !</center>
 </p>
 
 <p align="center">
@@ -26,10 +26,12 @@
 - Added uppercase toggle for day and date rows
 - Added bold font toggle for day, date, and time sections
 - Added support for custom locale
+- Added immediate preview for translation and format changes
+- Migrated translation structure to Plasma 6 standards
 
 ## Installation
 
-#### KDE Store (Preferred way)
+#### KDE Store
 
 1. Right click on the desktop
 2. Click on "Add Widgets"
@@ -45,3 +47,25 @@
 2. Install using the script  
    `kpackagetool6 -t Plasma/Applet -i package` or `kpackagetool6 -t Plasma/Applet -u package` to update an existing
    installation
+
+## Translations
+
+If you want to help translate this widget:
+
+1. Go to the `package/translate/` folder.
+2. If your language doesn't have a `.po` file yet, use `template.pot` to create one (e.g., `fr.po`).
+3. Use a tool like **Poedit** to fill in the translations.
+4. Run the `merge.sh` script to update the template and sync your `.po` file with new strings:
+
+   ```bash
+   cd package/translate
+   ./merge.sh
+   ```
+
+5. Run the `build.sh` script to compile the translations and install them into the widget:
+
+   ```bash
+   ./build.sh
+   ```
+
+6. Submit a Pull Request with your new or updated `.po` file!
