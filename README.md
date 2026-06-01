@@ -91,10 +91,11 @@ If you want to help translate this widget:
 <details>
 <summary>Click to view setups from the community</summary>
 
-| User | Screenshot |
-| :--- | :--- |
+
 <!-- COMMUNITY_SCREENSHOTS_START -->
-| @YoannDev90 | ![YoannDev90](https://github.com/YoannDev90/KDE-Modern-reClock/blob/main/assets/community/screenshot_5.png?raw=true) |
+|Screenshots|
+|---|
+| ![YoannDev90](https://github.com/YoannDev90/KDE-Modern-reClock/blob/main/assets/community/screenshot_5.png?raw=true) |
 <!-- COMMUNITY_SCREENSHOTS_END -->
 
 </details>
