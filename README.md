@@ -94,6 +94,7 @@ If you want to help translate this widget:
 | User | Screenshot |
 | :--- | :--- |
 <!-- COMMUNITY_SCREENSHOTS_START -->
+| @YoannDev90 | ![YoannDev90](https://github.com/YoannDev90/KDE-Modern-reClock/blob/main/assets/community/screenshot_4.png?raw=true) |
 <!-- COMMUNITY_SCREENSHOTS_END -->
 
 </details>
