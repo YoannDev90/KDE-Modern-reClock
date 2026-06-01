@@ -10,28 +10,31 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: write
+            issues: write
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
 
             - name: Process Screenshot
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  ISSUE_BODY: ${{ github.event.issue.body }}
               run: |
                   mkdir -p assets/community
 
                   # Extract first image URL from issue body
-                  # Matches classic user-images and new assets/user-attachments formats
-                  IMG_URL=$(echo "${{ github.event.issue.body }}" | grep -oE "https://(github.com|user-images.githubusercontent.com)/[a-zA-Z0-9./_-]+/(assets|user-attachments|files)/[a-f0-9-]+" | head -n 1)
+                  IMG_URL=$(echo "$ISSUE_BODY" | grep -oE "https://(github.com|user-images.githubusercontent.com)/[a-zA-Z0-9./_-]+/(assets|user-attachments|files)/[a-zA-Z0-9-]+" | head -n 1)
 
                   if [ -z "$IMG_URL" ]; then
                     echo "Error: No image URL found in issue body."
-                    echo "Body was: ${{ github.event.issue.body }}"
                     exit 1
                   fi
 
                   ISSUE_NUM="${{ github.event.issue.number }}"
                   USER_NAME="${{ github.event.issue.user.login }}"
                   FILE_EXT="${IMG_URL##*.}"
-                  # If no extension or too long, default to png
+
+                  # Default to png if no extension found or if it looks like a hash
                   if [[ "$FILE_EXT" == "$IMG_URL" ]] || [[ ${#FILE_EXT} -gt 4 ]]; then
                     FILE_EXT="png"
                   fi
@@ -46,9 +49,8 @@ jobs:
                   REPO_FULL_NAME="${{ github.repository }}"
                   NEW_ROW="| @$USER_NAME | ![$USER_NAME](https://github.com/${REPO_FULL_NAME}/blob/main/${DEST_PATH}?raw=true) |"
 
-                  # Insert into README.md after the start marker
-                  # We use a temp file to avoid issues with sed and special characters
-                  sed -i "/<!-- COMMUNITY_SCREENSHOTS_START -->/a $NEW_ROW" README.md
+                  # Safe insert using awk to avoid sed delimiter issues
+                  awk -v row="$NEW_ROW" '/<!-- COMMUNITY_SCREENSHOTS_START -->/{print; print row; next}1' README.md > README.md.tmp && mv README.md.tmp README.md
 
                   # Git commit and push
                   git config --global user.name "github-actions[bot]"
@@ -56,3 +58,9 @@ jobs:
                   git add assets/community/ README.md
                   git commit -m "docs: add community screenshot from issue #$ISSUE_NUM (@$USER_NAME)"
                   git push
+
+            - name: Close Issue
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  gh issue close ${{ github.event.issue.number }} --comment "Screenshot successfully added to the README! Thank you for your contribution! ✨"
