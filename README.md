@@ -16,6 +16,7 @@
 
 ## Improvements
 
+- Added auto-scale feature (widget content fits its size)
 - Added support for seconds
 - Added support for custom time format
 - Added configurable spacing between elements
@@ -40,13 +41,23 @@
 5. Search for "Modern reClock"
 6. Click on "Install" and you're done!
 
-#### From this repository
+#### From this repository (Manual)
 
 1. Clone this repository  
    `git clone https://github.com/YoannDev90/KDE-Modern-reClock && cd KDE-Modern-reClock/`
 2. Install using the script  
-   `kpackagetool6 -t Plasma/Applet -i package` or `kpackagetool6 -t Plasma/Applet -u package` to update an existing
-   installation
+   `./install-local.sh`
+
+   *Use the `--fr` or `-force-reload` flag to automatically restart Plasma and see changes immediately:*  
+   `./install-local.sh --fr`
+
+#### One-line installation (Recommended for quick testing)
+
+Run the following command in your terminal:
+
+```bash
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/YoannDev90/KDE-Modern-reClock/main/install-dist.sh)"
+```
 
 ## Translations
 

@@ -8,9 +8,6 @@ import org.kde.plasma.plasmoid
 PlasmoidItem {
     id: root
 
-    // Setting the translation domain
-    Plasmoid.translationDomain: "plasma_applet_com.github.yoanndev90.modernreclock"
-
     // Setting background as transparent with a drop shadow
     Plasmoid.backgroundHints: PlasmaCore.Types.ShadowBackground | PlasmaCore.Types.ConfigurableBackground
 
@@ -37,6 +34,7 @@ PlasmoidItem {
     property string dayFormat: plasmoid.configuration.day_format
     property bool uppercaseDay: plasmoid.configuration.uppercase_day
     property bool uppercaseDate: plasmoid.configuration.uppercase_date
+    property bool autoScale: plasmoid.configuration.auto_scale
 
     onLocaleNameChanged: updateClock()
     onDateFormatChanged: updateClock()
@@ -54,92 +52,91 @@ PlasmoidItem {
     readonly property bool resolvedTimeFormatUsesSeconds: usesSeconds(resolvedTimeFormat)
 
     function effectiveLocale() {
-        let custom = localeName ? localeName.trim() : ""
-        custom = custom.replace(/-/g, "_") // Replace hyphens with underscores for Qt locale compatibility
-        return custom.length > 0 ? Qt.locale(custom) : Qt.locale()
+        let custom = localeName ? localeName.trim() : "";
+        custom = custom.replace(/-/g, "_"); // Replace hyphens with underscores for Qt locale compatibility
+        return custom.length > 0 ? Qt.locale(custom) : Qt.locale();
     }
 
     function currentTimeFormat() {
-        const custom = timeFormat ? timeFormat.trim() : ""
+        const custom = timeFormat ? timeFormat.trim() : "";
 
         if (custom.length > 0)
-            return custom
+            return custom;
 
-        return use24HourFormat ? default24HourFormat : default12HourFormat
+        return use24HourFormat ? default24HourFormat : default12HourFormat;
     }
 
     function usesSeconds(format) {
-        return /s{1,2}/.test(format)
+        return /s {1, 2}/.test(format);
     }
 
     function updateClock() {
-        currentDateTime = new Date()
-        scheduleNextClockTick()
+        currentDateTime = new Date();
+        scheduleNextClockTick();
     }
 
     function scheduleNextClockTick() {
-        const now = new Date()
-        let delay
+        const now = new Date();
+        let delay;
 
         if (resolvedTimeFormatUsesSeconds) {
-            delay = 1000 - now.getMilliseconds()
+            delay = 1000 - now.getMilliseconds();
         } else {
-            delay = 60000 - (now.getSeconds() * 1000) - now.getMilliseconds()
+            delay = 60000 - (now.getSeconds() * 1000) - now.getMilliseconds();
         }
 
-        clockTimer.interval = Math.max(50, delay)
-        clockTimer.restart()
+        clockTimer.interval = Math.max(50, delay);
+        clockTimer.restart();
     }
 
     function formatDateLocaleAware(date, format, fallbackFormat = "dd MMM yyyy") {
-        const fmt = format && format.trim().length > 0 ? format.trim() : fallbackFormat
+        const fmt = format && format.trim().length > 0 ? format.trim() : fallbackFormat;
 
         try {
-            return date.toLocaleDateString(effectiveLocale(), fmt)
+            return date.toLocaleDateString(effectiveLocale(), fmt);
         } catch (e) {
-            return Qt.formatDate(date, fallbackFormat)
+            return Qt.formatDate(date, fallbackFormat);
         }
     }
 
     function formatTimeLocaleAware(date) {
-        const format = currentTimeFormat()
+        const format = currentTimeFormat();
 
         try {
-            var formatted = date.toLocaleTimeString(effectiveLocale(), format)
+            var formatted = date.toLocaleTimeString(effectiveLocale(), format);
             if (formatted && formatted.trim() !== "") {
-                return formatted
+                return formatted;
             }
-        } catch (e) {
-        }
+        } catch (e) {}
 
-        const fallbackFormat = use24HourFormat ? default24HourFormat : default12HourFormat
+        const fallbackFormat = use24HourFormat ? default24HourFormat : default12HourFormat;
         try {
-            return date.toLocaleTimeString(effectiveLocale(), fallbackFormat)
+            return date.toLocaleTimeString(effectiveLocale(), fallbackFormat);
         } catch (e) {
-            return Qt.formatTime(date, fallbackFormat)
+            return Qt.formatTime(date, fallbackFormat);
         }
     }
 
     function dayText() {
-        const format = dayFormat && dayFormat.trim().length > 0 ? dayFormat : "dddd"
+        const format = dayFormat && dayFormat.trim().length > 0 ? dayFormat : "dddd";
 
-        const text = formatDateLocaleAware(currentDateTime, format)
-        return uppercaseDay ? text.toUpperCase() : text
+        const text = formatDateLocaleAware(currentDateTime, format);
+        return uppercaseDay ? text.toUpperCase() : text;
     }
 
     function dateText() {
-        const text = formatDateLocaleAware(currentDateTime, dateFormat)
-        return uppercaseDate ? text.toUpperCase() : text
+        const text = formatDateLocaleAware(currentDateTime, dateFormat);
+        return uppercaseDate ? text.toUpperCase() : text;
     }
 
     function timeText() {
-        const formattedTime = formatTimeLocaleAware(currentDateTime)
-        const decoration = timeCharacter || ""
+        const formattedTime = formatTimeLocaleAware(currentDateTime);
+        const decoration = timeCharacter || "";
 
         if (decoration.trim().length === 0)
-            return formattedTime
+            return formattedTime;
 
-        return decoration + " " + formattedTime + " " + decoration
+        return decoration + " " + formattedTime + " " + decoration;
     }
 
     Timer {
@@ -155,75 +152,111 @@ PlasmoidItem {
     Component.onCompleted: updateClock()
 
     fullRepresentation: Item {
-        // applet default size
-        Layout.minimumWidth: container.implicitWidth
-        Layout.minimumHeight: container.implicitHeight
+        id: containerWrapper
+
+        // Ensure we fill the available space
+        anchors.fill: parent
+
+        readonly property bool isAutoScale: root.autoScale
+
+        // Hidden metrics labels to calculate natural size
+        // We use plain Text to avoid any Plasma styling interference during measurement
+        Item {
+            id: metricsProvider
+            visible: false
+            width: metricsColumn.implicitWidth
+            height: metricsColumn.implicitHeight
+            Column {
+                id: metricsColumn
+                spacing: plasmoid.configuration.widget_spacing
+                Text {
+                    text: root.dayText()
+                    visible: plasmoid.configuration.show_day
+                    font.pixelSize: plasmoid.configuration.day_font_size
+                    font.letterSpacing: plasmoid.configuration.day_letter_spacing
+                    font.family: font_anurati.name
+                    font.bold: plasmoid.configuration.day_font_bold
+                }
+                Text {
+                    text: root.dateText()
+                    visible: plasmoid.configuration.show_date
+                    font.pixelSize: plasmoid.configuration.date_font_size
+                    font.letterSpacing: plasmoid.configuration.date_letter_spacing
+                    font.family: font_poppins.name
+                    font.bold: plasmoid.configuration.date_font_bold
+                }
+                Text {
+                    text: root.timeText()
+                    visible: plasmoid.configuration.show_time
+                    font.pixelSize: plasmoid.configuration.time_font_size
+                    font.letterSpacing: plasmoid.configuration.time_letter_spacing
+                    font.family: font_poppins.name
+                    font.bold: plasmoid.configuration.time_font_bold
+                }
+            }
+        }
+
+        readonly property real fontScale: isAutoScale ? Math.min((width - 16) / Math.max(1, metricsProvider.width), (height - 16) / Math.max(1, metricsProvider.height)) : 1.0
+
+        // Preferred size for the applet
+        Layout.minimumWidth: isAutoScale ? 50 : metricsProvider.width
+        Layout.minimumHeight: isAutoScale ? 20 : metricsProvider.height
         Layout.preferredWidth: Layout.minimumWidth
         Layout.preferredHeight: Layout.minimumHeight
 
         // Main Content
         Column {
-            id: container
-
-            // Column settings
+            id: innerColumn
             anchors.centerIn: parent
-            spacing: plasmoid.configuration.widget_spacing
+            spacing: plasmoid.configuration.widget_spacing * containerWrapper.fontScale
 
             // Day
-            PlasmaComponents.Label {
+            Text {
                 id: display_day
-
                 visible: plasmoid.configuration.show_day
                 text: root.dayText()
-
-                // font settings
-                font.pixelSize: plasmoid.configuration.day_font_size
-                font.letterSpacing: plasmoid.configuration.day_letter_spacing
+                font.pixelSize: Math.max(1, Math.round(plasmoid.configuration.day_font_size * containerWrapper.fontScale))
+                font.letterSpacing: plasmoid.configuration.day_letter_spacing * containerWrapper.fontScale
                 font.family: font_anurati.name
                 font.bold: plasmoid.configuration.day_font_bold
-
                 color: plasmoid.configuration.day_font_color
-
                 anchors.horizontalCenter: parent.horizontalCenter
                 horizontalAlignment: Text.AlignHCenter
+
+                // Utilisation explicite du SDF (Signed Distance Field) via CurveRendering
+                renderType: Text.CurveRendering
             }
 
             // Date
-            PlasmaComponents.Label {
+            Text {
                 id: display_date
-
                 visible: plasmoid.configuration.show_date
                 text: root.dateText()
-
-                // font settings
-                font.pixelSize: plasmoid.configuration.date_font_size
-                font.letterSpacing: plasmoid.configuration.date_letter_spacing
+                font.pixelSize: Math.max(1, Math.round(plasmoid.configuration.date_font_size * containerWrapper.fontScale))
+                font.letterSpacing: plasmoid.configuration.date_letter_spacing * containerWrapper.fontScale
                 font.family: font_poppins.name
                 font.bold: plasmoid.configuration.date_font_bold
-
                 color: plasmoid.configuration.date_font_color
-
                 anchors.horizontalCenter: parent.horizontalCenter
                 horizontalAlignment: Text.AlignHCenter
+
+                renderType: Text.CurveRendering
             }
 
             // Time
-            PlasmaComponents.Label {
+            Text {
                 id: display_time
-
                 visible: plasmoid.configuration.show_time
                 text: root.timeText()
-
-                // font settings
-                font.pixelSize: plasmoid.configuration.time_font_size
-                font.letterSpacing: plasmoid.configuration.time_letter_spacing
+                font.pixelSize: Math.max(1, Math.round(plasmoid.configuration.time_font_size * containerWrapper.fontScale))
+                font.letterSpacing: plasmoid.configuration.time_letter_spacing * containerWrapper.fontScale
                 font.family: font_poppins.name
                 font.bold: plasmoid.configuration.time_font_bold
-
                 color: plasmoid.configuration.time_font_color
-
                 anchors.horizontalCenter: parent.horizontalCenter
                 horizontalAlignment: Text.AlignHCenter
+
+                renderType: Text.CurveRendering
             }
         }
     }

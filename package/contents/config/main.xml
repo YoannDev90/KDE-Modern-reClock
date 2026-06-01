@@ -77,5 +77,8 @@
         <entry name="time_font_bold" type="Bool">
             <default>false</default>
         </entry>
+        <entry name="auto_scale" type="Bool">
+            <default>false</default>
+        </entry>
     </group>
 </kcfg>

@@ -42,6 +42,7 @@ KCM.SimpleKCM {
     property alias cfg_widget_spacing: widgetSpacing.value
 
     property alias cfg_locale: localeField.text
+    property alias cfg_auto_scale: autoScale.checked
 
     Kirigami.FormLayout {
         anchors.fill: parent
@@ -51,6 +52,16 @@ KCM.SimpleKCM {
             level: 2
             Layout.fillWidth: true
             Kirigami.FormData.isSection: true
+        }
+
+        QQC2.CheckBox {
+            id: autoScale
+            text: i18n("Auto-scale (fitting widget size)")
+            onCheckedChanged: {
+                if (appearancePage.cfg_auto_scale !== checked) {
+                    appearancePage.cfg_auto_scale = checked
+                }
+            }
         }
 
         QQC2.SpinBox {
