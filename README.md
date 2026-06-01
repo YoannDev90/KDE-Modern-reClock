@@ -85,3 +85,15 @@ If you want to help translate this widget:
    ```
 
 6. Submit a Pull Request with your new or updated `.po` file!
+
+## Community Screenshots
+
+<details>
+<summary>Click to view setups from the community</summary>
+
+| User | Screenshot |
+| :--- | :--- |
+<!-- COMMUNITY_SCREENSHOTS_START -->
+<!-- COMMUNITY_SCREENSHOTS_END -->
+
+</details>

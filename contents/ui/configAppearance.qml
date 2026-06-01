@@ -75,7 +75,7 @@ KCM.SimpleKCM {
     }
 
     Kirigami.FormLayout {
-        anchors.fill: parent
+        // anchors.fill: parent removed to avoid layout loops in SimpleKCM
 
         // ================= SECTION: GLOBAL =================
         Kirigami.Heading {
@@ -478,7 +478,7 @@ KCM.SimpleKCM {
 
         ColumnLayout {
             spacing: Kirigami.Units.largeSpacing
-            width: Kirigami.Units.gridUnit * 25
+            implicitWidth: Kirigami.Units.gridUnit * 25
 
             QQC2.Label {
                 text: i18n("Copy this JSON to save your config as a dotfile, or paste a previously saved JSON to restore it.")
@@ -489,11 +489,13 @@ KCM.SimpleKCM {
             QQC2.ScrollView {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Kirigami.Units.gridUnit * 15
+                contentWidth: -1 // Disable horizontal scroll with fillWidth TextArea if needed, but Monospace often needs it
                 QQC2.TextArea {
                     id: backupArea
                     text: appearancePage.getFullConfig()
                     wrapMode: Text.NoWrap
                     font.family: "Monospace"
+                    width: parent.width
                 }
             }
 

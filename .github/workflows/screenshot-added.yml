@@ -1,0 +1,58 @@
+name: Community Screenshot Added
+
+on:
+    issues:
+        types: [labeled]
+
+jobs:
+    add_screenshot:
+        if: github.event.label.name == '✅ - Validated Community Screenshot'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Process Screenshot
+              run: |
+                  mkdir -p assets/community
+
+                  # Extract first image URL from issue body
+                  # Matches classic user-images and new assets/user-attachments formats
+                  IMG_URL=$(echo "${{ github.event.issue.body }}" | grep -oE "https://(github.com|user-images.githubusercontent.com)/[a-zA-Z0-9./_-]+/(assets|user-attachments|files)/[a-f0-9-]+" | head -n 1)
+
+                  if [ -z "$IMG_URL" ]; then
+                    echo "Error: No image URL found in issue body."
+                    echo "Body was: ${{ github.event.issue.body }}"
+                    exit 1
+                  fi
+
+                  ISSUE_NUM="${{ github.event.issue.number }}"
+                  USER_NAME="${{ github.event.issue.user.login }}"
+                  FILE_EXT="${IMG_URL##*.}"
+                  # If no extension or too long, default to png
+                  if [[ "$FILE_EXT" == "$IMG_URL" ]] || [[ ${#FILE_EXT} -gt 4 ]]; then
+                    FILE_EXT="png"
+                  fi
+
+                  FILE_NAME="screenshot_${ISSUE_NUM}.${FILE_EXT}"
+                  DEST_PATH="assets/community/$FILE_NAME"
+
+                  echo "Downloading $IMG_URL to $DEST_PATH"
+                  curl -L -o "$DEST_PATH" "$IMG_URL"
+
+                  # Prepare table row
+                  REPO_FULL_NAME="${{ github.repository }}"
+                  NEW_ROW="| @$USER_NAME | ![$USER_NAME](https://github.com/${REPO_FULL_NAME}/blob/main/${DEST_PATH}?raw=true) |"
+
+                  # Insert into README.md after the start marker
+                  # We use a temp file to avoid issues with sed and special characters
+                  sed -i "/<!-- COMMUNITY_SCREENSHOTS_START -->/a $NEW_ROW" README.md
+
+                  # Git commit and push
+                  git config --global user.name "github-actions[bot]"
+                  git config --global user.email "github-actions[bot]@users.noreply.github.com"
+                  git add assets/community/ README.md
+                  git commit -m "docs: add community screenshot from issue #$ISSUE_NUM (@$USER_NAME)"
+                  git push
