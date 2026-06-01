@@ -42,20 +42,18 @@ jobs:
       - name: Update metadata.json
         run: |
           VERSION=${{ steps.get_version.outputs.version }}
-          sed -i "s/\"Version\": \".*\"/\"Version\": \"$VERSION\"/" package/metadata.json
+          sed -i "s/\"Version\": \".*\"/\"Version\": \"$VERSION\"/" metadata.json
 
       - name: Compile translations
         run: |
-          chmod +x package/translate/build.sh
-          ./package/translate/build.sh
+          chmod +x translate/build.sh
+          ./translate/build.sh
 
       - name: Create plasmoid archive
         run: |
           VERSION=${{ steps.get_version.outputs.version }}
-          cd package
-          # On exclut le dossier translate du paquet final pour gagner de la place
-          zip -r ../com.github.yoanndev90.modernreclock-$VERSION.plasmoid . -x "translate/*"
-          cd ..
+          # Exclude non-plasmoid folders and files
+          zip -r com.github.yoanndev90.modernreclock-$VERSION.plasmoid . -x "translate/*" "assets/*" ".git/*" ".github/*" "README.md" "LICENSE" "install-*.sh" "com.github.yoanndev90.modernreclock-*.plasmoid"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

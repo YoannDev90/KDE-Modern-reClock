@@ -22,7 +22,7 @@ for cat in $catalogs; do
     CAT_LOCALE=$(basename "${cat%.*}")
     msgfmt -o "$CAT_LOCALE.mo" "$cat"
 
-    INSTALL_PATH="$DIR/../locale/$CAT_LOCALE/LC_MESSAGES/plasma_applet_$PLASMOID_ID.mo"
+    INSTALL_PATH="$PACKAGE_ROOT/contents/locale/$CAT_LOCALE/LC_MESSAGES/plasma_applet_$PLASMOID_ID.mo"
 
     echo "[build] Install to $INSTALL_PATH"
     mkdir -p "$(dirname "$INSTALL_PATH")"

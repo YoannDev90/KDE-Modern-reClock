@@ -1,0 +1,99 @@
+[
+  {
+    "text": "System Default",
+    "locale": "",
+    "day": "dddd",
+    "date": "dd MMM yyyy",
+    "time": "",
+    "h24": true
+  },
+  {
+    "text": "Français",
+    "locale": "fr_FR",
+    "day": "dddd",
+    "date": "d MMMM yyyy",
+    "time": "HH'h'mm",
+    "h24": true
+  },
+  {
+    "text": "English (US)",
+    "locale": "en_US",
+    "day": "dddd",
+    "date": "MMMM d, yyyy",
+    "time": "h:mm AP",
+    "h24": false
+  },
+  {
+    "text": "English (UK)",
+    "locale": "en_GB",
+    "day": "dddd",
+    "date": "d MMMM yyyy",
+    "time": "HH:mm",
+    "h24": true
+  },
+  {
+    "text": "Deutsch",
+    "locale": "de_DE",
+    "day": "dddd",
+    "date": "d. MMMM yyyy",
+    "time": "HH:mm",
+    "h24": true
+  },
+  {
+    "text": "Español",
+    "locale": "es_ES",
+    "day": "dddd",
+    "date": "d 'de' MMMM 'de' yyyy",
+    "time": "HH:mm",
+    "h24": true
+  },
+  {
+    "text": "Italiano",
+    "locale": "it_IT",
+    "day": "dddd",
+    "date": "d MMMM yyyy",
+    "time": "HH:mm",
+    "h24": true
+  },
+  {
+    "text": "Nederlands",
+    "locale": "nl_NL",
+    "day": "dddd",
+    "date": "d MMMM yyyy",
+    "time": "HH:mm",
+    "h24": true
+  },
+  {
+    "text": "Polski",
+    "locale": "pl_PL",
+    "day": "dddd",
+    "date": "d MMMM yyyy",
+    "time": "HH:mm",
+    "h24": true
+  },
+  {
+    "text": "Português",
+    "locale": "pt_PT",
+    "day": "dddd",
+    "date": "d MMMM yyyy",
+    "time": "HH:mm",
+    "h24": true
+  },
+  {
+    "text": "Русский",
+    "locale": "ru_RU",
+    "day": "dddd",
+    "date": "d MMMM yyyy",
+    "time": "HH:mm",
+    "h24": true
+  },
+  {
+    "text": "日本語",
+    "locale": "ja_JP",
+    "day": "dddd",
+    "date": "yyyy年M月d日",
+    "time": "H:mm",
+    "h24": true
+  },
+  { "text": "Custom", "locale": "custom" }
+]

@@ -17,6 +17,7 @@
 ## Improvements
 
 - Added auto-scale feature (widget content fits its size)
+- Improved rendering with SDF (Signed Distance Field) for maximum sharpness at any scale
 - Added support for seconds
 - Added support for custom time format
 - Added configurable spacing between elements
@@ -27,8 +28,12 @@
 - Added uppercase toggle for day and date rows
 - Added bold font toggle for day, date, and time sections
 - Added support for custom locale
+- Added language presets for quick configuration
+- Added organized settings UI (Global, Day, Date, Time)
+- Added JSON Import/Export for easy configuration backup (Dotfile support)
 - Added immediate preview for translation and format changes
 - Migrated translation structure to Plasma 6 standards
+- Flattened repository structure for better developer experience
 
 ## Installation
 
@@ -63,13 +68,13 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/YoannDev90/KDE-Modern-reCl
 
 If you want to help translate this widget:
 
-1. Go to the `package/translate/` folder.
+1. Go to the `translate/` folder.
 2. If your language doesn't have a `.po` file yet, use `template.pot` to create one (e.g., `fr.po`).
 3. Use a tool like **Poedit** to fill in the translations.
 4. Run the `merge.sh` script to update the template and sync your `.po` file with new strings:
 
    ```bash
-   cd package/translate
+   cd translate
    ./merge.sh
    ```
 

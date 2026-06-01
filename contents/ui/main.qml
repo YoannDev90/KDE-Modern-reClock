@@ -16,12 +16,12 @@ PlasmoidItem {
 
     // loading fonts
     FontLoader {
-        id: font_anurati
-        source: "../fonts/Anurati.otf"
+        id: anuratiFontLoader
+        source: Qt.resolvedUrl("../fonts/Anurati.otf")
     }
     FontLoader {
-        id: font_poppins
-        source: "../fonts/Poppins.ttf"
+        id: poppinsFontLoader
+        source: Qt.resolvedUrl("../fonts/Poppins.ttf")
     }
 
     property date currentDateTime: new Date()
@@ -35,6 +35,11 @@ PlasmoidItem {
     property bool uppercaseDay: plasmoid.configuration.uppercase_day
     property bool uppercaseDate: plasmoid.configuration.uppercase_date
     property bool autoScale: plasmoid.configuration.auto_scale
+
+    // ===== FONT FAMILIES =====
+    property string fontFamilyDay: plasmoid.configuration.fontFamilyDay
+    property string fontFamilyDate: plasmoid.configuration.fontFamilyDate
+    property string fontFamilyTime: plasmoid.configuration.fontFamilyTime
 
     onLocaleNameChanged: updateClock()
     onDateFormatChanged: updateClock()
@@ -67,7 +72,7 @@ PlasmoidItem {
     }
 
     function usesSeconds(format) {
-        return /s {1, 2}/.test(format);
+        return /s{1,2}/.test(format);
     }
 
     function updateClock() {
@@ -174,7 +179,7 @@ PlasmoidItem {
                     visible: plasmoid.configuration.show_day
                     font.pixelSize: plasmoid.configuration.day_font_size
                     font.letterSpacing: plasmoid.configuration.day_letter_spacing
-                    font.family: font_anurati.name
+                    font.family: root.fontFamilyDay
                     font.bold: plasmoid.configuration.day_font_bold
                 }
                 Text {
@@ -182,7 +187,7 @@ PlasmoidItem {
                     visible: plasmoid.configuration.show_date
                     font.pixelSize: plasmoid.configuration.date_font_size
                     font.letterSpacing: plasmoid.configuration.date_letter_spacing
-                    font.family: font_poppins.name
+                    font.family: root.fontFamilyDate
                     font.bold: plasmoid.configuration.date_font_bold
                 }
                 Text {
@@ -190,7 +195,7 @@ PlasmoidItem {
                     visible: plasmoid.configuration.show_time
                     font.pixelSize: plasmoid.configuration.time_font_size
                     font.letterSpacing: plasmoid.configuration.time_letter_spacing
-                    font.family: font_poppins.name
+                    font.family: root.fontFamilyTime
                     font.bold: plasmoid.configuration.time_font_bold
                 }
             }
@@ -215,9 +220,9 @@ PlasmoidItem {
                 id: display_day
                 visible: plasmoid.configuration.show_day
                 text: root.dayText()
+                font.family: root.fontFamilyDay
                 font.pixelSize: Math.max(1, Math.round(plasmoid.configuration.day_font_size * containerWrapper.fontScale))
                 font.letterSpacing: plasmoid.configuration.day_letter_spacing * containerWrapper.fontScale
-                font.family: font_anurati.name
                 font.bold: plasmoid.configuration.day_font_bold
                 color: plasmoid.configuration.day_font_color
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -232,9 +237,9 @@ PlasmoidItem {
                 id: display_date
                 visible: plasmoid.configuration.show_date
                 text: root.dateText()
+                font.family: root.fontFamilyDate
                 font.pixelSize: Math.max(1, Math.round(plasmoid.configuration.date_font_size * containerWrapper.fontScale))
                 font.letterSpacing: plasmoid.configuration.date_letter_spacing * containerWrapper.fontScale
-                font.family: font_poppins.name
                 font.bold: plasmoid.configuration.date_font_bold
                 color: plasmoid.configuration.date_font_color
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -248,9 +253,9 @@ PlasmoidItem {
                 id: display_time
                 visible: plasmoid.configuration.show_time
                 text: root.timeText()
+                font.family: root.fontFamilyTime
                 font.pixelSize: Math.max(1, Math.round(plasmoid.configuration.time_font_size * containerWrapper.fontScale))
                 font.letterSpacing: plasmoid.configuration.time_letter_spacing * containerWrapper.fontScale
-                font.family: font_poppins.name
                 font.bold: plasmoid.configuration.time_font_bold
                 color: plasmoid.configuration.time_font_color
                 anchors.horizontalCenter: parent.horizontalCenter

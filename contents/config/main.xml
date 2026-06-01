@@ -80,5 +80,17 @@
         <entry name="auto_scale" type="Bool">
             <default>false</default>
         </entry>
+        <entry name="fontFamilyDay" type="String">
+            <label>Font family for day name. e.g "Arial", "Anurati"</label>
+            <default>Anurati</default>
+        </entry>
+        <entry name="fontFamilyDate" type="String">
+            <label>Font family for date. e.g "Arial", "Poppins"</label>
+            <default>Poppins</default>
+        </entry>
+        <entry name="fontFamilyTime" type="String">
+            <label>Font family for time. e.g "Arial", "Poppins"</label>
+            <default>Poppins</default>
+        </entry>
     </group>
 </kcfg>
