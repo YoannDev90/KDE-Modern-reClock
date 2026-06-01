@@ -1,18 +1,19 @@
-import QtQml 2.15
-import QtQuick 2.0
-import QtQuick.Layouts 1.0
+import QtQml
+import QtQuick
+import QtQuick.Layouts
 import org.kde.plasma.components as PlasmaComponents
-import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
-import org.kde.plasma.plasma5support as Plasma5Support
+import org.kde.plasma.plasmoid
 
 PlasmoidItem {
     id: root
-    
-    
-    // setting background as transparent with a drop shadow
+
+    // Setting background as transparent with a drop shadow
     Plasmoid.backgroundHints: PlasmaCore.Types.ShadowBackground | PlasmaCore.Types.ConfigurableBackground
-    
+
+    // Setting preferred size
+    preferredRepresentation: fullRepresentation
+
     // loading fonts
     FontLoader {
         id: font_anurati
@@ -22,99 +23,130 @@ PlasmoidItem {
         id: font_poppins
         source: "../fonts/Poppins.ttf"
     }
-    
 
-    // setting preferred size
-    preferredRepresentation: fullRepresentation
+    property date currentDateTime: new Date()
+
+    property bool use24HourFormat: plasmoid.configuration.use_24_hour_format
+    property string timeCharacter: plasmoid.configuration.time_character
+    property string localeName: plasmoid.configuration.locale
+    property string dateFormat: plasmoid.configuration.date_format
+    property string timeFormat: plasmoid.configuration.time_format
+    property string dayFormat: plasmoid.configuration.day_format
+    property bool uppercaseDay: plasmoid.configuration.uppercase_day
+    property bool uppercaseDate: plasmoid.configuration.uppercase_date
+    readonly property string default24HourFormat: "hh:mm"
+    readonly property string default12HourFormat: "hh:mm AP"
+
+    readonly property string resolvedTimeFormat: currentTimeFormat()
+    readonly property bool resolvedTimeFormatUsesSeconds: usesSeconds(resolvedTimeFormat)
+
+    function effectiveLocale() {
+        let custom = localeName ? localeName.trim() : ""
+        custom = custom.replace(/-/g, "_") // Replace hyphens with underscores for Qt locale compatibility
+        return custom.length > 0 ? Qt.locale(custom) : Qt.locale()
+    }
+
+    function currentTimeFormat() {
+        const custom = timeFormat ? timeFormat.trim() : ""
+
+        if (custom.length > 0)
+            return custom
+
+        return use24HourFormat ? default24HourFormat : default12HourFormat
+    }
+
+    function usesSeconds(format) {
+        return /s{1,2}/.test(format)
+    }
+
+    function updateClock() {
+        currentDateTime = new Date()
+        scheduleNextClockTick()
+    }
+
+    function scheduleNextClockTick() {
+        const now = new Date()
+        let delay
+
+        if (resolvedTimeFormatUsesSeconds) {
+            delay = 1000 - now.getMilliseconds()
+        } else {
+            delay = 60000 - (now.getSeconds() * 1000) - now.getMilliseconds()
+        }
+
+        clockTimer.interval = Math.max(50, delay)
+        clockTimer.restart()
+    }
+
+    function formatDateLocaleAware(date, format, fallbackFormat = "dd MMM yyyy") {
+        const fmt = format && format.trim().length > 0 ? format.trim() : fallbackFormat
+
+        try {
+            return date.toLocaleDateString(effectiveLocale(), fmt)
+        } catch (e) {
+            return Qt.formatDate(date, fallbackFormat)
+        }
+    }
+
+    function formatTimeLocaleAware(date) {
+        const format = currentTimeFormat()
+
+        try {
+            var formatted = date.toLocaleTimeString(effectiveLocale(), format)
+            if (formatted && formatted.trim() !== "") {
+                return formatted
+            }
+        } catch (e) {
+        }
+
+        const fallbackFormat = use24HourFormat ? default24HourFormat : default12HourFormat
+        try {
+            return date.toLocaleTimeString(effectiveLocale(), fallbackFormat)
+        } catch (e) {
+            return Qt.formatTime(date, fallbackFormat)
+        }
+    }
+
+    function dayText() {
+        const format = dayFormat && dayFormat.trim().length > 0 ? dayFormat : "dddd"
+
+        const text = formatDateLocaleAware(currentDateTime, format)
+        return uppercaseDay ? text.toUpperCase() : text
+    }
+
+    function dateText() {
+        const text = formatDateLocaleAware(currentDateTime, dateFormat)
+        return uppercaseDate ? text.toUpperCase() : text
+    }
+
+    function timeText() {
+        const formattedTime = formatTimeLocaleAware(currentDateTime)
+        const decoration = timeCharacter || ""
+
+        if (decoration.trim().length === 0)
+            return formattedTime
+
+        return decoration + " " + formattedTime + " " + decoration
+    }
+
+    Timer {
+        id: clockTimer
+        repeat: false
+        running: false
+
+        onTriggered: root.updateClock()
+    }
+
+    onResolvedTimeFormatChanged: updateClock()
+
+    Component.onCompleted: updateClock()
+
     fullRepresentation: Item {
-
         // applet default size
         Layout.minimumWidth: container.implicitWidth
         Layout.minimumHeight: container.implicitHeight
         Layout.preferredWidth: Layout.minimumWidth
         Layout.preferredHeight: Layout.minimumHeight
-
-        // Updating time every minute
-        Plasma5Support.DataSource {
-            id: dataSource
-            engine: "time"
-            connectedSources: ["Local"]
-            intervalAlignment: Plasma5Support.Types.AlignToMinute
-            interval: 60000
-
-            property bool use24HourFormat: plasmoid.configuration.use_24_hour_format
-            property string timeCharacter: plasmoid.configuration.time_character
-            property string dateFormat: plasmoid.configuration.date_format
-            property string timeFormat: plasmoid.configuration.time_format
-            property string dayFormat: plasmoid.configuration.day_format
-            property bool uppercaseDay: plasmoid.configuration.uppercase_day
-            property bool uppercaseDate: plasmoid.configuration.uppercase_date
-            property bool usesSeconds: false
-            readonly property string default24HourFormat: "hh:mm"
-            readonly property string default12HourFormat: "hh:mm AP"
-            readonly property int secondInterval: 1000
-            readonly property int minuteInterval: 60000
-            function currentTimeFormat() {
-                var custom = timeFormat ? timeFormat.trim() : ""
-                return custom.length > 0 ? custom : (use24HourFormat ? default24HourFormat : default12HourFormat)
-            }
-
-            function updateIntervalForFormat(format) {
-                // Qt time format uses 's' or 'ss' for seconds; adjust refresh cadence when seconds are present.
-                var needsSeconds = /s{1,2}/.test(format)
-                if (needsSeconds !== usesSeconds) {
-                    usesSeconds = needsSeconds
-                    interval = needsSeconds ? secondInterval : minuteInterval
-                    intervalAlignment = needsSeconds ? Plasma5Support.Types.NoAlignment : Plasma5Support.Types.AlignToMinute
-                }
-            }
-
-            function formatTimeSafely(date) {
-                var format = currentTimeFormat()
-                updateIntervalForFormat(format)
-                var formatted = ""
-                try {
-                    formatted = Qt.formatTime(date, format)
-                } catch (e) {
-                    formatted = ""
-                }
-                if (!formatted || formatted.trim() === "") {
-                    format = use24HourFormat ? default24HourFormat : default12HourFormat
-                    updateIntervalForFormat(format)
-                    formatted = Qt.formatTime(date, format)
-                }
-                return formatted
-            }
-
-            onDataChanged: {
-                var curDate = dataSource.data["Local"]["DateTime"]
-                var formattedTime = formatTimeSafely(curDate)
-                var df = dayFormat && dayFormat.trim().length > 0 ? dayFormat : "dddd"
-                var dayText = Qt.formatDate(curDate, df)
-                display_day.text = uppercaseDay ? dayText.toUpperCase() : dayText
-                var dateText = Qt.formatDate(curDate, dateFormat)
-                display_date.text = uppercaseDate ? dateText.toUpperCase() : dateText
-                display_time.text = timeCharacter + " " + formattedTime + " " + timeCharacter
-            }
-
-            onUse24HourFormatChanged: {
-                updateIntervalForFormat(currentTimeFormat())
-                dataChanged()
-            }
-            onTimeCharacterChanged: dataChanged()
-            onDateFormatChanged: dataChanged()
-            onDayFormatChanged: dataChanged()
-            onUppercaseDayChanged: dataChanged()
-            onUppercaseDateChanged: dataChanged()
-            onTimeFormatChanged: {
-                updateIntervalForFormat(currentTimeFormat())
-                dataChanged()
-            }
-
-            Component.onCompleted: updateIntervalForFormat(currentTimeFormat())
-
-            
-        }
 
         // Main Content
         Column {
@@ -124,55 +156,61 @@ PlasmoidItem {
             anchors.centerIn: parent
             spacing: plasmoid.configuration.widget_spacing
 
-            // The day ("Tuesday", "Wednesday" etc..)
+            // Day
             PlasmaComponents.Label {
                 id: display_day
-                
-                // visible
+
                 visible: plasmoid.configuration.show_day
+                text: root.dayText()
 
                 // font settings
                 font.pixelSize: plasmoid.configuration.day_font_size
                 font.letterSpacing: plasmoid.configuration.day_letter_spacing
                 font.family: font_anurati.name
                 font.bold: plasmoid.configuration.day_font_bold
+
                 color: plasmoid.configuration.day_font_color
+
                 anchors.horizontalCenter: parent.horizontalCenter
-                horizontalAlignment: Text.AlignHCenter 
+                horizontalAlignment: Text.AlignHCenter
             }
 
-            // The Date
+            // Date
             PlasmaComponents.Label {
                 id: display_date
 
-                // visibility
                 visible: plasmoid.configuration.show_date
+                text: root.dateText()
 
                 // font settings
                 font.pixelSize: plasmoid.configuration.date_font_size
                 font.letterSpacing: plasmoid.configuration.date_letter_spacing
                 font.family: font_poppins.name
                 font.bold: plasmoid.configuration.date_font_bold
+
                 color: plasmoid.configuration.date_font_color
-                horizontalAlignment: Text.AlignHCenter
+
                 anchors.horizontalCenter: parent.horizontalCenter
+                horizontalAlignment: Text.AlignHCenter
             }
 
-            // The Time
+            // Time
             PlasmaComponents.Label {
                 id: display_time
 
-                // visibility
                 visible: plasmoid.configuration.show_time
+                text: root.timeText()
 
                 // font settings
                 font.pixelSize: plasmoid.configuration.time_font_size
+                font.letterSpacing: plasmoid.configuration.time_letter_spacing
                 font.family: font_poppins.name
                 font.bold: plasmoid.configuration.time_font_bold
+
                 color: plasmoid.configuration.time_font_color
-                font.letterSpacing: plasmoid.configuration.time_letter_spacing
-                horizontalAlignment: Text.AlignHCenter
+
                 anchors.horizontalCenter: parent.horizontalCenter
+                horizontalAlignment: Text.AlignHCenter
             }
         }
     }

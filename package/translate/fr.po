@@ -1,0 +1,122 @@
+# French translations for modernreclock package.
+# Copyright (C) 2026 THE modernreclock'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the modernreclock package.
+#  <martin.jcb@proton.me>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: modernreclock\n"
+"Report-Msgid-Bugs-To: https://github.com/YoannDev90/KDE-Modern-reClock/issues\n"
+"POT-Creation-Date: 2026-05-04 18:34+0200\n"
+"PO-Revision-Date: 2026-05-04 17:50+0200\n"
+"Last-Translator:  <martin.jcb@proton.me>\n"
+"Language-Team: French <traduc@traduc.org>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: contents/config/config.qml
+msgid "Appearance"
+msgstr "Apparence"
+
+#: contents/ui/configAppearance.qml
+msgid "General"
+msgstr "Général"
+
+#: contents/ui/configAppearance.qml
+msgid "Element spacing:"
+msgstr "Espacement des éléments :"
+
+#: contents/ui/configAppearance.qml
+msgid "Locale:"
+msgstr "Paramètres régionaux :"
+
+#: contents/ui/configAppearance.qml
+msgid "e.g. fr_BE, en_GB, nl_BE"
+msgstr "ex. fr_BE, en_GB, nl_BE"
+
+#: contents/ui/configAppearance.qml
+msgid "Locale used for weekday and month names. Leave empty to use the system locale."
+msgstr "Paramètres régionaux utilisés pour les noms des jours et des mois. Laisser vide pour utiliser les paramètres régionaux du système."
+
+#: contents/ui/configAppearance.qml
+msgid "Day"
+msgstr "Jour"
+
+#: contents/ui/configAppearance.qml
+msgid "Show day"
+msgstr "Afficher le jour"
+
+#: contents/ui/configAppearance.qml
+msgid "Font size:"
+msgstr "Taille de la police :"
+
+#: contents/ui/configAppearance.qml
+msgid "Letter spacing:"
+msgstr "Espacement des lettres :"
+
+#: contents/ui/configAppearance.qml
+msgid "Day format:"
+msgstr "Format du jour :"
+
+#: contents/ui/configAppearance.qml
+msgid "Use Qt date formats. For example: dddd = full weekday name, ddd = short weekday name."
+msgstr "Utilisez les formats de date Qt. Par exemple : dddd = nom complet du jour de la semaine, ddd = nom court du jour de la semaine."
+
+#: contents/ui/configAppearance.qml
+msgid "Uppercase"
+msgstr "Majuscules"
+
+#: contents/ui/configAppearance.qml
+msgid "Bold"
+msgstr "Gras"
+
+#: contents/ui/configAppearance.qml
+msgid "Font color:"
+msgstr "Couleur de la police :"
+
+#: contents/ui/configAppearance.qml
+msgid "Date"
+msgstr "Date"
+
+#: contents/ui/configAppearance.qml
+msgid "Show date"
+msgstr "Afficher la date"
+
+#: contents/ui/configAppearance.qml
+msgid "Date format:"
+msgstr "Format de la date :"
+
+#: contents/ui/configAppearance.qml
+msgid "Use Qt date formats like dd MMM yyyy, MM/dd/yyyy, or dddd d MMMM yyyy."
+msgstr "Utilisez les formats de date Qt comme dd MMM yyyy, MM/dd/yyyy ou dddd d MMMM yyyy."
+
+#: contents/ui/configAppearance.qml
+msgid "Time"
+msgstr "Heure"
+
+#: contents/ui/configAppearance.qml
+msgid "Show time"
+msgstr "Afficher l'heure"
+
+#: contents/ui/configAppearance.qml
+msgid "Use 24-hour format"
+msgstr "Utiliser le format 24 heures"
+
+#: contents/ui/configAppearance.qml
+msgid "Time format:"
+msgstr "Format de l'heure :"
+
+#: contents/ui/configAppearance.qml
+msgid "Use Qt time formats like hh:mm, hh:mm:ss, or hh:mm AP. Leave empty to use the 12/24-hour setting."
+msgstr "Utilisez les formats d'heure Qt comme hh:mm, hh:mm:ss ou hh:mm AP. Laisser vide pour utiliser le paramètre 12/24 heures."
+
+#: contents/ui/configAppearance.qml
+msgid "Decoration character:"
+msgstr "Caractère de décoration :"
+
+#: contents/ui/configAppearance.qml
+msgid "A character displayed on both sides of the time. Leave empty to show no decoration."
+msgstr "Un caractère affiché de chaque côté de l'heure. Laisser vide pour ne pas afficher de décoration."

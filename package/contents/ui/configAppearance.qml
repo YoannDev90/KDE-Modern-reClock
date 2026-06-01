@@ -1,214 +1,265 @@
-import QtQuick 2.15
-import QtQuick.Layouts 1.0
-import QtQuick.Controls 2.0
-import QtQuick.Dialogs
-import org.kde.kirigami 2.4 as Kirigami
+import QtQuick
+import QtQuick.Controls as QQC2
+import QtQuick.Layouts
 
-Kirigami.ScrollablePage {
+import org.kde.kcmutils as KCM
+import org.kde.kirigami as Kirigami
+import org.kde.kquickcontrols as KQControls
+
+KCM.SimpleKCM {
     id: appearancePage
-    
+
     // properties
     property alias cfg_show_day: showDay.checked
     property alias cfg_show_date: showDate.checked
     property alias cfg_show_time: showTime.checked
+
     property alias cfg_day_font_size: dayFontSize.value
     property alias cfg_date_font_size: dateFontSize.value
     property alias cfg_time_font_size: timeFontSize.value
+
     property alias cfg_day_letter_spacing: dayLetterSpacing.value
-    property alias cfg_day_font_color: dayFontColor.color
     property alias cfg_date_letter_spacing: dateLetterSpacing.value
     property alias cfg_time_letter_spacing: timeLetterSpacing.value
+
+    property alias cfg_day_font_color: dayFontColor.color
+    property alias cfg_date_font_color: dateFontColor.color
     property alias cfg_time_font_color: timeFontColor.color
+
+    property alias cfg_day_format: dayFormat.text
+    property alias cfg_date_format: dateFormat.text
+    property alias cfg_time_format: timeFormat.text
     property alias cfg_use_24_hour_format: use24HourFormat.checked
     property alias cfg_time_character: timeCharacter.text
-    property alias cfg_time_format: timeFormat.text
-    property alias cfg_date_format: dateFormat.text
-    property alias cfg_date_font_color: dateFontColor.color
-    property alias cfg_widget_spacing: widgetSpacing.value
-    property alias cfg_day_format: dayFormat.text
+
     property alias cfg_uppercase_day: uppercaseDay.checked
     property alias cfg_uppercase_date: uppercaseDate.checked
+
     property alias cfg_day_font_bold: dayFontBold.checked
     property alias cfg_date_font_bold: dateFontBold.checked
     property alias cfg_time_font_bold: timeFontBold.checked
 
+    property alias cfg_widget_spacing: widgetSpacing.value
+
+    property alias cfg_locale: localeField.text
+
     Kirigami.FormLayout {
-        Title {
-            title: i18n("General")
-        }
-        NumberField {
-            id: widgetSpacing
-            label: i18n("Element Spacing")
-        }
-        Title {
-            title: i18n("Day")
-        }
-        RowLayout {
-            Label {
-                text: i18n("Show Day")
-            }
-            CheckBox {
-                id: showDay
-            }
-        }
-        NumberField {
-            id: dayFontSize
-            label: i18n("Font Size")
-            from: 1
-        }
-        NumberField {
-            id: dayLetterSpacing
-            label: i18n("Letter Spacing")
-        }
-        RowLayout {
-            Label {
-                text: i18n("Day format")
-            }
-            TextField {
-                id: dayFormat
-                placeholderText: "dddd"
-                ToolTip.text: i18n("Use Qt date formats: 'dddd' = full name, 'ddd' = short name. Leave empty for the full weekday name.")
-                ToolTip.visible: hovered
-                ToolTip.delay: 800
-            }
-        }
-        RowLayout {
-            Label {
-                text: i18n("Uppercase")
-            }
-            CheckBox {
-                id: uppercaseDay
-            }
-        }
-        RowLayout {
-            Label {
-                text: i18n("Bold")
-            }
-            CheckBox {
-                id: dayFontBold
-            }
-        }
-        ColorDial {
-            id: dayFontColor
-            color: cfg_day_font_color
-        }
-        Title {
-            title: i18n("Date")
-        }
-        RowLayout {
-            Label {
-                text: i18n("Show Date")
-            }
-            CheckBox {
-                id: showDate
-            }
-        }
-        NumberField {
-            id: dateFontSize
-            label: i18n("Font Size")
-            from: 1
-        }
-        NumberField {
-            id: dateLetterSpacing
-            label: i18n("Letter Spacing")
-        }
-        RowLayout {
-            Label {
-                text: i18n("Date format")
-            }
-            TextField {
-                id: dateFormat
-                placeholderText: "dd MMM yyyy"
-                ToolTip.text: i18n("Use Qt date formats like 'dd MMM yyyy', 'MM/dd/yyyy', or 'ddd d MMMM'. d/dd = day, M/MM/MMM/MMMM = month, yy/yyyy = year.")
-                ToolTip.visible: hovered
-                ToolTip.delay: 800
-            }
-        }
-        RowLayout {
-            Label {
-                text: i18n("Uppercase")
-            }
-            CheckBox {
-                id: uppercaseDate
-            }
-        }
-        RowLayout {
-            Label {
-                text: i18n("Bold")
-            }
-            CheckBox {
-                id: dateFontBold
-            }
-        }
-        ColorDial {
-            id: dateFontColor
-            color: cfg_date_font_color
+        anchors.fill: parent
+
+        Kirigami.Heading {
+            text: i18n("General")
+            level: 2
+            Layout.fillWidth: true
+            Kirigami.FormData.isSection: true
         }
 
-        Title {
-            title: i18n("Time")
+        QQC2.SpinBox {
+            id: widgetSpacing
+
+            Kirigami.FormData.label: i18n("Element spacing:")
+            from: 0
+            to: 999
         }
-        RowLayout {
-            Label {
-                text: i18n("Show Time")
-            }
-            CheckBox {
-                id: showTime
-            }
+
+        QQC2.TextField {
+            id: localeField
+
+            Kirigami.FormData.label: i18n("Locale:")
+            Layout.fillWidth: true
+
+            placeholderText: i18n("e.g. fr_BE, en_GB, nl_BE")
+
+            QQC2.ToolTip.text: i18n("Locale used for weekday and month names. Leave empty to use the system locale.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
         }
-        NumberField {
-            id: timeFontSize
-            label: i18n("Font Size")
+
+        Kirigami.Heading {
+            text: i18n("Day")
+            level: 2
+            Layout.fillWidth: true
+            Kirigami.FormData.isSection: true
+        }
+
+        QQC2.CheckBox {
+            id: showDay
+            text: i18n("Show day")
+        }
+
+        QQC2.SpinBox {
+            id: dayFontSize
+
+            Kirigami.FormData.label: i18n("Font size:")
             from: 1
+            to: 999
         }
-        NumberField {
+
+        QQC2.SpinBox {
+            id: dayLetterSpacing
+
+            Kirigami.FormData.label: i18n("Letter spacing:")
+            from: 0
+            to: 999
+        }
+
+        QQC2.TextField {
+            id: dayFormat
+
+            Kirigami.FormData.label: i18n("Day format:")
+            Layout.fillWidth: true
+
+            placeholderText: "dddd"
+
+            QQC2.ToolTip.text: i18n("Use Qt date formats. For example: dddd = full weekday name, ddd = short weekday name.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        QQC2.CheckBox {
+            id: uppercaseDay
+            text: i18n("Uppercase")
+        }
+
+        QQC2.CheckBox {
+            id: dayFontBold
+            text: i18n("Bold")
+        }
+
+        KQControls.ColorButton {
+            id: dayFontColor
+
+            Kirigami.FormData.label: i18n("Font color:")
+            showAlphaChannel: false
+        }
+
+        Kirigami.Heading {
+            text: i18n("Date")
+            level: 2
+            Layout.fillWidth: true
+            Kirigami.FormData.isSection: true
+        }
+
+        QQC2.CheckBox {
+            id: showDate
+            text: i18n("Show date")
+        }
+
+        QQC2.SpinBox {
+            id: dateFontSize
+
+            Kirigami.FormData.label: i18n("Font size:")
+            from: 1
+            to: 999
+        }
+
+        QQC2.SpinBox {
+            id: dateLetterSpacing
+
+            Kirigami.FormData.label: i18n("Letter spacing:")
+            from: 0
+            to: 999
+        }
+
+        QQC2.TextField {
+            id: dateFormat
+
+            Kirigami.FormData.label: i18n("Date format:")
+            Layout.fillWidth: true
+
+            placeholderText: "dd MMM yyyy"
+
+            QQC2.ToolTip.text: i18n("Use Qt date formats like dd MMM yyyy, MM/dd/yyyy, or dddd d MMMM yyyy.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        QQC2.CheckBox {
+            id: uppercaseDate
+            text: i18n("Uppercase")
+        }
+
+        QQC2.CheckBox {
+            id: dateFontBold
+            text: i18n("Bold")
+        }
+
+        KQControls.ColorButton {
+            id: dateFontColor
+
+            Kirigami.FormData.label: i18n("Font color:")
+            showAlphaChannel: false
+        }
+
+        Kirigami.Heading {
+            text: i18n("Time")
+            level: 2
+            Layout.fillWidth: true
+            Kirigami.FormData.isSection: true
+        }
+
+        QQC2.CheckBox {
+            id: showTime
+            text: i18n("Show time")
+        }
+
+        QQC2.SpinBox {
+            id: timeFontSize
+
+            Kirigami.FormData.label: i18n("Font size:")
+            from: 1
+            to: 999
+        }
+
+        QQC2.SpinBox {
             id: timeLetterSpacing
-            label: i18n("Letter Spacing")
+
+            Kirigami.FormData.label: i18n("Letter spacing:")
+            from: 0
+            to: 999
         }
-        RowLayout {
-            Label {
-                text: i18n("Use 24 hour format")
-            }
-            CheckBox {
-                id: use24HourFormat
-            }
+
+        QQC2.CheckBox {
+            id: use24HourFormat
+            text: i18n("Use 24-hour format")
         }
-        RowLayout {
-            Label {
-                text: i18n("Time format")
-            }
-            TextField {
-                id: timeFormat
-                placeholderText: "hh:mm:ss | h:mm:ss AP | HH:mm:ss"
-                ToolTip.text: i18n("Use Qt time formats like 'hh:mm:ss', 'h:mm:ss AP', or 'HH:mm:ss'. h/H = 12h/24h (double letters zero-pad), m = minutes, s = seconds. Using seconds refreshes every second. Leave empty to keep the default 12/24h setting.")
-                ToolTip.visible: hovered
-                ToolTip.delay: 800
-            }
+
+        QQC2.TextField {
+            id: timeFormat
+
+            Kirigami.FormData.label: i18n("Time format:")
+            Layout.fillWidth: true
+
+            placeholderText: "hh:mm:ss | hh:mm AP"
+
+            QQC2.ToolTip.text: i18n("Use Qt time formats like hh:mm, hh:mm:ss, or hh:mm AP. Leave empty to use the 12/24-hour setting.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
         }
-        RowLayout {
-            Label {
-                text: i18n("Style Character")
-            }
-            TextField {
-                id: timeCharacter
-                maximumLength: 1
-                placeholderText: "-"
-                ToolTip.text: i18n("A single character displayed on both sides of the time. Leave empty to show no decoration.")
-                ToolTip.visible: hovered
-                ToolTip.delay: 800
-            }
+
+        QQC2.TextField {
+            id: timeCharacter
+
+            Kirigami.FormData.label: i18n("Decoration character:")
+            Layout.fillWidth: true
+
+            maximumLength: 1
+            placeholderText: "-"
+
+            QQC2.ToolTip.text: i18n("A character displayed on both sides of the time. Leave empty to show no decoration.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
         }
-        RowLayout {
-            Label {
-                text: i18n("Bold")
-            }
-            CheckBox {
-                id: timeFontBold
-            }
+
+        QQC2.CheckBox {
+            id: timeFontBold
+            text: i18n("Bold")
         }
-        ColorDial {
+
+        KQControls.ColorButton {
             id: timeFontColor
-            color: cfg_time_font_color
+
+            Kirigami.FormData.label: i18n("Font color:")
+            showAlphaChannel: false
         }
     }
 }

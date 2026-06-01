@@ -15,6 +15,7 @@
 </p>
 
 ## Improvements
+
 - Added support for seconds
 - Added support for custom time format
 - Added configurable spacing between elements
@@ -24,9 +25,12 @@
 - Added custom day format (e.g. full name vs abbreviated)
 - Added uppercase toggle for day and date rows
 - Added bold font toggle for day, date, and time sections
+- Added support for custom locale
 
 ## Installation
+
 #### KDE Store (Preferred way)
+
 1. Right click on the desktop
 2. Click on "Add Widgets"
 3. Click on "Get New Widgets"
@@ -35,7 +39,9 @@
 6. Click on "Install" and you're done!
 
 #### From this repository
+
 1. Clone this repository  
-`git clone https://github.com/YoannDev90/KDE-Modern-reClock && cd KDE-Modern-reClock/`  
+   `git clone https://github.com/YoannDev90/KDE-Modern-reClock && cd KDE-Modern-reClock/`
 2. Install using the script  
-`kpackagetool5 -i package` or `plasmapkg2 -i package`
+   `kpackagetool6 -t Plasma/Applet -i package` or `kpackagetool6 -t Plasma/Applet -u package` to update an existing
+   installation

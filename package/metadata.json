@@ -1,22 +1,25 @@
 {
-    "KPlugin": {
-        "Authors": [
-            {
-                "Email": "yoanndev@outlook.fr",
-                "Name": "Yoann"
-            }
-        ],
-        "Category": "Date and Time",
-        "Description": "A modern looking clock widget for your Desktop!",
-        "Icon": "clock",
-        "Id": "com.github.yoanndev90.modernreclock",
-        "License": "GPLv3",
-        "Name": "Modern reClock",
-        "Version": "1.0.1",
-        "Website": "https://github.com/YoannDev90/KDE-Modern-reClock"
-        
-    },
-    "X-Plasma-API-Minimum-Version": "6.0",
-    "X-Plasma-Provides": "org.kde.plasma.time,org.kde.plasma.date",
-    "KPackageStructure": "Plasma/Applet"
+  "KPlugin": {
+    "Authors": [
+      {
+        "Email": "yoanndev@outlook.fr",
+        "Name": "Yoann"
+      }
+    ],
+    "Category": "Date and Time",
+    "Description": "A modern looking clock widget for your Desktop!",
+    "Icon": "clock",
+    "Id": "com.github.yoanndev90.modernreclock",
+    "License": "GPLv3",
+    "Name": "Modern reClock",
+    "Version": "1.1.0",
+    "Website": "https://github.com/YoannDev90/KDE-Modern-reClock",
+    "BugReportUrl": "https://github.com/YoannDev90/KDE-Modern-reClock/issues"
+  },
+  "X-Plasma-API-Minimum-Version": "6.0",
+  "X-Plasma-Provides": [
+    "org.kde.plasma.time",
+    "org.kde.plasma.date"
+  ],
+  "KPackageStructure": "Plasma/Applet"
 }

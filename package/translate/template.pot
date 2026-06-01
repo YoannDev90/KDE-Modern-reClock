@@ -1,0 +1,122 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the modernreclock package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: modernreclock\n"
+"Report-Msgid-Bugs-To: https://github.com/YoannDev90/KDE-Modern-reClock/issues\n"
+"POT-Creation-Date: 2026-05-04 18:34+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: contents/config/config.qml
+msgid "Appearance"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "General"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Element spacing:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Locale:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "e.g. fr_BE, en_GB, nl_BE"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Locale used for weekday and month names. Leave empty to use the system locale."
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Day"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Show day"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Font size:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Letter spacing:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Day format:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Use Qt date formats. For example: dddd = full weekday name, ddd = short weekday name."
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Uppercase"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Bold"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Font color:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Date"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Show date"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Date format:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Use Qt date formats like dd MMM yyyy, MM/dd/yyyy, or dddd d MMMM yyyy."
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Time"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Show time"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Use 24-hour format"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Time format:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Use Qt time formats like hh:mm, hh:mm:ss, or hh:mm AP. Leave empty to use the 12/24-hour setting."
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Decoration character:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "A character displayed on both sides of the time. Leave empty to show no decoration."
+msgstr ""

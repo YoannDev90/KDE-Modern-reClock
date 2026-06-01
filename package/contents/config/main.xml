@@ -2,8 +2,7 @@
 
 <kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
-      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
     <kcfgfile name=""/>
     <group name="Appearance">
         <entry name="day_font_size" type="Int">
@@ -20,6 +19,9 @@
         </entry>
         <entry name="date_letter_spacing" type="Int">
             <default>3</default>
+        </entry>
+        <entry name="locale" type="String">
+            <default></default>
         </entry>
         <entry name="date_format" type="String">
             <default>dd MMM yyyy</default>
@@ -76,4 +78,4 @@
             <default>false</default>
         </entry>
     </group>
-</kcfg> 
+</kcfg>
