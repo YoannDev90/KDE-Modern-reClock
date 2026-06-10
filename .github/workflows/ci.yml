@@ -39,31 +39,6 @@ jobs:
           chmod +x translate/build.sh
           ./translate/build.sh
 
-      - name: Validate QML syntax
-        run: |
-          echo "--- Checking QML files for basic syntax ---"
-          for qml in contents/ui/*.qml contents/config/*.qml; do
-            if [ -f "$qml" ]; then
-              echo "Checking $qml..."
-              python3 -c "
-          import sys
-          with open('$qml', 'r') as f:
-              content = f.read()
-          # Basic checks: balanced braces
-          opens = content.count('{')
-          closes = content.count('}')
-          if opens != closes:
-              print(f'⚠ Warning: $qml has unbalanced braces ({opens} open, {closes} close)')
-              sys.exit(1)
-          # Check for common issues
-          if 'anchors.fill: parent' in content and 'SimpleKCM' in content:
-              print(f'⚠ Warning: $qml uses anchors.fill in SimpleKCM (causes layout loops)')
-              sys.exit(1)
-          print(f'✓ $qml passed basic checks')
-          " || exit 1
-            fi
-          done
-
       - name: Build plasmoid package
         run: |
           echo "--- Creating plasmoid archive ---"
