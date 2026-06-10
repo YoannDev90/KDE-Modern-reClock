@@ -124,3 +124,231 @@ msgstr "Caractère de décoration :"
 #: contents/ui/configAppearance.qml
 msgid "A character displayed on both sides of the time. Leave empty to show no decoration."
 msgstr "Un caractère affiché de chaque côté de l'heure. Laisser vide pour ne pas afficher de décoration."
+
+#: contents/ui/configAppearance.qml
+msgid "Auto-scale (fitting widget size)"
+msgstr "Mise à l'échelle automatique (ajustement à la taille du widget)"
+
+#: contents/ui/configAppearance.qml
+msgid "Element Order"
+msgstr "Ordre des éléments"
+
+#: contents/ui/configAppearance.qml
+msgid "Use the arrows to reorder elements from top to bottom."
+msgstr "Utilisez les flèches pour réorganiser les éléments de haut en bas."
+
+#: contents/ui/configAppearance.qml
+msgid "Reset Global Settings"
+msgstr "Réinitialiser les paramètres globaux"
+
+#: contents/ui/configAppearance.qml
+msgid "Restore global settings to defaults"
+msgstr "Restaurer les paramètres globaux par défaut"
+
+#: contents/ui/configAppearance.qml
+msgid "Reset Day Settings"
+msgstr "Réinitialiser les paramètres du jour"
+
+#: contents/ui/configAppearance.qml
+msgid "Restore day settings to defaults"
+msgstr "Restaurer les paramètres du jour par défaut"
+
+#: contents/ui/configAppearance.qml
+msgid "Reset Date Settings"
+msgstr "Réinitialiser les paramètres de la date"
+
+#: contents/ui/configAppearance.qml
+msgid "Restore date settings to defaults"
+msgstr "Restaurer les paramètres de la date par défaut"
+
+#: contents/ui/configAppearance.qml
+msgid "Reset Time Settings"
+msgstr "Réinitialiser les paramètres de l'heure"
+
+#: contents/ui/configAppearance.qml
+msgid "Restore time settings to defaults"
+msgstr "Restaurer les paramètres de l'heure par défaut"
+
+#: contents/ui/configAppearance.qml
+msgid "Themes"
+msgstr "Thèmes"
+
+#: contents/ui/configAppearance.qml
+msgid "Save Current Theme"
+msgstr "Enregistrer le thème actuel"
+
+#: contents/ui/configAppearance.qml
+msgid "No saved themes yet."
+msgstr "Aucun thème enregistré pour le moment."
+
+#: contents/ui/configAppearance.qml
+msgid "Import Theme"
+msgstr "Importer un thème"
+
+#: contents/ui/configAppearance.qml
+msgid "Advanced: Raw JSON"
+msgstr "Avancé : JSON brut"
+
+#: contents/ui/configAppearance.qml
+msgid "Save Theme"
+msgstr "Enregistrer le thème"
+
+#: contents/ui/configAppearance.qml
+msgid "Export Theme"
+msgstr "Exporter le thème"
+
+#: contents/ui/configAppearance.qml
+msgid "Copy this JSON to share or back up your theme."
+msgstr "Copiez ce JSON pour partager ou sauvegarder votre thème."
+
+#: contents/ui/configAppearance.qml
+msgid "Paste a theme JSON below. It will be added to your saved themes."
+msgstr "Collez un JSON de thème ci-dessous. Il sera ajouté à vos thèmes enregistrés."
+
+#: contents/ui/configAppearance.qml
+msgid "Paste theme JSON here..."
+msgstr "Collez le JSON du thème ici..."
+
+#: contents/ui/configAppearance.qml
+msgid "Invalid JSON: %1"
+msgstr "JSON invalide : %1"
+
+#: contents/ui/configAppearance.qml
+msgid "Widget Configuration (Raw JSON)"
+msgstr "Configuration du widget (JSON brut)"
+
+#: contents/ui/configAppearance.qml
+msgid "Copy this JSON to save your full config, or paste a previously saved JSON to restore it."
+msgstr "Copiez ce JSON pour sauvegarder votre configuration complète, ou collez un JSON précédemment enregistré pour la restaurer."
+
+#: contents/ui/configAppearance.qml
+msgid "Apply Pasted Config"
+msgstr "Appliquer la configuration collée"
+
+#: contents/ui/configAppearance.qml
+msgid "Reset to current"
+msgstr "Réinitialiser à l'actuel"
+
+#: contents/ui/configAppearance.qml
+msgid "Load this theme"
+msgstr "Charger ce thème"
+
+#: contents/ui/configAppearance.qml
+msgid "Export this theme"
+msgstr "Exporter ce thème"
+
+#: contents/ui/configAppearance.qml
+msgid "Delete this theme"
+msgstr "Supprimer ce thème"
+
+#: contents/ui/configAppearance.qml
+msgid "Untitled"
+msgstr "Sans titre"
+
+#: contents/ui/configAppearance.qml
+msgid "Name:"
+msgstr "Nom :"
+
+#: contents/ui/configAppearance.qml
+msgid "Description:"
+msgstr "Description :"
+
+#: contents/ui/configAppearance.qml
+msgid "My Theme"
+msgstr "Mon thème"
+
+#: contents/ui/configAppearance.qml
+msgid "Optional description"
+msgstr "Description optionnelle"
+
+#: contents/ui/configAppearance.qml
+msgid "Preview"
+msgstr "Aperçu"
+
+#: contents/ui/configAppearance.qml
+msgid "French"
+msgstr "Français"
+
+#: contents/ui/configAppearance.qml
+msgid "English (US)"
+msgstr "Anglais (États-Unis)"
+
+#: contents/ui/configAppearance.qml
+msgid "English (UK)"
+msgstr "Anglais (Royaume-Uni)"
+
+#: contents/ui/configAppearance.qml
+msgid "German"
+msgstr "Allemand"
+
+#: contents/ui/configAppearance.qml
+msgid "Spanish"
+msgstr "Espagnol"
+
+#: contents/ui/configAppearance.qml
+msgid "Italian"
+msgstr "Italien"
+
+#: contents/ui/configAppearance.qml
+msgid "Dutch"
+msgstr "Néerlandais"
+
+#: contents/ui/configAppearance.qml
+msgid "Polish"
+msgstr "Polonais"
+
+#: contents/ui/configAppearance.qml
+msgid "Portuguese"
+msgstr "Portugais"
+
+#: contents/ui/configAppearance.qml
+msgid "Russian"
+msgstr "Russe"
+
+#: contents/ui/configAppearance.qml
+msgid "Japanese"
+msgstr "Japonais"
+
+#: contents/ui/configAppearance.qml
+msgid "Language Preset:"
+msgstr "Préréglage de langue :"
+
+#: contents/config/configAbout.qml
+msgid "About"
+msgstr "À propos"
+
+#: contents/config/configAbout.qml
+msgid "Modern reClock"
+msgstr "Modern reClock"
+
+#: contents/config/configAbout.qml
+msgid "Version: %1"
+msgstr "Version : %1"
+
+#: contents/config/configAbout.qml
+msgid "A modern looking clock widget for your KDE Plasma desktop!"
+msgstr "Un widget d'horloge moderne pour votre bureau KDE Plasma !"
+
+#: contents/config/configAbout.qml
+msgid "Author"
+msgstr "Auteur"
+
+#: contents/config/configAbout.qml
+msgid "Links"
+msgstr "Liens"
+
+#: contents/config/configAbout.qml
+msgid "Source Code"
+msgstr "Code source"
+
+#: contents/config/configAbout.qml
+msgid "Report a Bug"
+msgstr "Signaler un bug"
+
+#: contents/config/configAbout.qml
+msgid "License"
+msgstr "Licence"
+
+#: contents/config/configAbout.qml
+msgid "This widget is licensed under the GNU General Public License v3.0 (GPLv3)."
+msgstr "Ce widget est sous licence GNU General Public License v3.0 (GPLv3)."

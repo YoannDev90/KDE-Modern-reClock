@@ -43,7 +43,25 @@ jobs:
                   DEST_PATH="assets/community/$FILE_NAME"
 
                   echo "Downloading $IMG_URL to $DEST_PATH"
-                  curl -L -o "$DEST_PATH" "$IMG_URL"
+
+                  # Download with size limit (5MB max) and validate it's an image
+                  HTTP_CODE=$(curl -L -o "$DEST_PATH" "$IMG_URL" --max-filesize 5242880 -s -w "%{http_code}")
+
+                  if [ "$HTTP_CODE" -ne 200 ]; then
+                    echo "Error: Failed to download image (HTTP $HTTP_CODE)"
+                    rm -f "$DEST_PATH"
+                    exit 1
+                  fi
+
+                  # Validate the file is actually an image
+                  FILE_MIME=$(file --mime-type -b "$DEST_PATH" 2>/dev/null || echo "")
+                  if [[ ! "$FILE_MIME" =~ ^image/ ]]; then
+                    echo "Error: Downloaded file is not an image (type: $FILE_MIME)"
+                    rm -f "$DEST_PATH"
+                    exit 1
+                  fi
+
+                  echo "✓ Downloaded and validated: $FILE_MIME"
 
                   # Prepare table row
                   REPO_FULL_NAME="${{ github.repository }}"

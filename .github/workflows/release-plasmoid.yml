@@ -39,6 +39,22 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          # Get commits since last tag
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [[ -n "$PREV_TAG" ]]; then
+            CHANGES=$(git log "$PREV_TAG..HEAD" --pretty=format:"- %s" --no-merges)
+          else
+            CHANGES=$(git log --pretty=format:"- %s" --no-merges -20)
+          fi
+          # Escape for GitHub Actions output
+          echo "changes<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Update metadata.json
         run: |
           VERSION=${{ steps.get_version.outputs.version }}
@@ -65,10 +81,8 @@ jobs:
 
             A modern clock widget for your KDE Plasma 6 desktop.
 
-            ### New Features
-            - Translation support (French included).
-            - Real-time updates for language and format settings.
-            - Optimized structure for Plasma 6.
+            ### Changes
+            ${{ steps.changelog.outputs.changes }}
 
             ### Installation
             1. Download `com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid`.

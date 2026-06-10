@@ -37,8 +37,15 @@ PlasmoidItem {
     property bool autoScale: plasmoid.configuration.auto_scale
 
     // ===== ELEMENT ORDER =====
+    readonly property var validElements: ["day", "date", "time"]
     property string elementOrderConfig: plasmoid.configuration.element_order
-    property var elementOrderArray: elementOrderConfig ? elementOrderConfig.split(",") : ["day", "date", "time"]
+    property var elementOrderArray: {
+        if (!elementOrderConfig) return validElements.slice();
+        var arr = elementOrderConfig.split(",").map(function(x) { return x.trim(); }).filter(function(x) {
+            return validElements.indexOf(x) !== -1;
+        });
+        return arr.length > 0 ? arr : validElements.slice();
+    }
 
     // ===== FONT FAMILIES =====
     property string fontFamilyDay: plasmoid.configuration.fontFamilyDay
@@ -104,6 +111,7 @@ PlasmoidItem {
         try {
             return date.toLocaleDateString(effectiveLocale(), fmt);
         } catch (e) {
+            console.warn("Modern reClock: date format failed for", fmt, "-", e.message);
             return Qt.formatDate(date, fallbackFormat);
         }
     }
@@ -116,12 +124,15 @@ PlasmoidItem {
             if (formatted && formatted.trim() !== "") {
                 return formatted;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("Modern reClock: time format failed for", format, "-", e.message);
+        }
 
         const fallbackFormat = use24HourFormat ? default24HourFormat : default12HourFormat;
         try {
             return date.toLocaleTimeString(effectiveLocale(), fallbackFormat);
         } catch (e) {
+            console.warn("Modern reClock: fallback time format failed -", e.message);
             return Qt.formatTime(date, fallbackFormat);
         }
     }
@@ -148,55 +159,21 @@ PlasmoidItem {
         return decoration + " " + formattedTime + " " + decoration;
     }
 
-    // ===== ELEMENT PROPERTY HELPERS =====
-    function elementVisible(type) {
-        if (type === "day") return plasmoid.configuration.show_day;
-        if (type === "date") return plasmoid.configuration.show_date;
-        if (type === "time") return plasmoid.configuration.show_time;
-        return false;
+    // ===== ELEMENT PROPERTY HELPERS (data-driven) =====
+    function _elementProps(type) {
+        if (type === "day") return { show: plasmoid.configuration.show_day, text: dayText(), font: fontFamilyDay, size: plasmoid.configuration.day_font_size, spacing: plasmoid.configuration.day_letter_spacing, bold: plasmoid.configuration.day_font_bold, color: plasmoid.configuration.day_font_color };
+        if (type === "date") return { show: plasmoid.configuration.show_date, text: dateText(), font: fontFamilyDate, size: plasmoid.configuration.date_font_size, spacing: plasmoid.configuration.date_letter_spacing, bold: plasmoid.configuration.date_font_bold, color: plasmoid.configuration.date_font_color };
+        if (type === "time") return { show: plasmoid.configuration.show_time, text: timeText(), font: fontFamilyTime, size: plasmoid.configuration.time_font_size, spacing: plasmoid.configuration.time_letter_spacing, bold: plasmoid.configuration.time_font_bold, color: plasmoid.configuration.time_font_color };
+        return null;
     }
 
-    function elementText(type) {
-        if (type === "day") return dayText();
-        if (type === "date") return dateText();
-        if (type === "time") return timeText();
-        return "";
-    }
-
-    function elementFont(type) {
-        if (type === "day") return fontFamilyDay;
-        if (type === "date") return fontFamilyDate;
-        if (type === "time") return fontFamilyTime;
-        return "";
-    }
-
-    function elementFontSize(type) {
-        if (type === "day") return plasmoid.configuration.day_font_size;
-        if (type === "date") return plasmoid.configuration.date_font_size;
-        if (type === "time") return plasmoid.configuration.time_font_size;
-        return 1;
-    }
-
-    function elementLetterSpacing(type) {
-        if (type === "day") return plasmoid.configuration.day_letter_spacing;
-        if (type === "date") return plasmoid.configuration.date_letter_spacing;
-        if (type === "time") return plasmoid.configuration.time_letter_spacing;
-        return 0;
-    }
-
-    function elementFontBold(type) {
-        if (type === "day") return plasmoid.configuration.day_font_bold;
-        if (type === "date") return plasmoid.configuration.date_font_bold;
-        if (type === "time") return plasmoid.configuration.time_font_bold;
-        return false;
-    }
-
-    function elementFontColor(type) {
-        if (type === "day") return plasmoid.configuration.day_font_color;
-        if (type === "date") return plasmoid.configuration.date_font_color;
-        if (type === "time") return plasmoid.configuration.time_font_color;
-        return "#FFFFFF";
-    }
+    function elementVisible(type) { var p = _elementProps(type); return p ? p.show : false; }
+    function elementText(type) { var p = _elementProps(type); return p ? p.text : ""; }
+    function elementFont(type) { var p = _elementProps(type); return p ? p.font : ""; }
+    function elementFontSize(type) { var p = _elementProps(type); return p ? p.size : 1; }
+    function elementLetterSpacing(type) { var p = _elementProps(type); return p ? p.spacing : 0; }
+    function elementFontBold(type) { var p = _elementProps(type); return p ? p.bold : false; }
+    function elementFontColor(type) { var p = _elementProps(type); return p ? p.color : "#FFFFFF"; }
 
     Timer {
         id: clockTimer

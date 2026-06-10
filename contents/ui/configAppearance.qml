@@ -73,7 +73,14 @@ KCM.SimpleKCM {
     property string previewDayText: ""
     property string previewDateText: ""
     property string previewTimeText: ""
-    property var previewOrderArray: cfg_element_order ? cfg_element_order.split(",") : ["day", "date", "time"]
+    property var previewOrderArray: {
+        if (!cfg_element_order) return ["day", "date", "time"];
+        var valid = ["day", "date", "time"];
+        var arr = cfg_element_order.split(",").map(function(x) { return x.trim(); }).filter(function(x) {
+            return valid.indexOf(x) !== -1;
+        });
+        return arr.length > 0 ? arr : valid;
+    }
 
     readonly property var configKeys: ["day_font_size", "day_letter_spacing", "show_day", "date_font_size", "date_letter_spacing", "locale", "date_format", "show_date", "time_font_size", "time_letter_spacing", "time_format", "time_font_color", "show_time", "date_font_color", "day_font_color", "use_24_hour_format", "time_character", "widget_spacing", "day_format", "uppercase_day", "uppercase_date", "day_font_bold", "date_font_bold", "time_font_bold", "auto_scale", "fontFamilyDay", "fontFamilyDate", "fontFamilyTime", "element_order", "saved_themes"]
 
@@ -113,6 +120,7 @@ KCM.SimpleKCM {
             let fmt = format && format.trim().length > 0 ? format.trim() : "dd MMM yyyy";
             return new Date().toLocaleDateString(previewEffectiveLocale(), fmt);
         } catch (e) {
+            console.warn("Modern reClock: preview date format failed for", format, "-", e.message);
             return Qt.formatDate(new Date(), "dd MMM yyyy");
         }
     }
@@ -126,11 +134,14 @@ KCM.SimpleKCM {
             let result = new Date().toLocaleTimeString(previewEffectiveLocale(), format);
             if (result && result.trim() !== "")
                 return result;
-        } catch (e) {}
+        } catch (e) {
+            console.warn("Modern reClock: preview time format failed for", format, "-", e.message);
+        }
         let fallback = cfg_use_24_hour_format ? "hh:mm" : "hh:mm AP";
         try {
             return new Date().toLocaleTimeString(previewEffectiveLocale(), fallback);
         } catch (e) {
+            console.warn("Modern reClock: preview fallback time format failed -", e.message);
             return Qt.formatTime(new Date(), fallback);
         }
     }
@@ -158,7 +169,51 @@ KCM.SimpleKCM {
         onTriggered: appearancePage.updatePreview()
     }
 
-    // ===== RESET FUNCTIONS =====
+    // ===== RESET FUNCTIONS (data-driven) =====
+    readonly property var sectionDefaults: ({
+        "day": { show: true, font: "Anurati", size: 72, spacing: 17, format: "dddd", uppercase: true, bold: false, color: "#FFFFFF" },
+        "date": { show: true, font: "Poppins", size: 19, spacing: 3, format: "dd MMM yyyy", uppercase: true, bold: false, color: "#FFFFFF" },
+        "time": { show: true, font: "Poppins", size: 19, spacing: 3, format: "", uppercase: false, bold: false, color: "#FFFFFF", h24: false, deco: "-" }
+    })
+
+    function resetSection(type) {
+        var d = sectionDefaults[type];
+        if (!d) return;
+        if (type === "day") {
+            showDay.checked = d.show;
+            cfg_fontFamilyDay = d.font;
+            dayFontCombo.currentIndex = Math.max(0, dayFontCombo.model.indexOf(d.font));
+            dayFontSize.value = d.size;
+            dayLetterSpacing.value = d.spacing;
+            dayFormat.text = d.format;
+            uppercaseDay.checked = d.uppercase;
+            dayFontBold.checked = d.bold;
+            dayFontColor.color = d.color;
+        } else if (type === "date") {
+            showDate.checked = d.show;
+            cfg_fontFamilyDate = d.font;
+            dateFontCombo.currentIndex = Math.max(0, dateFontCombo.model.indexOf(d.font));
+            dateFontSize.value = d.size;
+            dateLetterSpacing.value = d.spacing;
+            dateFormat.text = d.format;
+            uppercaseDate.checked = d.uppercase;
+            dateFontBold.checked = d.bold;
+            dateFontColor.color = d.color;
+        } else if (type === "time") {
+            showTime.checked = d.show;
+            cfg_fontFamilyTime = d.font;
+            timeFontCombo.currentIndex = Math.max(0, timeFontCombo.model.indexOf(d.font));
+            timeFontSize.value = d.size;
+            timeLetterSpacing.value = d.spacing;
+            timeFormat.text = d.format || "";
+            use24HourFormat.checked = d.h24 || false;
+            timeCharacter.text = d.deco || "-";
+            timeFontBold.checked = d.bold;
+            timeFontColor.color = d.color;
+        }
+        updatePreview();
+    }
+
     function resetGlobal() {
         autoScale.checked = false;
         widgetSpacing.value = 5;
@@ -172,45 +227,9 @@ KCM.SimpleKCM {
         updatePreview();
     }
 
-    function resetDay() {
-        showDay.checked = true;
-        cfg_fontFamilyDay = "Anurati";
-        dayFontCombo.currentIndex = Math.max(0, dayFontCombo.model.indexOf("Anurati"));
-        dayFontSize.value = 72;
-        dayLetterSpacing.value = 17;
-        dayFormat.text = "dddd";
-        uppercaseDay.checked = true;
-        dayFontBold.checked = false;
-        dayFontColor.color = "#FFFFFF";
-        updatePreview();
-    }
-
-    function resetDate() {
-        showDate.checked = true;
-        cfg_fontFamilyDate = "Poppins";
-        dateFontCombo.currentIndex = Math.max(0, dateFontCombo.model.indexOf("Poppins"));
-        dateFontSize.value = 19;
-        dateLetterSpacing.value = 3;
-        dateFormat.text = "dd MMM yyyy";
-        uppercaseDate.checked = true;
-        dateFontBold.checked = false;
-        dateFontColor.color = "#FFFFFF";
-        updatePreview();
-    }
-
-    function resetTime() {
-        showTime.checked = true;
-        cfg_fontFamilyTime = "Poppins";
-        timeFontCombo.currentIndex = Math.max(0, timeFontCombo.model.indexOf("Poppins"));
-        timeFontSize.value = 19;
-        timeLetterSpacing.value = 3;
-        timeFormat.text = "";
-        use24HourFormat.checked = false;
-        timeCharacter.text = "-";
-        timeFontBold.checked = false;
-        timeFontColor.color = "#FFFFFF";
-        updatePreview();
-    }
+    function resetDay() { resetSection("day"); }
+    function resetDate() { resetSection("date"); }
+    function resetTime() { resetSection("time"); }
 
     // ===== THEME FUNCTIONS =====
     function saveCurrentTheme(name, description) {
@@ -226,6 +245,10 @@ KCM.SimpleKCM {
         if (index < 0 || index >= savedThemes.length)
             return;
         let theme = savedThemes[index];
+        if (!theme || !theme.config) {
+            console.warn("Modern reClock: theme at index", index, "has no valid config");
+            return;
+        }
         applyConfig(JSON.stringify(theme.config));
         updatePreview();
     }
@@ -365,7 +388,7 @@ KCM.SimpleKCM {
                     "h24": true
                 },
                 {
-                    "text": "Français",
+                    "text": i18n("French"),
                     "locale": "fr_FR",
                     "day": "dddd",
                     "date": "d MMMM yyyy",
@@ -373,7 +396,7 @@ KCM.SimpleKCM {
                     "h24": true
                 },
                 {
-                    "text": "English (US)",
+                    "text": i18n("English (US)"),
                     "locale": "en_US",
                     "day": "dddd",
                     "date": "MMMM d, yyyy",
@@ -381,7 +404,7 @@ KCM.SimpleKCM {
                     "h24": false
                 },
                 {
-                    "text": "English (UK)",
+                    "text": i18n("English (UK)"),
                     "locale": "en_GB",
                     "day": "dddd",
                     "date": "d MMMM yyyy",
@@ -389,7 +412,7 @@ KCM.SimpleKCM {
                     "h24": true
                 },
                 {
-                    "text": "Deutsch",
+                    "text": i18n("German"),
                     "locale": "de_DE",
                     "day": "dddd",
                     "date": "d. MMMM yyyy",
@@ -397,7 +420,7 @@ KCM.SimpleKCM {
                     "h24": true
                 },
                 {
-                    "text": "Español",
+                    "text": i18n("Spanish"),
                     "locale": "es_ES",
                     "day": "dddd",
                     "date": "d 'de' MMMM 'de' yyyy",
@@ -405,7 +428,7 @@ KCM.SimpleKCM {
                     "h24": true
                 },
                 {
-                    "text": "Italiano",
+                    "text": i18n("Italian"),
                     "locale": "it_IT",
                     "day": "dddd",
                     "date": "d MMMM yyyy",
@@ -413,7 +436,7 @@ KCM.SimpleKCM {
                     "h24": true
                 },
                 {
-                    "text": "Nederlands",
+                    "text": i18n("Dutch"),
                     "locale": "nl_NL",
                     "day": "dddd",
                     "date": "d MMMM yyyy",
@@ -421,7 +444,7 @@ KCM.SimpleKCM {
                     "h24": true
                 },
                 {
-                    "text": "Polski",
+                    "text": i18n("Polish"),
                     "locale": "pl_PL",
                     "day": "dddd",
                     "date": "d MMMM yyyy",
@@ -429,7 +452,7 @@ KCM.SimpleKCM {
                     "h24": true
                 },
                 {
-                    "text": "Português",
+                    "text": i18n("Portuguese"),
                     "locale": "pt_PT",
                     "day": "dddd",
                     "date": "d MMMM yyyy",
@@ -437,7 +460,7 @@ KCM.SimpleKCM {
                     "h24": true
                 },
                 {
-                    "text": "Русский",
+                    "text": i18n("Russian"),
                     "locale": "ru_RU",
                     "day": "dddd",
                     "date": "d MMMM yyyy",
@@ -445,7 +468,7 @@ KCM.SimpleKCM {
                     "h24": true
                 },
                 {
-                    "text": "日本語",
+                    "text": i18n("Japanese"),
                     "locale": "ja_JP",
                     "day": "dddd",
                     "date": "yyyy年M月d日",
