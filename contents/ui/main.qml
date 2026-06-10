@@ -41,11 +41,19 @@ PlasmoidItem {
     readonly property var validElements: ["day", "date", "time", "custom", "timezone"]
     property string elementOrderConfig: plasmoid.configuration.element_order
     property var elementOrderArray: {
-        if (!elementOrderConfig) return validElements.slice();
-        var arr = elementOrderConfig.split(",").map(function(x) { return x.trim(); }).filter(function(x) {
-            return validElements.indexOf(x) !== -1;
-        });
-        return arr.length > 0 ? arr : validElements.slice();
+        var base;
+        if (!elementOrderConfig) {
+            base = validElements.slice();
+        } else {
+            base = elementOrderConfig.split(",").map(function(x) { return x.trim(); }).filter(function(x) {
+                return validElements.indexOf(x) !== -1;
+            });
+        }
+        // Auto-append enabled elements not yet in the order (handles migration from older configs)
+        var cfg = plasmoid.configuration;
+        if (cfg.show_custom && base.indexOf("custom") === -1) base.push("custom");
+        if (cfg.show_timezone && base.indexOf("timezone") === -1) base.push("timezone");
+        return base.length > 0 ? base : validElements.slice();
     }
 
     // ===== FONT FAMILIES =====

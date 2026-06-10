@@ -63,6 +63,7 @@ KCM.SimpleKCM {
 
     // ===== Timezone element properties =====
     property alias cfg_show_timezone: showTimezone.checked
+    property alias cfg_timezone_id: timezoneIdField.text
     property alias cfg_timezone_label: timezoneLabel.text
     property alias cfg_timezone_format: timezoneFmt.text
     property alias cfg_timezone_font_size: timezoneFontSize.value
@@ -1084,7 +1085,6 @@ KCM.SimpleKCM {
             QQC2.ToolTip.text: i18n("IANA timezone identifier. Find yours at timezonedb.com")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
-            onTextChanged: plasmoid.configuration.timezone_id = text
         }
 
         QQC2.TextField {

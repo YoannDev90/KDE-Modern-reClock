@@ -15,7 +15,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qt6-declarative-dev qt6-base-dev gettext libxml2-utils
+          sudo apt-get install -y qt6-declarative-dev-tools qt6-base-dev gettext libxml2-utils
 
       - name: Validate KCFG XML
         run: |
@@ -26,6 +26,30 @@ jobs:
         run: |
           echo "--- Validating metadata.json ---"
           python3 -c "import json; json.load(open('metadata.json'))" && echo "✓ metadata.json is valid JSON" || exit 1
+
+      - name: Validate QML syntax
+        run: |
+          echo "--- Validating QML files with qmllint ---"
+          ERRORS=0
+          for qml in contents/ui/*.qml contents/config/*.qml; do
+            if qmllint --no-copyright "$qml" 2>/dev/null; then
+              echo "✓ $qml"
+            else
+              echo "⚠ $qml (qmllint returned warnings — checking syntax only)"
+              # Fallback: check basic QML parse with qmlformat dry-run
+              if qmlformat --check "$qml" 2>/dev/null; then
+                echo "  ✓ $qml passes qmlformat check"
+              else
+                echo "  ✗ $qml has syntax errors"
+                ERRORS=$((ERRORS + 1))
+              fi
+            fi
+          done
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "✗ $ERRORS file(s) have QML syntax errors"
+            exit 1
+          fi
+          echo "✓ All QML files validated"
 
       - name: Validate translations
         run: |

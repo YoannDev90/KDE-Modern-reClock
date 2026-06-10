@@ -93,8 +93,8 @@
             <default>Poppins</default>
         </entry>
         <entry name="element_order" type="String">
-            <label>Order of elements from top to bottom. Comma-separated list of: day, date, time</label>
-            <default>day,date,time</default>
+            <label>Order of elements from top to bottom. Comma-separated list of: day, date, time, custom, timezone</label>
+            <default>day,date,time,custom,timezone</default>
         </entry>
         <entry name="saved_themes" type="String">
             <label>Saved themes as a JSON array</label>
