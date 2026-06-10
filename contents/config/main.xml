@@ -96,5 +96,9 @@
             <label>Order of elements from top to bottom. Comma-separated list of: day, date, time</label>
             <default>day,date,time</default>
         </entry>
+        <entry name="saved_themes" type="String">
+            <label>Saved themes as a JSON array</label>
+            <default></default>
+        </entry>
     </group>
 </kcfg>

@@ -39,7 +39,7 @@ jobs:
                     FILE_EXT="png"
                   fi
 
-                  FILE_NAME="screenshot_${ISSUE_NUM}.${FILE_EXT}"
+                  FILE_NAME="screenshot_${ISSUE_NUM}_${USER_NAME}.${FILE_EXT}"
                   DEST_PATH="assets/community/$FILE_NAME"
 
                   echo "Downloading $IMG_URL to $DEST_PATH"
@@ -47,10 +47,10 @@ jobs:
 
                   # Prepare table row
                   REPO_FULL_NAME="${{ github.repository }}"
-                  NEW_ROW="| @$USER_NAME | ![$USER_NAME](https://github.com/${REPO_FULL_NAME}/blob/main/${DEST_PATH}?raw=true) |"
+                  NEW_ROW="| ![$USER_NAME](https://github.com/${REPO_FULL_NAME}/blob/main/${DEST_PATH}?raw=true) |"
 
-                  # Safe insert using awk to avoid sed delimiter issues
-                  awk -v row="$NEW_ROW" '/<!-- COMMUNITY_SCREENSHOTS_START -->/{print; print row; next}1' README.md > README.md.tmp && mv README.md.tmp README.md
+                  # Insert new row before the END marker so it lands after the table header
+                  awk -v row="$NEW_ROW" '/<!-- COMMUNITY_SCREENSHOTS_END -->/{print row} {print}' README.md > README.md.tmp && mv README.md.tmp README.md
 
                   # Git commit and push
                   git config --global user.name "github-actions[bot]"
