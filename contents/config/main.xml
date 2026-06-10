@@ -100,5 +100,70 @@
             <label>Saved themes as a JSON array</label>
             <default></default>
         </entry>
+
+        <!-- Custom text element -->
+        <entry name="show_custom" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="custom_text" type="String">
+            <default></default>
+        </entry>
+        <entry name="custom_format" type="Bool">
+            <label>Interpret custom text as Qt date/time format</label>
+            <default>false</default>
+        </entry>
+        <entry name="fontFamilyCustom" type="String">
+            <default>Poppins</default>
+        </entry>
+        <entry name="custom_font_size" type="Int">
+            <default>19</default>
+        </entry>
+        <entry name="custom_letter_spacing" type="Int">
+            <default>3</default>
+        </entry>
+        <entry name="custom_font_bold" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="custom_font_color" type="Color">
+            <default>#FFFFFF</default>
+        </entry>
+
+        <!-- Secondary timezone element -->
+        <entry name="show_timezone" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="timezone_id" type="String">
+            <label>IANA timezone ID, e.g. America/New_York</label>
+            <default></default>
+        </entry>
+        <entry name="timezone_label" type="String">
+            <label>Short label displayed before the timezone time</label>
+            <default></default>
+        </entry>
+        <entry name="timezone_format" type="String">
+            <label>Time format for the timezone display</label>
+            <default>HH:mm</default>
+        </entry>
+        <entry name="fontFamilyTimezone" type="String">
+            <default>Poppins</default>
+        </entry>
+        <entry name="timezone_font_size" type="Int">
+            <default>19</default>
+        </entry>
+        <entry name="timezone_letter_spacing" type="Int">
+            <default>3</default>
+        </entry>
+        <entry name="timezone_font_bold" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="timezone_font_color" type="Color">
+            <default>#FFFFFF</default>
+        </entry>
+
+        <!-- Theme adaptation -->
+        <entry name="adapt_to_theme" type="Bool">
+            <label>Override element colors with the system theme text color</label>
+            <default>false</default>
+        </entry>
     </group>
 </kcfg>

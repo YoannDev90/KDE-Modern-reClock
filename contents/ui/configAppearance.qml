@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.kquickcontrols as KQControls
+import org.kde.plasma.core as PlasmaCore
 
 KCM.SimpleKCM {
     id: appearancePage
@@ -42,11 +43,32 @@ KCM.SimpleKCM {
     property string cfg_fontFamilyDay
     property string cfg_fontFamilyDate
     property string cfg_fontFamilyTime
+    property string cfg_fontFamilyCustom
+    property string cfg_fontFamilyTimezone
 
     property alias cfg_widget_spacing: widgetSpacing.value
 
     property alias cfg_locale: localeField.text
     property alias cfg_auto_scale: autoScale.checked
+    property alias cfg_adapt_to_theme: adaptToTheme.checked
+
+    // ===== Custom text element properties =====
+    property alias cfg_show_custom: showCustom.checked
+    property alias cfg_custom_text: customTextField.text
+    property alias cfg_custom_format: customFormat.checked
+    property alias cfg_custom_font_size: customFontSize.value
+    property alias cfg_custom_letter_spacing: customLetterSpacing.value
+    property alias cfg_custom_font_bold: customFontBold.checked
+    property alias cfg_custom_font_color: customFontColor.color
+
+    // ===== Timezone element properties =====
+    property alias cfg_show_timezone: showTimezone.checked
+    property alias cfg_timezone_label: timezoneLabel.text
+    property alias cfg_timezone_format: timezoneFmt.text
+    property alias cfg_timezone_font_size: timezoneFontSize.value
+    property alias cfg_timezone_letter_spacing: timezoneLetterSpacing.value
+    property alias cfg_timezone_font_bold: timezoneFontBold.checked
+    property alias cfg_timezone_font_color: timezoneFontColor.color
 
     property alias cfg_element_order: elementOrderField.text
 
@@ -69,20 +91,25 @@ KCM.SimpleKCM {
         catch (e) { return []; }
     }
 
+    // ===== System theme color for adapt_to_theme =====
+    readonly property color systemTextColor: PlasmaCore.Theme ? PlasmaCore.Theme.textColor : "#000000"
+
     // ===== Live preview =====
     property string previewDayText: ""
     property string previewDateText: ""
     property string previewTimeText: ""
+    property string previewCustomText: ""
+    property string previewTimezoneText: ""
     property var previewOrderArray: {
         if (!cfg_element_order) return ["day", "date", "time"];
-        var valid = ["day", "date", "time"];
+        var valid = ["day", "date", "time", "custom", "timezone"];
         var arr = cfg_element_order.split(",").map(function(x) { return x.trim(); }).filter(function(x) {
             return valid.indexOf(x) !== -1;
         });
         return arr.length > 0 ? arr : valid;
     }
 
-    readonly property var configKeys: ["day_font_size", "day_letter_spacing", "show_day", "date_font_size", "date_letter_spacing", "locale", "date_format", "show_date", "time_font_size", "time_letter_spacing", "time_format", "time_font_color", "show_time", "date_font_color", "day_font_color", "use_24_hour_format", "time_character", "widget_spacing", "day_format", "uppercase_day", "uppercase_date", "day_font_bold", "date_font_bold", "time_font_bold", "auto_scale", "fontFamilyDay", "fontFamilyDate", "fontFamilyTime", "element_order", "saved_themes"]
+    readonly property var configKeys: ["day_font_size", "day_letter_spacing", "show_day", "date_font_size", "date_letter_spacing", "locale", "date_format", "show_date", "time_font_size", "time_letter_spacing", "time_format", "time_font_color", "show_time", "date_font_color", "day_font_color", "use_24_hour_format", "time_character", "widget_spacing", "day_format", "uppercase_day", "uppercase_date", "day_font_bold", "date_font_bold", "time_font_bold", "auto_scale", "adapt_to_theme", "fontFamilyDay", "fontFamilyDate", "fontFamilyTime", "fontFamilyCustom", "fontFamilyTimezone", "element_order", "saved_themes", "show_custom", "custom_text", "custom_format", "custom_font_size", "custom_letter_spacing", "custom_font_bold", "custom_font_color", "show_timezone", "timezone_id", "timezone_label", "timezone_format", "timezone_font_size", "timezone_letter_spacing", "timezone_font_bold", "timezone_font_color"]
 
     function getFullConfig() {
         if (typeof (plasmoid) === "undefined" || !plasmoid || !plasmoid.configuration)
@@ -158,6 +185,41 @@ KCM.SimpleKCM {
         let deco = cfg_time_character || "";
         previewTimeText = deco.trim().length > 0 ? deco + " " + time + " " + deco : time;
 
+        // Custom text preview
+        var customTxt = cfg_custom_text || "";
+        if (customTxt.length > 0 && cfg_custom_format) {
+            try {
+                var formatted = Qt.formatDateTime(new Date(), customTxt);
+                previewCustomText = formatted && formatted.length > 0 ? formatted : customTxt;
+            } catch (e) {
+                previewCustomText = customTxt;
+            }
+        } else {
+            previewCustomText = customTxt;
+        }
+
+        // Timezone preview
+        var tzId = plasmoid.configuration.timezone_id || "";
+        var tzLabel = cfg_timezone_label || "";
+        var tzFormat = cfg_timezone_format || "HH:mm";
+        if (tzId.length > 0) {
+            try {
+                var now = new Date();
+                var formatter = new Intl.DateTimeFormat(Qt.locale().name, {
+                    timeZone: tzId, hour: "2-digit", minute: "2-digit", hour12: false
+                });
+                var tzTime = formatter.format(now);
+                var h24 = tzTime.split(":")[0] || "00";
+                var min = tzTime.split(":")[1] || "00";
+                var result = tzFormat.replace("HH", h24).replace("H", parseInt(h24).toString()).replace("mm", min).replace("m", parseInt(min).toString());
+                previewTimezoneText = tzLabel.length > 0 ? tzLabel + " " + result : result;
+            } catch (e) {
+                previewTimezoneText = tzLabel.length > 0 ? tzLabel + " ??" : "??";
+            }
+        } else {
+            previewTimezoneText = "";
+        }
+
         previewOrderArray = cfg_element_order ? cfg_element_order.split(",") : ["day", "date", "time"];
     }
 
@@ -173,7 +235,9 @@ KCM.SimpleKCM {
     readonly property var sectionDefaults: ({
         "day": { show: true, font: "Anurati", size: 72, spacing: 17, format: "dddd", uppercase: true, bold: false, color: "#FFFFFF" },
         "date": { show: true, font: "Poppins", size: 19, spacing: 3, format: "dd MMM yyyy", uppercase: true, bold: false, color: "#FFFFFF" },
-        "time": { show: true, font: "Poppins", size: 19, spacing: 3, format: "", uppercase: false, bold: false, color: "#FFFFFF", h24: false, deco: "-" }
+        "time": { show: true, font: "Poppins", size: 19, spacing: 3, format: "", uppercase: false, bold: false, color: "#FFFFFF", h24: false, deco: "-" },
+        "custom": { show: false, font: "Poppins", size: 19, spacing: 3, text: "", formatText: false, bold: false, color: "#FFFFFF" },
+        "timezone": { show: false, font: "Poppins", size: 19, spacing: 3, id: "", label: "", format: "HH:mm", bold: false, color: "#FFFFFF" }
     })
 
     function resetSection(type) {
@@ -210,12 +274,34 @@ KCM.SimpleKCM {
             timeCharacter.text = d.deco || "-";
             timeFontBold.checked = d.bold;
             timeFontColor.color = d.color;
+        } else if (type === "custom") {
+            showCustom.checked = d.show;
+            cfg_fontFamilyCustom = d.font;
+            customFontCombo.currentIndex = Math.max(0, customFontCombo.model.indexOf(d.font));
+            customFontSize.value = d.size;
+            customLetterSpacing.value = d.spacing;
+            customTextField.text = d.text || "";
+            customFormat.checked = d.formatText || false;
+            customFontBold.checked = d.bold;
+            customFontColor.color = d.color;
+        } else if (type === "timezone") {
+            showTimezone.checked = d.show;
+            cfg_fontFamilyTimezone = d.font;
+            timezoneFontCombo.currentIndex = Math.max(0, timezoneFontCombo.model.indexOf(d.font));
+            timezoneFontSize.value = d.size;
+            timezoneLetterSpacing.value = d.spacing;
+            timezoneIdField.text = d.id || "";
+            timezoneLabel.text = d.label || "";
+            timezoneFmt.text = d.format || "HH:mm";
+            timezoneFontBold.checked = d.bold;
+            timezoneFontColor.color = d.color;
         }
         updatePreview();
     }
 
     function resetGlobal() {
         autoScale.checked = false;
+        adaptToTheme.checked = false;
         widgetSpacing.value = 5;
         localeField.text = "";
         elementOrderField.text = "day,date,time";
@@ -223,6 +309,8 @@ KCM.SimpleKCM {
         orderListModel.append({ "key": "day", "label": i18n("Day") });
         orderListModel.append({ "key": "date", "label": i18n("Date") });
         orderListModel.append({ "key": "time", "label": i18n("Time") });
+        orderListModel.append({ "key": "custom", "label": i18n("Custom") });
+        orderListModel.append({ "key": "timezone", "label": i18n("Timezone") });
         languageCombo.currentIndex = 0;
         updatePreview();
     }
@@ -230,6 +318,8 @@ KCM.SimpleKCM {
     function resetDay() { resetSection("day"); }
     function resetDate() { resetSection("date"); }
     function resetTime() { resetSection("time"); }
+    function resetCustom() { resetSection("custom"); }
+    function resetTimezone() { resetSection("timezone"); }
 
     // ===== THEME FUNCTIONS =====
     function saveCurrentTheme(name, description) {
@@ -304,42 +394,57 @@ KCM.SimpleKCM {
                             if (modelData === "day") return showDay.checked;
                             if (modelData === "date") return showDate.checked;
                             if (modelData === "time") return showTime.checked;
+                            if (modelData === "custom") return showCustom.checked && appearancePage.previewCustomText.length > 0;
+                            if (modelData === "timezone") return showTimezone.checked && appearancePage.previewTimezoneText.length > 0;
                             return false;
                         }
                         text: {
                             if (modelData === "day") return appearancePage.previewDayText;
                             if (modelData === "date") return appearancePage.previewDateText;
                             if (modelData === "time") return appearancePage.previewTimeText;
+                            if (modelData === "custom") return appearancePage.previewCustomText;
+                            if (modelData === "timezone") return appearancePage.previewTimezoneText;
                             return "";
                         }
                         font.family: {
                             if (modelData === "day") return appearancePage.cfg_fontFamilyDay;
                             if (modelData === "date") return appearancePage.cfg_fontFamilyDate;
                             if (modelData === "time") return appearancePage.cfg_fontFamilyTime;
+                            if (modelData === "custom") return appearancePage.cfg_fontFamilyCustom;
+                            if (modelData === "timezone") return appearancePage.cfg_fontFamilyTimezone;
                             return "";
                         }
                         font.pixelSize: {
                             if (modelData === "day") return Math.min(dayFontSize.value, 36);
                             if (modelData === "date") return Math.min(dateFontSize.value, 20);
                             if (modelData === "time") return Math.min(timeFontSize.value, 20);
+                            if (modelData === "custom") return Math.min(customFontSize.value, 20);
+                            if (modelData === "timezone") return Math.min(timezoneFontSize.value, 20);
                             return 1;
                         }
                         font.letterSpacing: {
                             if (modelData === "day") return dayLetterSpacing.value;
                             if (modelData === "date") return dateLetterSpacing.value;
                             if (modelData === "time") return timeLetterSpacing.value;
+                            if (modelData === "custom") return customLetterSpacing.value;
+                            if (modelData === "timezone") return timezoneLetterSpacing.value;
                             return 0;
                         }
                         font.bold: {
                             if (modelData === "day") return dayFontBold.checked;
                             if (modelData === "date") return dateFontBold.checked;
                             if (modelData === "time") return timeFontBold.checked;
+                            if (modelData === "custom") return customFontBold.checked;
+                            if (modelData === "timezone") return timezoneFontBold.checked;
                             return false;
                         }
                         color: {
+                            if (appearancePage.cfg_adapt_to_theme) return appearancePage.systemTextColor;
                             if (modelData === "day") return dayFontColor.color;
                             if (modelData === "date") return dateFontColor.color;
                             if (modelData === "time") return timeFontColor.color;
+                            if (modelData === "custom") return customFontColor.color;
+                            if (modelData === "timezone") return timezoneFontColor.color;
                             return "#FFFFFF";
                         }
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -365,6 +470,14 @@ KCM.SimpleKCM {
                     appearancePage.cfg_auto_scale = checked;
                 }
             }
+        }
+
+        QQC2.CheckBox {
+            id: adaptToTheme
+            text: i18n("Adapt colors to system theme")
+            QQC2.ToolTip.text: i18n("Override element colors with the system theme text color for better contrast")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
         }
 
         QQC2.SpinBox {
@@ -573,6 +686,8 @@ KCM.SimpleKCM {
                 let label = order[i] === "day" ? i18n("Day")
                     : order[i] === "date" ? i18n("Date")
                     : order[i] === "time" ? i18n("Time")
+                    : order[i] === "custom" ? i18n("Custom")
+                    : order[i] === "timezone" ? i18n("Timezone")
                     : order[i];
                 orderListModel.append({ "key": order[i], "label": label });
             }
@@ -863,6 +978,181 @@ KCM.SimpleKCM {
             Layout.alignment: Qt.AlignRight
             onClicked: appearancePage.resetTime()
             QQC2.ToolTip.text: i18n("Restore time settings to defaults")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        // ================= SECTION: CUSTOM TEXT =================
+        Kirigami.Heading {
+            text: i18n("Custom Text")
+            level: 2
+            Layout.fillWidth: true
+            Kirigami.FormData.isSection: true
+        }
+
+        QQC2.CheckBox {
+            id: showCustom
+            text: i18n("Show custom text")
+        }
+
+        QQC2.TextField {
+            id: customTextField
+            Kirigami.FormData.label: i18n("Text:")
+            Layout.fillWidth: true
+            placeholderText: i18n("e.g. Good Morning, or HH:mm for live time")
+            QQC2.ToolTip.text: i18n("Static text, or a Qt date/time format (e.g. dddd, HH:mm, yyyy-MM-dd)")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        QQC2.CheckBox {
+            id: customFormat
+            text: i18n("Interpret as date/time format")
+            QQC2.ToolTip.text: i18n("When enabled, Qt format tokens like dddd or HH:mm are replaced with the current date/time")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        QQC2.ComboBox {
+            id: customFontCombo
+            Kirigami.FormData.label: i18n("Font:")
+            Layout.fillWidth: true
+            model: appearancePage.systemFontList
+            currentIndex: Math.max(0, model.indexOf(appearancePage.cfg_fontFamilyCustom))
+            editable: true
+            onActivated: appearancePage.cfg_fontFamilyCustom = model[currentIndex]
+            onEditTextChanged: {
+                if (editText !== undefined && model.indexOf(editText) !== -1) {
+                    appearancePage.cfg_fontFamilyCustom = editText;
+                }
+            }
+        }
+
+        QQC2.SpinBox {
+            id: customFontSize
+            Kirigami.FormData.label: i18n("Font size:")
+            from: 1
+            to: 999
+        }
+
+        QQC2.SpinBox {
+            id: customLetterSpacing
+            Kirigami.FormData.label: i18n("Letter spacing:")
+            from: 0
+            to: 999
+        }
+
+        QQC2.CheckBox {
+            id: customFontBold
+            text: i18n("Bold")
+        }
+
+        KQControls.ColorButton {
+            id: customFontColor
+            Kirigami.FormData.label: i18n("Font color:")
+            showAlphaChannel: false
+        }
+
+        QQC2.Button {
+            text: i18n("Reset Custom Text Settings")
+            icon.name: "edit-undo"
+            Layout.alignment: Qt.AlignRight
+            onClicked: appearancePage.resetCustom()
+            QQC2.ToolTip.text: i18n("Restore custom text settings to defaults")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        // ================= SECTION: TIMEZONE =================
+        Kirigami.Heading {
+            text: i18n("Secondary Timezone")
+            level: 2
+            Layout.fillWidth: true
+            Kirigami.FormData.isSection: true
+        }
+
+        QQC2.CheckBox {
+            id: showTimezone
+            text: i18n("Show secondary timezone")
+        }
+
+        QQC2.TextField {
+            id: timezoneIdField
+            Kirigami.FormData.label: i18n("Timezone ID:")
+            Layout.fillWidth: true
+            placeholderText: i18n("e.g. America/New_York, Europe/Tokyo")
+            QQC2.ToolTip.text: i18n("IANA timezone identifier. Find yours at timezonedb.com")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+            onTextChanged: plasmoid.configuration.timezone_id = text
+        }
+
+        QQC2.TextField {
+            id: timezoneLabel
+            Kirigami.FormData.label: i18n("Label:")
+            Layout.fillWidth: true
+            placeholderText: i18n("e.g. NYC, Tokyo")
+            QQC2.ToolTip.text: i18n("Short label displayed before the timezone time. Leave empty for no label.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        QQC2.TextField {
+            id: timezoneFmt
+            Kirigami.FormData.label: i18n("Format:")
+            Layout.fillWidth: true
+            placeholderText: "HH:mm"
+            QQC2.ToolTip.text: i18n("Time format using HH (24h), H, mm, m tokens")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        QQC2.ComboBox {
+            id: timezoneFontCombo
+            Kirigami.FormData.label: i18n("Font:")
+            Layout.fillWidth: true
+            model: appearancePage.systemFontList
+            currentIndex: Math.max(0, model.indexOf(appearancePage.cfg_fontFamilyTimezone))
+            editable: true
+            onActivated: appearancePage.cfg_fontFamilyTimezone = model[currentIndex]
+            onEditTextChanged: {
+                if (editText !== undefined && model.indexOf(editText) !== -1) {
+                    appearancePage.cfg_fontFamilyTimezone = editText;
+                }
+            }
+        }
+
+        QQC2.SpinBox {
+            id: timezoneFontSize
+            Kirigami.FormData.label: i18n("Font size:")
+            from: 1
+            to: 999
+        }
+
+        QQC2.SpinBox {
+            id: timezoneLetterSpacing
+            Kirigami.FormData.label: i18n("Letter spacing:")
+            from: 0
+            to: 999
+        }
+
+        QQC2.CheckBox {
+            id: timezoneFontBold
+            text: i18n("Bold")
+        }
+
+        KQControls.ColorButton {
+            id: timezoneFontColor
+            Kirigami.FormData.label: i18n("Font color:")
+            showAlphaChannel: false
+        }
+
+        QQC2.Button {
+            text: i18n("Reset Timezone Settings")
+            icon.name: "edit-undo"
+            Layout.alignment: Qt.AlignRight
+            onClicked: appearancePage.resetTimezone()
+            QQC2.ToolTip.text: i18n("Restore timezone settings to defaults")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
         }

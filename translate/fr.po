@@ -26,10 +26,6 @@ msgid "General"
 msgstr "Général"
 
 #: contents/ui/configAppearance.qml
-msgid "Auto-scale (fitting widget size)"
-msgstr ""
-
-#: contents/ui/configAppearance.qml
 msgid "Element spacing:"
 msgstr "Espacement des éléments :"
 
@@ -168,6 +164,98 @@ msgstr "Réinitialiser les paramètres de l'heure"
 #: contents/ui/configAppearance.qml
 msgid "Restore time settings to defaults"
 msgstr "Restaurer les paramètres de l'heure par défaut"
+
+#: contents/ui/configAppearance.qml
+msgid "Adapt colors to system theme"
+msgstr "Adapter les couleurs au thème du système"
+
+#: contents/ui/configAppearance.qml
+msgid "Override element colors with the system theme text color for better contrast"
+msgstr "Remplacer les couleurs des éléments par la couleur du texte du thème système pour un meilleur contraste"
+
+#: contents/ui/configAppearance.qml
+msgid "Custom Text"
+msgstr "Texte personnalisé"
+
+#: contents/ui/configAppearance.qml
+msgid "Show custom text"
+msgstr "Afficher le texte personnalisé"
+
+#: contents/ui/configAppearance.qml
+msgid "Text:"
+msgstr "Texte :"
+
+#: contents/ui/configAppearance.qml
+msgid "e.g. Good Morning, or HH:mm for live time"
+msgstr "ex. Bonjour, ou HH:mm pour l'heure en direct"
+
+#: contents/ui/configAppearance.qml
+msgid "Static text, or a Qt date/time format (e.g. dddd, HH:mm, yyyy-MM-dd)"
+msgstr "Texte statique, ou un format date/heure Qt (ex. dddd, HH:mm, yyyy-MM-dd)"
+
+#: contents/ui/configAppearance.qml
+msgid "Interpret as date/time format"
+msgstr "Interpréter comme format date/heure"
+
+#: contents/ui/configAppearance.qml
+msgid "When enabled, Qt format tokens like dddd or HH:mm are replaced with the current date/time"
+msgstr "Lorsque activé, les jetons de format Qt comme dddd ou HH:mm sont remplacés par la date/heure actuelle"
+
+#: contents/ui/configAppearance.qml
+msgid "Reset Custom Text Settings"
+msgstr "Réinitialiser les paramètres du texte personnalisé"
+
+#: contents/ui/configAppearance.qml
+msgid "Restore custom text settings to defaults"
+msgstr "Restaurer les paramètres du texte personnalisé par défaut"
+
+#: contents/ui/configAppearance.qml
+msgid "Secondary Timezone"
+msgstr "Fuseau horaire secondaire"
+
+#: contents/ui/configAppearance.qml
+msgid "Show secondary timezone"
+msgstr "Afficher le fuseau horaire secondaire"
+
+#: contents/ui/configAppearance.qml
+msgid "Timezone ID:"
+msgstr "ID du fuseau horaire :"
+
+#: contents/ui/configAppearance.qml
+msgid "e.g. America/New_York, Europe/Tokyo"
+msgstr "ex. America/New_York, Europe/Tokyo"
+
+#: contents/ui/configAppearance.qml
+msgid "IANA timezone identifier. Find yours at timezonedb.com"
+msgstr "Identifiant de fuseau horaire IANA. Trouvez le vôtre sur timezonedb.com"
+
+#: contents/ui/configAppearance.qml
+msgid "Label:"
+msgstr "Étiquette :"
+
+#: contents/ui/configAppearance.qml
+msgid "e.g. NYC, Tokyo"
+msgstr "ex. NYC, Tokyo"
+
+#: contents/ui/configAppearance.qml
+msgid "Short label displayed before the timezone time. Leave empty for no label."
+msgstr "Étiquette courte affichée avant l'heure du fuseau. Laisser vide pour aucune étiquette."
+
+#: contents/ui/configAppearance.qml
+msgid "Format:"
+msgstr "Format :"
+
+#: contents/ui/configAppearance.qml
+msgid "Time format using HH (24h), H, mm, m tokens"
+msgstr "Format d'heure utilisant les jetons HH (24h), H, mm, m"
+
+#: contents/ui/configAppearance.qml
+msgid "Reset Timezone Settings"
+msgstr "Réinitialiser les paramètres du fuseau horaire"
+
+#: contents/ui/configAppearance.qml
+msgid "Restore timezone settings to defaults"
+msgstr "Restaurer les paramètres du fuseau horaire par défaut"
 
 #: contents/ui/configAppearance.qml
 msgid "Themes"

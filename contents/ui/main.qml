@@ -35,9 +35,10 @@ PlasmoidItem {
     property bool uppercaseDay: plasmoid.configuration.uppercase_day
     property bool uppercaseDate: plasmoid.configuration.uppercase_date
     property bool autoScale: plasmoid.configuration.auto_scale
+    property bool adaptToTheme: plasmoid.configuration.adapt_to_theme
 
     // ===== ELEMENT ORDER =====
-    readonly property var validElements: ["day", "date", "time"]
+    readonly property var validElements: ["day", "date", "time", "custom", "timezone"]
     property string elementOrderConfig: plasmoid.configuration.element_order
     property var elementOrderArray: {
         if (!elementOrderConfig) return validElements.slice();
@@ -51,6 +52,11 @@ PlasmoidItem {
     property string fontFamilyDay: plasmoid.configuration.fontFamilyDay
     property string fontFamilyDate: plasmoid.configuration.fontFamilyDate
     property string fontFamilyTime: plasmoid.configuration.fontFamilyTime
+    property string fontFamilyCustom: plasmoid.configuration.fontFamilyCustom
+    property string fontFamilyTimezone: plasmoid.configuration.fontFamilyTimezone
+
+    // ===== SYSTEM THEME COLOR =====
+    readonly property color systemTextColor: PlasmaCore.Theme ? PlasmaCore.Theme.textColor : "#FFFFFF"
 
     onLocaleNameChanged: updateClock()
     onDateFormatChanged: updateClock()
@@ -159,11 +165,61 @@ PlasmoidItem {
         return decoration + " " + formattedTime + " " + decoration;
     }
 
+    function customText() {
+        var text = plasmoid.configuration.custom_text || "";
+        if (text.length === 0) return "";
+        if (!plasmoid.configuration.custom_format) return text;
+        try {
+            var result = Qt.formatDateTime(currentDateTime, text);
+            return result && result.length > 0 ? result : text;
+        } catch (e) {
+            console.warn("Modern reClock: custom format failed for", text, "-", e.message);
+            return text;
+        }
+    }
+
+    function timezoneText() {
+        var tzId = plasmoid.configuration.timezone_id || "";
+        if (tzId.length === 0) return "";
+        var label = plasmoid.configuration.timezone_label || "";
+        var format = plasmoid.configuration.timezone_format || "HH:mm";
+
+        try {
+            var now = new Date();
+            var formatter = new Intl.DateTimeFormat(Qt.locale().name, {
+                timeZone: tzId,
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            });
+            var timeStr = formatter.format(now);
+
+            // Apply simple format replacements (HH, H, mm, m)
+            var h24 = timeStr.split(":")[0] || "00";
+            var min = timeStr.split(":")[1] || "00";
+            var result = format;
+            result = result.replace("HH", h24);
+            result = result.replace("H", parseInt(h24).toString());
+            result = result.replace("mm", min);
+            result = result.replace("m", parseInt(min).toString());
+
+            return label.length > 0 ? label + " " + result : result;
+        } catch (e) {
+            console.warn("Modern reClock: timezone error for", tzId, "-", e.message);
+            return label.length > 0 ? label + " ??" : "??";
+        }
+    }
+
     // ===== ELEMENT PROPERTY HELPERS (data-driven) =====
     function _elementProps(type) {
-        if (type === "day") return { show: plasmoid.configuration.show_day, text: dayText(), font: fontFamilyDay, size: plasmoid.configuration.day_font_size, spacing: plasmoid.configuration.day_letter_spacing, bold: plasmoid.configuration.day_font_bold, color: plasmoid.configuration.day_font_color };
-        if (type === "date") return { show: plasmoid.configuration.show_date, text: dateText(), font: fontFamilyDate, size: plasmoid.configuration.date_font_size, spacing: plasmoid.configuration.date_letter_spacing, bold: plasmoid.configuration.date_font_bold, color: plasmoid.configuration.date_font_color };
-        if (type === "time") return { show: plasmoid.configuration.show_time, text: timeText(), font: fontFamilyTime, size: plasmoid.configuration.time_font_size, spacing: plasmoid.configuration.time_letter_spacing, bold: plasmoid.configuration.time_font_bold, color: plasmoid.configuration.time_font_color };
+        var cfg = plasmoid.configuration;
+        var tc = root.adaptToTheme ? root.systemTextColor : undefined;
+
+        if (type === "day") return { show: cfg.show_day, text: dayText(), font: fontFamilyDay, size: cfg.day_font_size, spacing: cfg.day_letter_spacing, bold: cfg.day_font_bold, color: tc !== undefined ? tc : cfg.day_font_color };
+        if (type === "date") return { show: cfg.show_date, text: dateText(), font: fontFamilyDate, size: cfg.date_font_size, spacing: cfg.date_letter_spacing, bold: cfg.date_font_bold, color: tc !== undefined ? tc : cfg.date_font_color };
+        if (type === "time") return { show: cfg.show_time, text: timeText(), font: fontFamilyTime, size: cfg.time_font_size, spacing: cfg.time_letter_spacing, bold: cfg.time_font_bold, color: tc !== undefined ? tc : cfg.time_font_color };
+        if (type === "custom") return { show: cfg.show_custom, text: customText(), font: fontFamilyCustom, size: cfg.custom_font_size, spacing: cfg.custom_letter_spacing, bold: cfg.custom_font_bold, color: tc !== undefined ? tc : cfg.custom_font_color };
+        if (type === "timezone") return { show: cfg.show_timezone, text: timezoneText(), font: fontFamilyTimezone, size: cfg.timezone_font_size, spacing: cfg.timezone_letter_spacing, bold: cfg.timezone_font_bold, color: tc !== undefined ? tc : cfg.timezone_font_color };
         return null;
     }
 
