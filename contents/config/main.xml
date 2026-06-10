@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
-    <kcfgfile name=""/>
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <kcfgfile name="" />
     <group name="Appearance">
         <entry name="day_font_size" type="Int">
             <default>72</default>
@@ -91,6 +91,10 @@
         <entry name="fontFamilyTime" type="String">
             <label>Font family for time. e.g "Arial", "Poppins"</label>
             <default>Poppins</default>
+        </entry>
+        <entry name="element_order" type="String">
+            <label>Order of elements from top to bottom. Comma-separated list of: day, date, time</label>
+            <default>day,date,time</default>
         </entry>
     </group>
 </kcfg>

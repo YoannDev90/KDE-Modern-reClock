@@ -36,6 +36,10 @@ PlasmoidItem {
     property bool uppercaseDate: plasmoid.configuration.uppercase_date
     property bool autoScale: plasmoid.configuration.auto_scale
 
+    // ===== ELEMENT ORDER =====
+    property string elementOrderConfig: plasmoid.configuration.element_order
+    property var elementOrderArray: elementOrderConfig ? elementOrderConfig.split(",") : ["day", "date", "time"]
+
     // ===== FONT FAMILIES =====
     property string fontFamilyDay: plasmoid.configuration.fontFamilyDay
     property string fontFamilyDate: plasmoid.configuration.fontFamilyDate
@@ -144,6 +148,56 @@ PlasmoidItem {
         return decoration + " " + formattedTime + " " + decoration;
     }
 
+    // ===== ELEMENT PROPERTY HELPERS =====
+    function elementVisible(type) {
+        if (type === "day") return plasmoid.configuration.show_day;
+        if (type === "date") return plasmoid.configuration.show_date;
+        if (type === "time") return plasmoid.configuration.show_time;
+        return false;
+    }
+
+    function elementText(type) {
+        if (type === "day") return dayText();
+        if (type === "date") return dateText();
+        if (type === "time") return timeText();
+        return "";
+    }
+
+    function elementFont(type) {
+        if (type === "day") return fontFamilyDay;
+        if (type === "date") return fontFamilyDate;
+        if (type === "time") return fontFamilyTime;
+        return "";
+    }
+
+    function elementFontSize(type) {
+        if (type === "day") return plasmoid.configuration.day_font_size;
+        if (type === "date") return plasmoid.configuration.date_font_size;
+        if (type === "time") return plasmoid.configuration.time_font_size;
+        return 1;
+    }
+
+    function elementLetterSpacing(type) {
+        if (type === "day") return plasmoid.configuration.day_letter_spacing;
+        if (type === "date") return plasmoid.configuration.date_letter_spacing;
+        if (type === "time") return plasmoid.configuration.time_letter_spacing;
+        return 0;
+    }
+
+    function elementFontBold(type) {
+        if (type === "day") return plasmoid.configuration.day_font_bold;
+        if (type === "date") return plasmoid.configuration.date_font_bold;
+        if (type === "time") return plasmoid.configuration.time_font_bold;
+        return false;
+    }
+
+    function elementFontColor(type) {
+        if (type === "day") return plasmoid.configuration.day_font_color;
+        if (type === "date") return plasmoid.configuration.date_font_color;
+        if (type === "time") return plasmoid.configuration.time_font_color;
+        return "#FFFFFF";
+    }
+
     Timer {
         id: clockTimer
         repeat: false
@@ -174,29 +228,16 @@ PlasmoidItem {
             Column {
                 id: metricsColumn
                 spacing: plasmoid.configuration.widget_spacing
-                Text {
-                    text: root.dayText()
-                    visible: plasmoid.configuration.show_day
-                    font.pixelSize: plasmoid.configuration.day_font_size
-                    font.letterSpacing: plasmoid.configuration.day_letter_spacing
-                    font.family: root.fontFamilyDay
-                    font.bold: plasmoid.configuration.day_font_bold
-                }
-                Text {
-                    text: root.dateText()
-                    visible: plasmoid.configuration.show_date
-                    font.pixelSize: plasmoid.configuration.date_font_size
-                    font.letterSpacing: plasmoid.configuration.date_letter_spacing
-                    font.family: root.fontFamilyDate
-                    font.bold: plasmoid.configuration.date_font_bold
-                }
-                Text {
-                    text: root.timeText()
-                    visible: plasmoid.configuration.show_time
-                    font.pixelSize: plasmoid.configuration.time_font_size
-                    font.letterSpacing: plasmoid.configuration.time_letter_spacing
-                    font.family: root.fontFamilyTime
-                    font.bold: plasmoid.configuration.time_font_bold
+                Repeater {
+                    model: root.elementOrderArray
+                    Text {
+                        text: root.elementText(modelData)
+                        visible: root.elementVisible(modelData)
+                        font.pixelSize: root.elementFontSize(modelData)
+                        font.letterSpacing: root.elementLetterSpacing(modelData)
+                        font.family: root.elementFont(modelData)
+                        font.bold: root.elementFontBold(modelData)
+                    }
                 }
             }
         }
@@ -215,53 +256,22 @@ PlasmoidItem {
             anchors.centerIn: parent
             spacing: plasmoid.configuration.widget_spacing * containerWrapper.fontScale
 
-            // Day
-            Text {
-                id: display_day
-                visible: plasmoid.configuration.show_day
-                text: root.dayText()
-                font.family: root.fontFamilyDay
-                font.pixelSize: Math.max(1, Math.round(plasmoid.configuration.day_font_size * containerWrapper.fontScale))
-                font.letterSpacing: plasmoid.configuration.day_letter_spacing * containerWrapper.fontScale
-                font.bold: plasmoid.configuration.day_font_bold
-                color: plasmoid.configuration.day_font_color
-                anchors.horizontalCenter: parent.horizontalCenter
-                horizontalAlignment: Text.AlignHCenter
+            Repeater {
+                model: root.elementOrderArray
 
-                // Utilisation explicite du SDF (Signed Distance Field) via CurveRendering
-                renderType: Text.CurveRendering
-            }
-
-            // Date
-            Text {
-                id: display_date
-                visible: plasmoid.configuration.show_date
-                text: root.dateText()
-                font.family: root.fontFamilyDate
-                font.pixelSize: Math.max(1, Math.round(plasmoid.configuration.date_font_size * containerWrapper.fontScale))
-                font.letterSpacing: plasmoid.configuration.date_letter_spacing * containerWrapper.fontScale
-                font.bold: plasmoid.configuration.date_font_bold
-                color: plasmoid.configuration.date_font_color
-                anchors.horizontalCenter: parent.horizontalCenter
-                horizontalAlignment: Text.AlignHCenter
-
-                renderType: Text.CurveRendering
-            }
-
-            // Time
-            Text {
-                id: display_time
-                visible: plasmoid.configuration.show_time
-                text: root.timeText()
-                font.family: root.fontFamilyTime
-                font.pixelSize: Math.max(1, Math.round(plasmoid.configuration.time_font_size * containerWrapper.fontScale))
-                font.letterSpacing: plasmoid.configuration.time_letter_spacing * containerWrapper.fontScale
-                font.bold: plasmoid.configuration.time_font_bold
-                color: plasmoid.configuration.time_font_color
-                anchors.horizontalCenter: parent.horizontalCenter
-                horizontalAlignment: Text.AlignHCenter
-
-                renderType: Text.CurveRendering
+                // Each delegate is a Text element styled per element type
+                Text {
+                    visible: root.elementVisible(modelData)
+                    text: root.elementText(modelData)
+                    font.family: root.elementFont(modelData)
+                    font.pixelSize: Math.max(1, Math.round(root.elementFontSize(modelData) * containerWrapper.fontScale))
+                    font.letterSpacing: root.elementLetterSpacing(modelData) * containerWrapper.fontScale
+                    font.bold: root.elementFontBold(modelData)
+                    color: root.elementFontColor(modelData)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    renderType: Text.CurveRendering
+                }
             }
         }
     }

@@ -48,7 +48,9 @@ KCM.SimpleKCM {
     property alias cfg_locale: localeField.text
     property alias cfg_auto_scale: autoScale.checked
 
-    readonly property var configKeys: ["day_font_size", "day_letter_spacing", "show_day", "date_font_size", "date_letter_spacing", "locale", "date_format", "show_date", "time_font_size", "time_letter_spacing", "time_format", "time_font_color", "show_time", "date_font_color", "day_font_color", "use_24_hour_format", "time_character", "widget_spacing", "day_format", "uppercase_day", "uppercase_date", "day_font_bold", "date_font_bold", "time_font_bold", "auto_scale", "fontFamilyDay", "fontFamilyDate", "fontFamilyTime"]
+    property alias cfg_element_order: elementOrderField.text
+
+    readonly property var configKeys: ["day_font_size", "day_letter_spacing", "show_day", "date_font_size", "date_letter_spacing", "locale", "date_format", "show_date", "time_font_size", "time_letter_spacing", "time_format", "time_font_color", "show_time", "date_font_color", "day_font_color", "use_24_hour_format", "time_character", "widget_spacing", "day_format", "uppercase_day", "uppercase_date", "day_font_bold", "date_font_bold", "time_font_bold", "auto_scale", "fontFamilyDay", "fontFamilyDate", "fontFamilyTime", "element_order"]
 
     function getFullConfig() {
         if (typeof (plasmoid) === "undefined" || !plasmoid || !plasmoid.configuration)
@@ -256,6 +258,89 @@ KCM.SimpleKCM {
             QQC2.ToolTip.text: i18n("Locale used for weekday and month names. Leave empty to use the system locale.")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
+        }
+
+        // ================= SECTION: ELEMENT ORDER =================
+        Kirigami.Heading {
+            text: i18n("Element Order")
+            level: 2
+            Layout.fillWidth: true
+            Kirigami.FormData.isSection: true
+        }
+
+        QQC2.Label {
+            text: i18n("Use the arrows to reorder elements from top to bottom.")
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+        }
+
+        // Hidden field for the alias
+        QQC2.TextField {
+            id: elementOrderField
+            visible: false
+        }
+
+        ListModel {
+            id: orderListModel
+        }
+
+        Component.onCompleted: {
+            // Initialize the order list model from config
+            let order = appearancePage.cfg_element_order
+                ? appearancePage.cfg_element_order.split(",")
+                : ["day", "date", "time"];
+            for (let i = 0; i < order.length; i++) {
+                let label = order[i] === "day" ? i18n("Day")
+                    : order[i] === "date" ? i18n("Date")
+                    : order[i] === "time" ? i18n("Time")
+                    : order[i];
+                orderListModel.append({ "key": order[i], "label": label });
+            }
+        }
+
+        function moveOrderItem(from, to) {
+            let item = orderListModel.get(from);
+            orderListModel.remove(from);
+            orderListModel.insert(to, item);
+            syncOrderToConfig();
+        }
+
+        function syncOrderToConfig() {
+            let parts = [];
+            for (let i = 0; i < orderListModel.count; i++) {
+                parts.push(orderListModel.get(i).key);
+            }
+            appearancePage.cfg_element_order = parts.join(",");
+        }
+
+        Repeater {
+            model: orderListModel
+            delegate: RowLayout {
+                Layout.fillWidth: true
+
+                QQC2.Label {
+                    text: model.label
+                    Layout.fillWidth: true
+                }
+
+                QQC2.Button {
+                    icon.name: "arrow-up"
+                    enabled: index > 0
+                    onClicked: appearancePage.moveOrderItem(index, index - 1)
+                    QQC2.ToolTip.text: i18n("Move up")
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.delay: 800
+                }
+
+                QQC2.Button {
+                    icon.name: "arrow-down"
+                    enabled: index < orderListModel.count - 1
+                    onClicked: appearancePage.moveOrderItem(index, index + 1)
+                    QQC2.ToolTip.text: i18n("Move down")
+                    QQC2.ToolTip.visible: hovered
+                    QQC2.ToolTip.delay: 800
+                }
+            }
         }
 
         // ================= SECTION: DAY =================
