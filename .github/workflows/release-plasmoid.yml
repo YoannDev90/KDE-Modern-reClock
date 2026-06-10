@@ -35,20 +35,20 @@ jobs:
               apt-get update && apt-get install -y cmake g++ qt6-base-dev qt6-declarative-dev kf6-coreaddons-dev &&
               mkdir -p build && cd build && cmake .. -DCMAKE_INSTALL_PREFIX=/usr && make -j\$(nproc)
             "
-            cp build/modernreclock_timezone modernreclock_timezone_aarch64.so
+            cp build/libmodernreclock_timezone.so modernreclock-timezone_aarch64.so
           else
             mkdir -p build && cd build
             cmake .. -DCMAKE_INSTALL_PREFIX=/usr
             make -j$(nproc)
             cd ..
-            cp build/modernreclock_timezone modernreclock_timezone_x86_64.so
+            cp build/libmodernreclock_timezone.so modernreclock-timezone_x86_64.so
           fi
 
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v4
         with:
           name: plugin-${{ matrix.arch }}
-          path: modernreclock_timezone_*.so
+          path: modernreclock-timezone_*.so
 
   release:
     needs: build-plugin
@@ -121,7 +121,7 @@ jobs:
           # Raw .so files for each arch
           for arch_dir in plugin-artifacts/plugin-*; do
             ARCH=$(basename "$arch_dir" | sed 's/plugin-//')
-            cp "$arch_dir"/*.so "release-assets/modernreclock_timezone_${ARCH}.so"
+            cp "$arch_dir"/*.so "release-assets/modernreclock-timezone_${ARCH}.so"
           done
 
           # Offline install zip for each arch
@@ -129,8 +129,13 @@ jobs:
             ARCH=$(basename "$arch_dir" | sed 's/plugin-//')
             TMPDIR=$(mktemp -d)
             mkdir -p "$TMPDIR/$ARCH"
-            cp "$arch_dir"/*.so "$TMPDIR/$ARCH/modernreclock_timezone.so"
-            printf 'module org.kde.plasma.private.modernreclock\nplugin modernreclock_timezone\n' > "$TMPDIR/$ARCH/qmldir"
+            cp "$arch_dir"/*.so "$TMPDIR/$ARCH/"
+            # Copy qmldir from build artifacts if present, otherwise generate it
+            if [ -f "$arch_dir/qmldir" ]; then
+              cp "$arch_dir/qmldir" "$TMPDIR/$ARCH/"
+            else
+              printf 'module org.kde.plasma.private.modernreclock\nlinktarget modernreclock_timezone\noptional plugin modernreclock_timezone\n' > "$TMPDIR/$ARCH/qmldir"
+            fi
             (cd "$TMPDIR" && zip -r "$OLDPWD/release-assets/modernreclock-timezone-${VERSION}-${ARCH}.zip" "$ARCH/")
             rm -rf "$TMPDIR"
           done
@@ -176,7 +181,7 @@ jobs:
             | File | Description |
             |------|-------------|
             | `*.plasmoid` | Widget package |
-            | `modernreclock_timezone_*.so` | Timezone plugin (raw, for manual install) |
+            | `modernreclock-timezone_*.so` | Timezone plugin (raw .so, for manual install) |
             | `modernreclock-timezone-*.zip` | Offline install zip (plugin + qmldir) |
             | `install-dist.sh` | One-line remote install script |
           files: |

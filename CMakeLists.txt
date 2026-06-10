@@ -13,18 +13,17 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Qml)
 # KF6 — no umbrella "KF6" package, use individual components
 find_package(KF6CoreAddons REQUIRED)
 
-# Plugin
-add_library(modernreclock_timezone MODULE
+# Plugin — keep default "lib" prefix so the .so is named libmodernreclock_timezone.so
+# which matches what qmldir expects (plugin <name> → lib<name>.so)
+set(PLUGIN_NAME modernreclock_timezone)
+
+add_library(${PLUGIN_NAME} MODULE
     src/timezoneplugin.cpp
 )
-target_link_libraries(modernreclock_timezone PRIVATE
+target_link_libraries(${PLUGIN_NAME} PRIVATE
     Qt6::Core
     Qt6::Qml
     KF6::CoreAddons
-)
-set_target_properties(modernreclock_timezone PROPERTIES
-    PREFIX ""
-    SUFFIX "${Qt6_QML_MODULE_SUFFIX}"
 )
 
 # Install plugin to KDE QML dir so plasma shell can find it
@@ -35,12 +34,18 @@ else()
     set(PLUGIN_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/lib64/qt6/qml/org/kde/plasma/private/modernreclock)
 endif()
 
-install(TARGETS modernreclock_timezone
+install(TARGETS ${PLUGIN_NAME}
     LIBRARY DESTINATION ${PLUGIN_INSTALL_DIR}
 )
 
+# Generate qmldir matching KDE convention (see brightnesscontrolplugin, digitalclock, etc.)
+# Note: no 'depends' line — QtCore/QtQml are already loaded by the QML engine,
+# and listing multiple modules without versions causes "invalid version" errors.
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/qmldir
-    "module org.kde.plasma.private.modernreclock\nplugin modernreclock_timezone\n")
+    "module org.kde.plasma.private.modernreclock\n"
+    "linktarget ${PLUGIN_NAME}\n"
+    "optional plugin ${PLUGIN_NAME}\n"
+)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/qmldir
     DESTINATION ${PLUGIN_INSTALL_DIR}
 )

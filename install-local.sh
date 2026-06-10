@@ -38,9 +38,9 @@ if [ "$PLUGIN_INSTALLED" = false ]; then
         if curl -fSL "$DOWNLOAD_URL" -o "$TMPZIP" 2>/dev/null; then
             TMPDIR=$(mktemp -d)
             unzip -qo "$TMPZIP" -d "$TMPDIR" 2>/dev/null
-            if [ -f "$TMPDIR/$ARCH/modernreclock_timezone.so" ]; then
+            if [ -f "$TMPDIR/$ARCH/libmodernreclock_timezone.so" ]; then
                 sudo mkdir -p "$PLUGIN_DIR"
-                sudo cp "$TMPDIR/$ARCH/modernreclock_timezone.so" "$PLUGIN_DIR/"
+                sudo cp "$TMPDIR/$ARCH/libmodernreclock_timezone.so" "$PLUGIN_DIR/"
                 sudo cp "$TMPDIR/$ARCH/qmldir" "$PLUGIN_DIR/"
                 PLUGIN_INSTALLED=true
             fi
