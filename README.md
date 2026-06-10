@@ -95,8 +95,6 @@ If you want to help translate this widget:
 <!-- COMMUNITY_SCREENSHOTS_START -->
 |Screenshots|
 |---|
-| ![YoannDev90](https://github.com/YoannDev90/KDE-Modern-reClock/blob/main/assets/community/screenshot_5.png?raw=true) |
-| ![YoannDev90](https://github.com/YoannDev90/KDE-Modern-reClock/blob/main/assets/community/screenshot_6.png?raw=true) |
 <!-- COMMUNITY_SCREENSHOTS_END -->
 
 </details>
