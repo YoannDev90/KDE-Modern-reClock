@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
+import org.kde.plasma.private.modernreclock 1.0 as ModernRecClock
 
 PlasmoidItem {
     id: root
@@ -193,29 +194,17 @@ PlasmoidItem {
         var format = plasmoid.configuration.timezone_format || "HH:mm";
 
         try {
-            var now = new Date();
-            var formatter = new Intl.DateTimeFormat(Qt.locale().name, {
-                timeZone: tzId,
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false
-            });
-            var timeStr = formatter.format(now);
-
-            // Apply simple format replacements (HH, H, mm, m)
-            var h24 = timeStr.split(":")[0] || "00";
-            var min = timeStr.split(":")[1] || "00";
-            var result = format;
-            result = result.replace("HH", h24);
-            result = result.replace("H", parseInt(h24).toString());
-            result = result.replace("mm", min);
-            result = result.replace("m", parseInt(min).toString());
-
-            return label.length > 0 ? label + " " + result : result;
+            var tzObj = ModernRecClock.TimeZone.timeZoneObject(tzId);
+            if (tzObj) {
+                var formatted = Qt.formatDateTime(new Date(), format, tzObj);
+                if (formatted && formatted.length > 0) {
+                    return label.length > 0 ? label + " " + formatted : formatted;
+                }
+            }
         } catch (e) {
             console.warn("Modern reClock: timezone error for", tzId, "-", e.message);
-            return label.length > 0 ? label + " ??" : "??";
         }
+        return label.length > 0 ? label + " ??" : "??";
     }
 
     // ===== ELEMENT PROPERTY HELPERS (data-driven) =====

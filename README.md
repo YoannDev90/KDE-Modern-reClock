@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://github.com/YoannDev90/KDE-Modern-reClock/blob/main/assets/logo.jpg" width=100/>
   <h2 align="center">Modern reClock for KDE</h2>
-  <p align="center">A modern looking clock widget !</center>
+  <p align="center">A modern looking clock widget for KDE Plasma 6!</p>
 </p>
 
 <p align="center">
@@ -14,55 +14,98 @@
   <img src="https://github.com/YoannDev90/KDE-Modern-reClock/blob/main/assets/screenshot.png"/>
 </p>
 
-## Improvements
+## Features
 
-- Added auto-scale feature (widget content fits its size)
-- Improved rendering with SDF (Signed Distance Field) for maximum sharpness at any scale
-- Added support for seconds
-- Added support for custom time format
-- Added configurable spacing between elements
-- Fixed letter spacing minimum to allow 0
-- Added tooltips and placeholder text for date/time format fields
-- Consistent widget name across codebase
-- Added custom day format (e.g. full name vs abbreviated)
-- Added uppercase toggle for day and date rows
-- Added bold font toggle for day, date, and time sections
-- Added support for custom locale
-- Added language presets for quick configuration
-- Added organized settings UI (Global, Day, Date, Time)
-- Added JSON Import/Export for easy configuration backup (Dotfile support)
-- Added immediate preview for translation and format changes
-- Migrated translation structure to Plasma 6 standards
-- Flattened repository structure for better developer experience
+### Core
+- **Auto-scale** — widget content automatically fits its size
+- **SDF rendering** — maximum sharpness at any scale
+- **Seconds support** — display seconds with `hh:mm:ss`
+- **Custom time format** — use any Qt time format (`hh:mm`, `hh:mm:ss AP`, etc.)
+- **Custom day/date format** — e.g. `dddd` for full name, `ddd` for abbreviated, `dd MMM yyyy`
+- **Uppercase toggle** — capitalize day and date names
+- **Bold font toggle** — per-section bold setting for day, date, and time
+- **Custom locale** — override system locale for date/time names
+- **Language presets** — quick configuration with built-in locale presets
+- **Configurable spacing** — adjust spacing between elements
+
+### Custom Text Element
+- **Static text** — display any custom message (e.g. "Good Morning", "Today is")
+- **Dynamic format** — interpret text as Qt date/time format for live updates (e.g. `HH:mm`, `dddd d MMMM`)
+- **Full styling** — separate font, size, spacing, bold, and color settings
+
+### Secondary Timezone
+- **Display any IANA timezone** — `America/New_York`, `Asia/Tokyo`, `Europe/Paris`, etc.
+- **Timezone selector** — preset list of 40+ major cities, or type a custom IANA ID
+- **Label support** — add a short label before the timezone (e.g. "NYC", "Tokyo")
+- **Custom format** — control how the timezone time is displayed (`HH:mm`, `H:mm`, etc.)
+- **DST-aware** — automatically handles daylight saving time via C++ Qt backend
+
+### Day/Night Mode Adaptation
+- **Auto color adaptation** — override all element colors with the system theme text color
+- **Better contrast** — automatically adapts to light/dark desktop backgrounds
+
+### Theming
+- **Save/load themes** — save your configuration as named themes
+- **Export/import** — share themes as JSON files
+- **Per-section reset** — restore individual sections to defaults
+- **JSON import/export** — full configuration backup (dotfile support)
+
+### Settings Panel
+- **Live preview** — see changes immediately in the config panel
+- **Element reorder** — drag to reorder day, date, time, custom, and timezone
+- **Organized UI** — sections for Global, Day, Date, Time, Custom Text, Timezone, and Themes
+
+### Internationalization
+- **13 languages** — English, French, German, Spanish, Italian, Dutch, Polish, Portuguese, Russian, Japanese, and more
+- **Contributing** — translations welcome! See the [Translations](#translations) section
 
 ## Installation
 
-#### KDE Store
-
-1. Right click on the desktop
-2. Click on "Add Widgets"
-3. Click on "Get New Widgets"
-4. Click on "Download New Plasma Widgets"
-5. Search for "Modern reClock"
-6. Click on "Install" and you're done!
-
-#### From this repository (Manual)
-
-1. Clone this repository  
-   `git clone https://github.com/YoannDev90/KDE-Modern-reClock && cd KDE-Modern-reClock/`
-2. Install using the script  
-   `./install-local.sh`
-
-   *Use the `--fr` or `-force-reload` flag to automatically restart Plasma and see changes immediately:*  
-   `./install-local.sh --fr`
-
-#### One-line installation (Recommended for quick testing)
-
-Run the following command in your terminal:
+### Quick install (Recommended)
 
 ```bash
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/YoannDev90/KDE-Modern-reClock/main/install-dist.sh)"
 ```
+
+### From a release
+
+1. Download `com.github.yoanndev90.modernreclock-VERSION.plasmoid` from the [latest release](https://github.com/YoannDev90/KDE-Modern-reClock/releases/latest)
+2. Install:
+   ```bash
+   kpackagetool6 -t Plasma/Applet -i com.github.yoanndev90.modernreclock-VERSION.plasmoid
+   ```
+3. Or use Plasma installer ("Add Widgets" > "Install from Local File")
+
+> **Timezone plugin**: The install script will try to build the C++ timezone plugin from source. If cmake/KF6-dev are not installed, it will automatically download the precompiled binary for your architecture from the release.
+
+### Offline install (no internet required)
+
+1. Download from the release:
+   - `com.github.yoanndev90.modernreclock-VERSION.plasmoid`
+   - `modernreclock-timezone-VERSION-ARCH.zip` (matching your architecture)
+2. Extract the zip, run `install-local.sh` from the extracted folder
+
+### From source (for developers)
+
+```bash
+git clone https://github.com/YoannDev90/KDE-Modern-reClock
+cd KDE-Modern-reClock
+./install-local.sh
+```
+
+Use `--fr` to restart Plasma automatically:
+```bash
+./install-local.sh --fr
+```
+
+## Supported Architectures
+
+| Arch | Status |
+|------|--------|
+| x86_64 | ✅ Precompiled binary available |
+| aarch64 | ✅ Precompiled binary available |
+
+Other architectures: compile from source with `cmake` and `kf6-coreaddons-dev`.
 
 ## Translations
 
@@ -78,7 +121,7 @@ If you want to help translate this widget:
    ./merge.sh
    ```
 
-5. Run the `build.sh` script to compile the translations and install them into the widget:
+5. Run the `build.sh` script to compile the translations:
 
    ```bash
    ./build.sh
@@ -91,10 +134,11 @@ If you want to help translate this widget:
 <details>
 <summary>Click to view setups from the community</summary>
 
-
-<!-- COMMUNITY_SCREENSHOTS_START -->
 |Screenshots|
 |---|
-<!-- COMMUNITY_SCREENSHOTS_END -->
 
 </details>
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).

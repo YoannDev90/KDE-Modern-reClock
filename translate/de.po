@@ -217,16 +217,16 @@ msgid "Show secondary timezone"
 msgstr "Sekundäre Zeitzone anzeigen"
 
 #: contents/ui/configAppearance.qml
-msgid "Timezone ID:"
-msgstr "Zeitzone-ID:"
+msgid "Timezone:"
+msgstr "Zeitzone:"
+
+#: contents/ui/configAppearance.qml
+msgid "Select a timezone or type a custom IANA ID"
+msgstr "Wählen Sie eine Zeitzone oder geben Sie eine benutzerdefinierte IANA-Kennung ein"
 
 #: contents/ui/configAppearance.qml
 msgid "e.g. America/New_York, Europe/Tokyo"
 msgstr "z.B. America/New_York, Europe/Tokyo"
-
-#: contents/ui/configAppearance.qml
-msgid "IANA timezone identifier. Find yours at timezonedb.com"
-msgstr "IANA-Zeitzonenkennung. Finden Sie Ihre auf timezonedb.com"
 
 #: contents/ui/configAppearance.qml
 msgid "Label:"

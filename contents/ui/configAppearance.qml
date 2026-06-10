@@ -6,6 +6,7 @@ import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.kquickcontrols as KQControls
 import org.kde.plasma.core as PlasmaCore
+import org.kde.plasma.private.modernreclock 1.0 as ModernRecClock
 
 KCM.SimpleKCM {
     id: appearancePage
@@ -63,7 +64,7 @@ KCM.SimpleKCM {
 
     // ===== Timezone element properties =====
     property alias cfg_show_timezone: showTimezone.checked
-    property alias cfg_timezone_id: timezoneIdField.text
+    property alias cfg_timezone_id: _timezoneIdStorage.text
     property alias cfg_timezone_label: timezoneLabel.text
     property alias cfg_timezone_format: timezoneFmt.text
     property alias cfg_timezone_font_size: timezoneFontSize.value
@@ -72,6 +73,9 @@ KCM.SimpleKCM {
     property alias cfg_timezone_font_color: timezoneFontColor.color
 
     property alias cfg_element_order: elementOrderField.text
+
+    // ===== Saved themes (plain string alias for KCM sync) =====
+    property alias cfg_saved_themes: _savedThemesStorage.text
 
     // ===== System font list =====
     readonly property var systemFontList: {
@@ -174,6 +178,8 @@ KCM.SimpleKCM {
         }
     }
 
+
+
     function updatePreview() {
         let dayFmt = cfg_day_format && cfg_day_format.trim().length > 0 ? cfg_day_format.trim() : "dddd";
         let day = previewFormatDate(dayFmt);
@@ -200,20 +206,22 @@ KCM.SimpleKCM {
         }
 
         // Timezone preview
-        var tzId = plasmoid.configuration.timezone_id || "";
+        var tzId = appearancePage.cfg_timezone_id || "";
         var tzLabel = cfg_timezone_label || "";
         var tzFormat = cfg_timezone_format || "HH:mm";
         if (tzId.length > 0) {
             try {
-                var now = new Date();
-                var formatter = new Intl.DateTimeFormat(Qt.locale().name, {
-                    timeZone: tzId, hour: "2-digit", minute: "2-digit", hour12: false
-                });
-                var tzTime = formatter.format(now);
-                var h24 = tzTime.split(":")[0] || "00";
-                var min = tzTime.split(":")[1] || "00";
-                var result = tzFormat.replace("HH", h24).replace("H", parseInt(h24).toString()).replace("mm", min).replace("m", parseInt(min).toString());
-                previewTimezoneText = tzLabel.length > 0 ? tzLabel + " " + result : result;
+                var tzObj = ModernRecClock.TimeZone.timeZoneObject(tzId);
+                if (tzObj) {
+                    var formatted = Qt.formatDateTime(new Date(), tzFormat, tzObj);
+                    if (formatted && formatted.length > 0) {
+                        previewTimezoneText = tzLabel.length > 0 ? tzLabel + " " + formatted : formatted;
+                    } else {
+                        previewTimezoneText = tzLabel.length > 0 ? tzLabel + " ??" : "??";
+                    }
+                } else {
+                    previewTimezoneText = tzLabel.length > 0 ? tzLabel + " ??" : "??";
+                }
             } catch (e) {
                 previewTimezoneText = tzLabel.length > 0 ? tzLabel + " ??" : "??";
             }
@@ -291,7 +299,22 @@ KCM.SimpleKCM {
             timezoneFontCombo.currentIndex = Math.max(0, timezoneFontCombo.model.indexOf(d.font));
             timezoneFontSize.value = d.size;
             timezoneLetterSpacing.value = d.spacing;
-            timezoneIdField.text = d.id || "";
+            _timezoneIdStorage.text = d.id || "";
+            // Select matching preset in ComboBox or set custom text
+            var tzVal = d.id || "";
+            var found = false;
+            for (var j = 0; j < timezoneIdField.model.count; j++) {
+                if (timezoneIdField.model.get(j).value === tzVal) {
+                    timezoneIdField.currentIndex = j;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found && tzVal.length > 0) {
+                timezoneIdField.editText = tzVal;
+            } else if (!found) {
+                timezoneIdField.currentIndex = 0;
+            }
             timezoneLabel.text = d.label || "";
             timezoneFmt.text = d.format || "HH:mm";
             timezoneFontBold.checked = d.bold;
@@ -672,6 +695,21 @@ KCM.SimpleKCM {
         QQC2.TextField {
             id: elementOrderField
             visible: false
+        }
+
+        // Hidden field for saved_themes KCM alias
+        QQC2.TextField {
+            id: _savedThemesStorage
+            visible: false
+            text: appearancePage.savedThemesJson
+            onTextChanged: appearancePage.savedThemesJson = text
+        }
+
+        // Hidden field for timezone_id KCM alias (ComboBox writes here)
+        QQC2.TextField {
+            id: _timezoneIdStorage
+            visible: false
+            text: ""
         }
 
         ListModel {
@@ -1077,12 +1115,86 @@ KCM.SimpleKCM {
             text: i18n("Show secondary timezone")
         }
 
-        QQC2.TextField {
+        QQC2.ComboBox {
             id: timezoneIdField
-            Kirigami.FormData.label: i18n("Timezone ID:")
+            Kirigami.FormData.label: i18n("Timezone:")
             Layout.fillWidth: true
-            placeholderText: i18n("e.g. America/New_York, Europe/Tokyo")
-            QQC2.ToolTip.text: i18n("IANA timezone identifier. Find yours at timezonedb.com")
+            editable: true
+            model: ListModel {
+                ListElement { text: "—"; value: "" }
+                ListElement { text: "UTC+0:00 — London / Dublin / Lisbon"; value: "Europe/London" }
+                ListElement { text: "UTC+1:00 — Paris / Berlin / Rome / Madrid"; value: "Europe/Paris" }
+                ListElement { text: "UTC+1:00 — Amsterdam / Brussels / Zurich / Vienna"; value: "Europe/Amsterdam" }
+                ListElement { text: "UTC+1:00 — Warsaw / Prague / Budapest"; value: "Europe/Warsaw" }
+                ListElement { text: "UTC+2:00 — Athens / Helsinki / Bucharest"; value: "Europe/Athens" }
+                ListElement { text: "UTC+2:00 — Istanbul"; value: "Europe/Istanbul" }
+                ListElement { text: "UTC+3:00 — Moscow"; value: "Europe/Moscow" }
+                ListElement { text: "UTC+3:00 — Riyadh / Kuwait / Baghdad"; value: "Asia/Riyadh" }
+                ListElement { text: "UTC+3:30 — Tehran"; value: "Asia/Tehran" }
+                ListElement { text: "UTC+4:00 — Dubai / Abu Dhabi"; value: "Asia/Dubai" }
+                ListElement { text: "UTC+4:30 — Kabul"; value: "Asia/Kabul" }
+                ListElement { text: "UTC+5:00 — Karachi / Lahore"; value: "Asia/Karachi" }
+                ListElement { text: "UTC+5:30 — Mumbai / Delhi / Kolkata"; value: "Asia/Kolkata" }
+                ListElement { text: "UTC+5:45 — Kathmandu"; value: "Asia/Kathmandu" }
+                ListElement { text: "UTC+6:00 — Dhaka / Almaty"; value: "Asia/Dhaka" }
+                ListElement { text: "UTC+6:30 — Yangon"; value: "Asia/Yangon" }
+                ListElement { text: "UTC+7:00 — Bangkok / Ho Chi Minh / Jakarta"; value: "Asia/Bangkok" }
+                ListElement { text: "UTC+8:00 — Shanghai / Beijing"; value: "Asia/Shanghai" }
+                ListElement { text: "UTC+8:00 — Hong Kong / Singapore"; value: "Asia/Hong_Kong" }
+                ListElement { text: "UTC+8:00 — Perth / Taipei"; value: "Asia/Perth" }
+                ListElement { text: "UTC+9:00 — Tokyo / Seoul"; value: "Asia/Tokyo" }
+                ListElement { text: "UTC+9:30 — Adelaide"; value: "Australia/Adelaide" }
+                ListElement { text: "UTC+10:00 — Sydney / Melbourne"; value: "Australia/Sydney" }
+                ListElement { text: "UTC+10:00 — Brisbane / Guam"; value: "Australia/Brisbane" }
+                ListElement { text: "UTC+12:00 — Auckland / Wellington"; value: "Pacific/Auckland" }
+                ListElement { text: "UTC+12:00 — Fiji"; value: "Pacific/Fiji" }
+                ListElement { text: "UTC-5:00 — New York / Toronto / Montreal"; value: "America/New_York" }
+                ListElement { text: "UTC-6:00 — Chicago / Mexico City"; value: "America/Chicago" }
+                ListElement { text: "UTC-7:00 — Denver / Phoenix"; value: "America/Denver" }
+                ListElement { text: "UTC-8:00 — Los Angeles / Vancouver"; value: "America/Los_Angeles" }
+                ListElement { text: "UTC-9:00 — Anchorage"; value: "America/Anchorage" }
+                ListElement { text: "UTC-10:00 — Honolulu"; value: "Pacific/Honolulu" }
+                ListElement { text: "UTC-3:00 — São Paulo / Buenos Aires"; value: "America/Sao_Paulo" }
+                ListElement { text: "UTC-3:30 — St. John's"; value: "America/St_Johns" }
+                ListElement { text: "UTC-4:00 — Halifax"; value: "America/Halifax" }
+            }
+            textRole: "text"
+            valueRole: "value"
+            onActivated: {
+                var v = model.get(currentIndex).value;
+                _timezoneIdStorage.text = v;
+            }
+            onEditTextChanged: {
+                // User typed a custom IANA ID not in the presets
+                if (editText !== undefined && editText.length > 0) {
+                    var found = false;
+                    for (var i = 0; i < model.count; i++) {
+                        if (model.get(i).value === editText) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        _timezoneIdStorage.text = editText;
+                    }
+                }
+            }
+            Component.onCompleted: {
+                var currentVal = appearancePage.cfg_timezone_id || "";
+                for (var i = 0; i < model.count; i++) {
+                    if (model.get(i).value === currentVal) {
+                        currentIndex = i;
+                        _timezoneIdStorage.text = currentVal;
+                        return;
+                    }
+                }
+                // Not found in presets — it's a custom IANA ID typed by the user
+                if (currentVal.length > 0) {
+                    editText = currentVal;
+                    _timezoneIdStorage.text = currentVal;
+                }
+            }
+            QQC2.ToolTip.text: i18n("Select a timezone or type a custom IANA ID")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
         }

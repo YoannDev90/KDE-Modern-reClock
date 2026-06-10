@@ -5,5 +5,10 @@
 .DS_Store
 .vscode/
 .idea/
-bin/
 env/
+build/
+bin/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile

@@ -218,16 +218,16 @@ msgid "Show secondary timezone"
 msgstr "Afficher le fuseau horaire secondaire"
 
 #: contents/ui/configAppearance.qml
-msgid "Timezone ID:"
-msgstr "ID du fuseau horaire :"
+msgid "Timezone:"
+msgstr "Fuseau horaire :"
+
+#: contents/ui/configAppearance.qml
+msgid "Select a timezone or type a custom IANA ID"
+msgstr "Sélectionnez un fuseau horaire ou saisissez un identifiant IANA personnalisé"
 
 #: contents/ui/configAppearance.qml
 msgid "e.g. America/New_York, Europe/Tokyo"
 msgstr "ex. America/New_York, Europe/Tokyo"
-
-#: contents/ui/configAppearance.qml
-msgid "IANA timezone identifier. Find yours at timezonedb.com"
-msgstr "Identifiant de fuseau horaire IANA. Trouvez le vôtre sur timezonedb.com"
 
 #: contents/ui/configAppearance.qml
 msgid "Label:"

@@ -17,7 +17,41 @@ on:
         type: boolean
 
 jobs:
+  build-plugin:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x86_64, aarch64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake qt6-base-dev qt6-declarative-dev kf6-coreaddons-dev
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+            sudo apt-get install -y qemu-user-static binfmt-support
+            docker run --rm --platform linux/arm64 -v $(pwd):/src -w /src ubuntu:24.04 bash -c "
+              apt-get update && apt-get install -y cmake g++ qt6-base-dev qt6-declarative-dev kf6-coreaddons-dev &&
+              mkdir -p build && cd build && cmake .. -DCMAKE_INSTALL_PREFIX=/usr && make -j\$(nproc)
+            "
+            cp build/modernreclock_timezone modernreclock_timezone_aarch64.so
+          else
+            mkdir -p build && cd build
+            cmake .. -DCMAKE_INSTALL_PREFIX=/usr
+            make -j$(nproc)
+            cd ..
+            cp build/modernreclock_timezone modernreclock_timezone_x86_64.so
+          fi
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-${{ matrix.arch }}
+          path: modernreclock_timezone_*.so
+
   release:
+    needs: build-plugin
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -69,7 +103,42 @@ jobs:
         run: |
           VERSION=${{ steps.get_version.outputs.version }}
           # Exclude non-plasmoid folders and files
-          zip -r com.github.yoanndev90.modernreclock-$VERSION.plasmoid . -x "translate/*" "assets/*" ".git/*" ".github/*" "README.md" "LICENSE" "install-*.sh" "com.github.yoanndev90.modernreclock-*.plasmoid"
+          zip -r com.github.yoanndev90.modernreclock-$VERSION.plasmoid . -x "translate/*" "assets/*" ".git/*" ".github/*" "README.md" "LICENSE" "install-*.sh" "CMakeLists.txt" "src/*" "build/*" "bin/*" "com.github.yoanndev90.modernreclock-*.plasmoid"
+
+      - name: Download plugin artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: plugin-artifacts
+
+      - name: Prepare release assets
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          mkdir -p release-assets
+
+          # Copy plasmoid
+          cp *.plasmoid release-assets/
+
+          # Raw .so files for each arch
+          for arch_dir in plugin-artifacts/plugin-*; do
+            ARCH=$(basename "$arch_dir" | sed 's/plugin-//')
+            cp "$arch_dir"/*.so "release-assets/modernreclock_timezone_${ARCH}.so"
+          done
+
+          # Offline install zip for each arch
+          for arch_dir in plugin-artifacts/plugin-*; do
+            ARCH=$(basename "$arch_dir" | sed 's/plugin-//')
+            TMPDIR=$(mktemp -d)
+            mkdir -p "$TMPDIR/$ARCH"
+            cp "$arch_dir"/*.so "$TMPDIR/$ARCH/modernreclock_timezone.so"
+            printf 'module org.kde.plasma.private.modernreclock\nplugin modernreclock_timezone\n' > "$TMPDIR/$ARCH/qmldir"
+            (cd "$TMPDIR" && zip -r "$OLDPWD/release-assets/modernreclock-timezone-${VERSION}-${ARCH}.zip" "$ARCH/")
+            rm -rf "$TMPDIR"
+          done
+
+          # install-dist.sh for remote one-line install
+          cp install-dist.sh "release-assets/install-dist.sh"
+
+          ls -lh release-assets/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -85,14 +154,33 @@ jobs:
             ${{ steps.changelog.outputs.changes }}
 
             ### Installation
-            1. Download `com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid`.
-            2. Install it via :
+
+            #### Quick install (recommended)
+            ```bash
+            sh -c "$(curl -fsSL https://github.com/YoannDev90/KDE-Modern-reClock/releases/download/v${{ steps.get_version.outputs.version }}/install-dist.sh)"
+            ```
+
+            #### Manual install
+            1. Download `com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid`
+            2. Install:
                ```bash
                kpackagetool6 -t Plasma/Applet -i com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid
                ```
-            3. Or use the Plasma installer ("Add Widgets" > "Install from Local File").
+            3. Or use Plasma installer ("Add Widgets" > "Install from Local File")
+
+            #### Offline install (no internet required)
+            1. Download the `.plasmoid` + the offline zip matching your arch (`x86_64` or `aarch64`)
+            2. Extract the zip, run `install-local.sh` from the extracted folder
+
+            #### Files
+            | File | Description |
+            |------|-------------|
+            | `*.plasmoid` | Widget package |
+            | `modernreclock_timezone_*.so` | Timezone plugin (raw, for manual install) |
+            | `modernreclock-timezone-*.zip` | Offline install zip (plugin + qmldir) |
+            | `install-dist.sh` | One-line remote install script |
           files: |
-            *.plasmoid
+            release-assets/*
           prerelease: ${{ github.event.inputs.prerelease || false }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
