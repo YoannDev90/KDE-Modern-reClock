@@ -140,6 +140,10 @@
             <label>Short label displayed before the timezone time</label>
             <default></default>
         </entry>
+        <entry name="timezone_display_text" type="String">
+            <label>Display text shown in the timezone ComboBox (e.g. UTC+1:00 — Paris)</label>
+            <default></default>
+        </entry>
         <entry name="timezone_format" type="String">
             <label>Time format for the timezone display</label>
             <default>HH:mm</default>

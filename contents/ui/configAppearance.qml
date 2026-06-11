@@ -66,6 +66,7 @@ KCM.SimpleKCM {
     property alias cfg_show_timezone: showTimezone.checked
     property alias cfg_timezone_id: _timezoneIdStorage.text
     property alias cfg_timezone_label: timezoneLabel.text
+    property alias cfg_timezone_display_text: _timezoneDisplayStorage.text
     // Timezone format is now automatically derived from main time format (no seconds)
     // Kept as empty string; the real format is computed in main.qml timezoneFormat()
     property string cfg_timezone_format: ""
@@ -300,18 +301,22 @@ KCM.SimpleKCM {
             timezoneFontSize.value = d.size;
             timezoneLetterSpacing.value = d.spacing;
             _timezoneIdStorage.text = d.id || "";
+            _timezoneDisplayStorage.text = "";
             // Select matching preset in ComboBox or set custom text
             var tzVal = d.id || "";
             var found = false;
             for (var j = 0; j < timezoneIdField.model.count; j++) {
                 if (timezoneIdField.model.get(j).value === tzVal) {
                     timezoneIdField.currentIndex = j;
+                    timezoneIdField.editText = timezoneIdField.model.get(j).text;
+                    _timezoneDisplayStorage.text = timezoneIdField.model.get(j).text;
                     found = true;
                     break;
                 }
             }
             if (!found && tzVal.length > 0) {
                 timezoneIdField.editText = tzVal;
+                _timezoneDisplayStorage.text = tzVal;
             } else if (!found) {
                 timezoneIdField.currentIndex = 0;
             }
@@ -702,6 +707,13 @@ KCM.SimpleKCM {
         // Hidden field for timezone_id KCM alias (ComboBox writes here)
         QQC2.TextField {
             id: _timezoneIdStorage
+            visible: false
+            text: ""
+        }
+
+        // Hidden field for timezone display text (saved ComboBox display string)
+        QQC2.TextField {
+            id: _timezoneDisplayStorage
             visible: false
             text: ""
         }
@@ -1103,6 +1115,9 @@ KCM.SimpleKCM {
             onActivated: {
                 var v = model.get(currentIndex).value;
                 _timezoneIdStorage.text = v;
+                // Save display text so it restores on next open
+                _timezoneDisplayStorage.text = (currentIndex >= 0 && currentIndex < model.count)
+                    ? model.get(currentIndex).text : "";
             }
             onEditTextChanged: {
                 // User typed a custom IANA ID not in the presets
@@ -1120,18 +1135,22 @@ KCM.SimpleKCM {
                 }
             }
             Component.onCompleted: {
-                var currentVal = appearancePage.cfg_timezone_id || "";
-                for (var i = 0; i < model.count; i++) {
-                    if (model.get(i).value === currentVal) {
-                        currentIndex = i;
-                        _timezoneIdStorage.text = currentVal;
-                        return;
+                // Restore saved display text directly from config
+                var savedDisplay = appearancePage.cfg_timezone_display_text || "";
+                if (savedDisplay.length > 0) {
+                    editText = savedDisplay;
+                } else {
+                    // Fallback: match IANA ID against model
+                    var currentVal = appearancePage.cfg_timezone_id || "";
+                    for (var i = 0; i < model.count; i++) {
+                        if (model.get(i).value === currentVal) {
+                            currentIndex = i;
+                            return;
+                        }
                     }
-                }
-                // Not found in presets — it's a custom IANA ID typed by the user
-                if (currentVal.length > 0) {
-                    editText = currentVal;
-                    _timezoneIdStorage.text = currentVal;
+                    if (currentVal.length > 0) {
+                        editText = currentVal;
+                    }
                 }
             }
             QQC2.ToolTip.text: i18n("Select a timezone or type a custom IANA ID")

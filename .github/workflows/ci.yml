@@ -19,53 +19,136 @@ jobs:
 
       - name: Validate KCFG XML
         run: |
-          echo "--- Validating main.xml ---"
-          xmllint --noout contents/config/main.xml && echo "✓ main.xml is valid XML" || exit 1
+          LOG="ci-report.txt"
+          echo "=== CI VALIDATION REPORT ===" > "$LOG"
+          echo "Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> "$LOG"
+          echo "Branch: $GITHUB_REF_NAME" >> "$LOG"
+          echo "Commit: $GITHUB_SHA" >> "$LOG"
+          echo "" >> "$LOG"
+          echo "--- [1/6] Validating main.xml ---" | tee -a "$LOG"
+          if xmllint --noout contents/config/main.xml 2>&1; then
+            echo "✓ main.xml is valid XML" | tee -a "$LOG"
+          else
+            echo "✗ main.xml is INVALID" | tee -a "$LOG"
+            xmllint --noout contents/config/main.xml 2>&1 | tee -a "$LOG"
+            echo "RESULT=FAIL" >> "$LOG"
+          fi
 
       - name: Validate metadata.json
         run: |
-          echo "--- Validating metadata.json ---"
-          python3 -c "import json; json.load(open('metadata.json'))" && echo "✓ metadata.json is valid JSON" || exit 1
+          LOG="ci-report.txt"
+          echo "" >> "$LOG"
+          echo "--- [2/6] Validating metadata.json ---" | tee -a "$LOG"
+          if python3 -c "import json; json.load(open('metadata.json'))" 2>&1; then
+            echo "✓ metadata.json is valid JSON" | tee -a "$LOG"
+          else
+            echo "✗ metadata.json is INVALID" | tee -a "$LOG"
+            python3 -c "import json; json.load(open('metadata.json'))" 2>&1 | tee -a "$LOG"
+          fi
 
       - name: Validate QML syntax
         run: |
-          echo "--- Validating QML files with qmllint ---"
+          LOG="ci-report.txt"
+          echo "" >> "$LOG"
+          echo "--- [3/6] Validating QML files ---" | tee -a "$LOG"
           ERRORS=0
+          WARNINGS=0
           for qml in contents/ui/*.qml contents/config/*.qml; do
-            if qmllint --no-copyright "$qml" 2>/dev/null; then
-              echo "✓ $qml"
+            echo "" >> "$LOG"
+            echo "  File: $qml" >> "$LOG"
+            # Capture qmllint output (stdout + stderr)
+            OUTPUT=$(qmllint --no-copyright "$qml" 2>&1)
+            EXIT=$?
+            if [ $EXIT -eq 0 ]; then
+              echo "  ✓ OK (qmllint clean)" | tee -a "$LOG"
             else
-              echo "⚠ $qml (qmllint returned warnings — checking syntax only)"
-              # Fallback: check basic QML parse with qmlformat dry-run
-              if qmlformat --check "$qml" 2>/dev/null; then
-                echo "  ✓ $qml passes qmlformat check"
+              echo "  ⚠ qmllint issues:" | tee -a "$LOG"
+              echo "$OUTPUT" | tee -a "$LOG"
+              WARNINGS=$((WARNINGS + 1))
+              # Fallback: qmlformat --check
+              FMT_OUTPUT=$(qmlformat --check "$qml" 2>&1)
+              FMT_EXIT=$?
+              if [ $FMT_EXIT -eq 0 ]; then
+                echo "  ✓ qmlformat check passed" | tee -a "$LOG"
               else
-                echo "  ✗ $qml has syntax errors"
+                echo "  ✗ qmlformat check FAILED" | tee -a "$LOG"
+                echo "$FMT_OUTPUT" | tee -a "$LOG"
                 ERRORS=$((ERRORS + 1))
               fi
             fi
           done
+          echo "" >> "$LOG"
+          echo "QML summary: $WARNINGS file(s) with warnings, $ERRORS file(s) with errors" | tee -a "$LOG"
           if [ "$ERRORS" -gt 0 ]; then
-            echo "✗ $ERRORS file(s) have QML syntax errors"
-            exit 1
+            echo "RESULT=FAIL" >> "$LOG"
           fi
-          echo "✓ All QML files validated"
 
       - name: Validate translations
         run: |
-          echo "--- Checking .po files ---"
+          LOG="ci-report.txt"
+          echo "" >> "$LOG"
+          echo "--- [4/6] Validating .po translation files ---" | tee -a "$LOG"
+          PO_ERRORS=0
           for po in translate/*.po; do
-            msgfmt --check "$po" -o /dev/null && echo "✓ $po is valid" || exit 1
+            PO_OUTPUT=$(msgfmt --check "$po" -o /dev/null 2>&1)
+            if [ $? -eq 0 ]; then
+              echo "  ✓ $po" | tee -a "$LOG"
+            else
+              echo "  ✗ $po" | tee -a "$LOG"
+              echo "$PO_OUTPUT" | tee -a "$LOG"
+              PO_ERRORS=$((PO_ERRORS + 1))
+            fi
           done
+          echo "PO summary: $PO_ERRORS file(s) with errors" | tee -a "$LOG"
 
       - name: Compile translations
         run: |
+          LOG="ci-report.txt"
+          echo "" >> "$LOG"
+          echo "--- [5/6] Compiling translations ---" | tee -a "$LOG"
           chmod +x translate/build.sh
-          ./translate/build.sh
+          BUILD_OUTPUT=$(./translate/build.sh 2>&1)
+          if [ $? -eq 0 ]; then
+            echo "✓ Translation compilation succeeded" | tee -a "$LOG"
+            echo "$BUILD_OUTPUT" >> "$LOG"
+          else
+            echo "✗ Translation compilation FAILED" | tee -a "$LOG"
+            echo "$BUILD_OUTPUT" | tee -a "$LOG"
+          fi
 
       - name: Build plasmoid package
         run: |
-          echo "--- Creating plasmoid archive ---"
-          zip -r /tmp/test-build.plasmoid . -x ".git/*" ".github/*" "translate/*" "assets/*" "install-*.sh" "README.md" "LICENSE"
-          echo "✓ Build successful"
-          ls -lh /tmp/test-build.plasmoid
+          LOG="ci-report.txt"
+          echo "" >> "$LOG"
+          echo "--- [6/6] Building plasmoid package ---" | tee -a "$LOG"
+          zip -r /tmp/test-build.plasmoid . -x ".git/*" ".github/*" "translate/*" "assets/*" "install-*.sh" "README.md" "LICENSE" 2>&1 | tee -a "$LOG"
+          if [ $? -eq 0 ]; then
+            echo "✓ Build successful" | tee -a "$LOG"
+            ls -lh /tmp/test-build.plasmoid | tee -a "$LOG"
+          else
+            echo "✗ Build FAILED" | tee -a "$LOG"
+          fi
+
+      - name: Final report
+        if: always()
+        run: |
+          LOG="ci-report.txt"
+          echo "" >> "$LOG"
+          echo "========================================" >> "$LOG"
+          if grep -q "RESULT=FAIL" "$LOG"; then
+            echo "OVERALL: ✗ FAILED — see errors above" | tee -a "$LOG"
+          else
+            echo "OVERALL: ✓ ALL CHECKS PASSED" | tee -a "$LOG"
+          fi
+          echo "========================================" >> "$LOG"
+          echo "" >> "$LOG"
+          echo "--- Full report ---"
+          cat "$LOG"
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-report
+          path: ci-report.txt
+          retention-days: 30
