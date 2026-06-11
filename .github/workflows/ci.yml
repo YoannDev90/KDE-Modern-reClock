@@ -82,15 +82,16 @@ jobs:
           import xml.etree.ElementTree as ET, sys
           tree = ET.parse('contents/config/main.xml')
           root = tree.getroot()
-          groups = root.findall('group')
+          ns = {'kcfg': 'http://www.kde.org/standards/kcfg/1.0'}
+          groups = root.findall('kcfg:group', ns)
           if not groups:
               print('  ✗ No <group> found'); sys.exit(1)
           entries = 0
           for g in groups:
-              for e in g.findall('entry'):
+              for e in g.findall('kcfg:entry', ns):
                   name = e.get('name', '???')
                   etype = e.get('type', '???')
-                  d = e.find('default')
+                  d = e.find('kcfg:default', ns)
                   if d is None or d.text is None or not d.text.strip():
                       print(f'  ⚠ \"{name}\" ({etype}) has no default')
                   entries += 1
@@ -186,7 +187,7 @@ jobs:
           if command -v qmllint &>/dev/null; then
             for qml in contents/ui/*.qml contents/config/*.qml; do
               [ -f "$qml" ] || continue
-              OUTPUT=$(qmllint --no-copyright "$qml" 2>&1) || true
+              OUTPUT=$(qmllint "$qml" 2>&1) || true
               if [ -z "$OUTPUT" ]; then
                 echo "  ✓ $qml" >> "$LOG"
               else
@@ -226,6 +227,8 @@ jobs:
               -I/usr/include/x86_64-linux-gnu/qt6 \
               -I/usr/include/x86_64-linux-gnu/qt6/QtCore \
               -I/usr/include/x86_64-linux-gnu/qt6/QtQml \
+              -I/usr/include/x86_64-linux-gnu/qt6/QtQml/private \
+              -I/usr/include/KF6/CoreAddons \
               src/timezoneplugin.cpp 2>&1 | tee -a "$LOG" || true
             echo "  ✓ C++ syntax check done" | tee -a "$LOG"
           fi
