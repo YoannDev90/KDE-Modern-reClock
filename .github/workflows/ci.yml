@@ -15,7 +15,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qt6-qmllint-plugins qt6-base-dev gettext libxml2-utils
+          sudo apt-get install -y qt6-declarative-dev-tools qt6-base-dev gettext libxml2-utils
+          # Qt6 tools are in /usr/lib/qt6/bin which is not in PATH
+          echo "/usr/lib/qt6/bin" >> "$GITHUB_PATH"
 
       - name: Validate KCFG XML
         run: |
