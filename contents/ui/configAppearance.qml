@@ -41,11 +41,11 @@ KCM.SimpleKCM {
     property alias cfg_date_font_bold: dateFontBold.checked
     property alias cfg_time_font_bold: timeFontBold.checked
 
-    property string cfg_fontFamilyDay
-    property string cfg_fontFamilyDate
-    property string cfg_fontFamilyTime
-    property string cfg_fontFamilyCustom
-    property string cfg_fontFamilyTimezone
+    property alias cfg_fontFamilyDay: _fontFamilyDayStorage.text
+    property alias cfg_fontFamilyDate: _fontFamilyDateStorage.text
+    property alias cfg_fontFamilyTime: _fontFamilyTimeStorage.text
+    property alias cfg_fontFamilyCustom: _fontFamilyCustomStorage.text
+    property alias cfg_fontFamilyTimezone: _fontFamilyTimezoneStorage.text
 
     property alias cfg_widget_spacing: widgetSpacing.value
 
@@ -69,7 +69,7 @@ KCM.SimpleKCM {
     property alias cfg_timezone_display_text: _timezoneDisplayStorage.text
     // Timezone format is now automatically derived from main time format (no seconds)
     // Kept as empty string; the real format is computed in main.qml timezoneFormat()
-    property string cfg_timezone_format: ""
+    property alias cfg_timezone_format: _timezoneFmtStorage.text
     property alias cfg_timezone_font_size: timezoneFontSize.value
     property alias cfg_timezone_letter_spacing: timezoneLetterSpacing.value
     property alias cfg_timezone_font_bold: timezoneFontBold.checked
@@ -238,6 +238,7 @@ KCM.SimpleKCM {
         interval: 1000
         repeat: true
         running: true
+        // Note: mirrors main.qml timer but always runs at 1s for preview responsiveness
         onTriggered: appearancePage.updatePreview()
     }
 
@@ -717,6 +718,16 @@ KCM.SimpleKCM {
             visible: false
             text: ""
         }
+
+        // Hidden fields for fontFamily KCM aliases
+        QQC2.TextField { id: _fontFamilyDayStorage; visible: false; text: "Anurati" }
+        QQC2.TextField { id: _fontFamilyDateStorage; visible: false; text: "Poppins" }
+        QQC2.TextField { id: _fontFamilyTimeStorage; visible: false; text: "Poppins" }
+        QQC2.TextField { id: _fontFamilyCustomStorage; visible: false; text: "Poppins" }
+        QQC2.TextField { id: _fontFamilyTimezoneStorage; visible: false; text: "Poppins" }
+
+        // Hidden field for timezone_format KCM alias
+        QQC2.TextField { id: _timezoneFmtStorage; visible: false; text: "" }
 
         // ===== ORDER SYSTEM (extracted to OrderSection.qml) =====
         OrderSection {

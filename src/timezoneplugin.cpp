@@ -26,7 +26,7 @@ public:
     Q_INVOKABLE int offsetAt(const QString& id, const QDateTime& dateTime) const {
         QTimeZone tz(id.toUtf8());
         if (!tz.isValid()) return 0;
-        return tz.standardTimeOffset(dateTime) + (tz.isDaylightTime(dateTime) ? tz.daylightTimeOffset(dateTime) : 0);
+        return tz.offsetFromUtc(dateTime);
     }
 
     Q_INVOKABLE QString displayName(const QString& id, const QDateTime& dateTime) const {
@@ -47,21 +47,15 @@ public:
         return tz.isDaylightTime(dateTime);
     }
 
-    // Returns an object compatible with Qt.formatDateTime(date, format, tz)
-    Q_INVOKABLE QJSValue timeZoneObject(const QString& id) const {
+    // Returns a QVariantMap safe for QML consumption (no dangling QJSValue)
+    Q_INVOKABLE QVariantMap timeZoneObject(const QString& id) const {
         QTimeZone tz(id.toUtf8());
-        if (!tz.isValid()) return QJSValue();
+        if (!tz.isValid()) return QVariantMap();
 
-        QJSEngine engine;
-        QJSValue obj = engine.newObject();
+        QVariantMap obj;
         auto now = QDateTime::currentDateTime();
-
-        int offset = tz.standardTimeOffset(now);
-        if (tz.isDaylightTime(now))
-            offset += tz.daylightTimeOffset(now);
-
-        obj.setProperty("offsetMinutes", offset / 60);
-        obj.setProperty("abbreviation", tz.abbreviation(now));
+        obj["offsetMinutes"] = tz.offsetFromUtc(now) / 60;
+        obj["abbreviation"] = tz.abbreviation(now);
         return obj;
     }
 

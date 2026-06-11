@@ -76,7 +76,7 @@ PlasmoidItem {
     onUppercaseDayChanged: updateClock()
     onUppercaseDateChanged: updateClock()
 
-    readonly property string default24HourFormat: "hh:mm"
+    readonly property string default24HourFormat: "HH:mm"
     readonly property string default12HourFormat: "hh:mm AP"
 
     readonly property string resolvedTimeFormat: currentTimeFormat()
@@ -102,6 +102,7 @@ PlasmoidItem {
     }
 
     function updateClock() {
+        _invalidatePropsCache();
         currentDateTime = new Date();
         scheduleNextClockTick();
     }
@@ -237,13 +238,16 @@ PlasmoidItem {
         return null;
     }
 
-    function elementVisible(type) { var p = _elementProps(type); return p ? p.show : false; }
-    function elementText(type) { var p = _elementProps(type); return p ? p.text : ""; }
-    function elementFont(type) { var p = _elementProps(type); return p ? p.font : ""; }
-    function elementFontSize(type) { var p = _elementProps(type); return p ? p.size : 1; }
-    function elementLetterSpacing(type) { var p = _elementProps(type); return p ? p.spacing : 0; }
-    function elementFontBold(type) { var p = _elementProps(type); return p ? p.bold : false; }
-    function elementFontColor(type) { var p = _elementProps(type); return p ? p.color : "#FFFFFF"; }
+    // Cache element props to avoid 7 redundant _elementProps() calls per element per tick
+    property var _cachedProps: ({}); function _getProps(type) { if (!_cachedProps[type]) _cachedProps[type] = _elementProps(type); return _cachedProps[type]; }
+    function elementVisible(type) { var p = _getProps(type); return p ? p.show : false; }
+    function elementText(type) { var p = _getProps(type); return p ? p.text : ""; }
+    function elementFont(type) { var p = _getProps(type); return p ? p.font : ""; }
+    function elementFontSize(type) { var p = _getProps(type); return p ? p.size : 1; }
+    function elementLetterSpacing(type) { var p = _getProps(type); return p ? p.spacing : 0; }
+    function elementFontBold(type) { var p = _getProps(type); return p ? p.bold : false; }
+    function elementFontColor(type) { var p = _getProps(type); return p ? p.color : "#FFFFFF"; }
+    function _invalidatePropsCache() { _cachedProps = ({}); }
 
     Timer {
         id: clockTimer

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: modernreclock\n"
 "Report-Msgid-Bugs-To: https://github.com/YoannDev90/KDE-Modern-reClock/issues\n"
-"POT-Creation-Date: 2026-06-01 19:15+0200\n"
+"POT-Creation-Date: 2026-06-11 17:46+0200\n"
 "PO-Revision-Date: 2026-05-04 17:50+0200\n"
 "Last-Translator:  <martin.jcb@proton.me>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -22,16 +22,88 @@ msgid "Appearance"
 msgstr "Apparence"
 
 #: contents/ui/configAppearance.qml
-msgid "General"
-msgstr "Général"
+msgid "Preview"
+msgstr "Aperçu"
+
+#: contents/ui/configAppearance.qml
+msgid "Global"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Auto-scale (fitting widget size)"
+msgstr "Mise à l'échelle automatique (ajustement à la taille du widget)"
+
+#: contents/ui/configAppearance.qml
+msgid "Adapt colors to system theme"
+msgstr "Adapter les couleurs au thème du système"
+
+#: contents/ui/configAppearance.qml
+msgid "Override element colors with the system theme text color for better contrast"
+msgstr "Remplacer les couleurs des éléments par la couleur du texte du thème système pour un meilleur contraste"
 
 #: contents/ui/configAppearance.qml
 msgid "Element spacing:"
 msgstr "Espacement des éléments :"
 
 #: contents/ui/configAppearance.qml
-msgid "Locale:"
-msgstr "Paramètres régionaux :"
+msgid "Language Preset:"
+msgstr "Préréglage de langue :"
+
+#: contents/ui/configAppearance.qml
+msgid "System Default"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "French"
+msgstr "Français"
+
+#: contents/ui/configAppearance.qml
+msgid "English (US)"
+msgstr "Anglais (États-Unis)"
+
+#: contents/ui/configAppearance.qml
+msgid "English (UK)"
+msgstr "Anglais (Royaume-Uni)"
+
+#: contents/ui/configAppearance.qml
+msgid "German"
+msgstr "Allemand"
+
+#: contents/ui/configAppearance.qml
+msgid "Spanish"
+msgstr "Espagnol"
+
+#: contents/ui/configAppearance.qml
+msgid "Italian"
+msgstr "Italien"
+
+#: contents/ui/configAppearance.qml
+msgid "Dutch"
+msgstr "Néerlandais"
+
+#: contents/ui/configAppearance.qml
+msgid "Polish"
+msgstr "Polonais"
+
+#: contents/ui/configAppearance.qml
+msgid "Portuguese"
+msgstr "Portugais"
+
+#: contents/ui/configAppearance.qml
+msgid "Russian"
+msgstr "Russe"
+
+#: contents/ui/configAppearance.qml
+msgid "Japanese"
+msgstr "Japonais"
+
+#: contents/ui/configAppearance.qml contents/ui/OrderSection.qml
+msgid "Custom"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Custom Locale:"
+msgstr ""
 
 #: contents/ui/configAppearance.qml
 msgid "e.g. fr_BE, en_GB, nl_BE"
@@ -42,12 +114,32 @@ msgid "Locale used for weekday and month names. Leave empty to use the system lo
 msgstr "Paramètres régionaux utilisés pour les noms des jours et des mois. Laisser vide pour utiliser les paramètres régionaux du système."
 
 #: contents/ui/configAppearance.qml
+msgid "Reset Global Settings"
+msgstr "Réinitialiser les paramètres globaux"
+
+#: contents/ui/configAppearance.qml
+msgid "Restore global settings to defaults"
+msgstr "Restaurer les paramètres globaux par défaut"
+
+#: contents/ui/configAppearance.qml
+msgid "Element Order"
+msgstr "Ordre des éléments"
+
+#: contents/ui/configAppearance.qml
+msgid "Use the arrows to reorder elements from top to bottom."
+msgstr "Utilisez les flèches pour réorganiser les éléments de haut en bas."
+
+#: contents/ui/configAppearance.qml contents/ui/OrderSection.qml
 msgid "Day"
 msgstr "Jour"
 
 #: contents/ui/configAppearance.qml
 msgid "Show day"
 msgstr "Afficher le jour"
+
+#: contents/ui/configAppearance.qml
+msgid "Font:"
+msgstr ""
 
 #: contents/ui/configAppearance.qml
 msgid "Font size:"
@@ -58,8 +150,8 @@ msgid "Letter spacing:"
 msgstr "Espacement des lettres :"
 
 #: contents/ui/configAppearance.qml
-msgid "Day format:"
-msgstr "Format du jour :"
+msgid "Format:"
+msgstr "Format :"
 
 #: contents/ui/configAppearance.qml
 msgid "Use Qt date formats. For example: dddd = full weekday name, ddd = short weekday name."
@@ -78,6 +170,14 @@ msgid "Font color:"
 msgstr "Couleur de la police :"
 
 #: contents/ui/configAppearance.qml
+msgid "Reset Day Settings"
+msgstr "Réinitialiser les paramètres du jour"
+
+#: contents/ui/configAppearance.qml
+msgid "Restore day settings to defaults"
+msgstr "Restaurer les paramètres du jour par défaut"
+
+#: contents/ui/configAppearance.qml contents/ui/OrderSection.qml
 msgid "Date"
 msgstr "Date"
 
@@ -86,14 +186,18 @@ msgid "Show date"
 msgstr "Afficher la date"
 
 #: contents/ui/configAppearance.qml
-msgid "Date format:"
-msgstr "Format de la date :"
-
-#: contents/ui/configAppearance.qml
 msgid "Use Qt date formats like dd MMM yyyy, MM/dd/yyyy, or dddd d MMMM yyyy."
 msgstr "Utilisez les formats de date Qt comme dd MMM yyyy, MM/dd/yyyy ou dddd d MMMM yyyy."
 
 #: contents/ui/configAppearance.qml
+msgid "Reset Date Settings"
+msgstr "Réinitialiser les paramètres de la date"
+
+#: contents/ui/configAppearance.qml
+msgid "Restore date settings to defaults"
+msgstr "Restaurer les paramètres de la date par défaut"
+
+#: contents/ui/configAppearance.qml contents/ui/OrderSection.qml
 msgid "Time"
 msgstr "Heure"
 
@@ -102,16 +206,16 @@ msgid "Show time"
 msgstr "Afficher l'heure"
 
 #: contents/ui/configAppearance.qml
-msgid "Use 24-hour format"
-msgstr "Utiliser le format 24 heures"
-
-#: contents/ui/configAppearance.qml
-msgid "Time format:"
-msgstr "Format de l'heure :"
+msgid "hh:mm"
+msgstr ""
 
 #: contents/ui/configAppearance.qml
 msgid "Use Qt time formats like hh:mm, hh:mm:ss, or hh:mm AP. Leave empty to use the 12/24-hour setting."
 msgstr "Utilisez les formats d'heure Qt comme hh:mm, hh:mm:ss ou hh:mm AP. Laisser vide pour utiliser le paramètre 12/24 heures."
+
+#: contents/ui/configAppearance.qml
+msgid "Use 24-hour format"
+msgstr "Utiliser le format 24 heures"
 
 #: contents/ui/configAppearance.qml
 msgid "Decoration character:"
@@ -122,56 +226,12 @@ msgid "A character displayed on both sides of the time. Leave empty to show no d
 msgstr "Un caractère affiché de chaque côté de l'heure. Laisser vide pour ne pas afficher de décoration."
 
 #: contents/ui/configAppearance.qml
-msgid "Auto-scale (fitting widget size)"
-msgstr "Mise à l'échelle automatique (ajustement à la taille du widget)"
-
-#: contents/ui/configAppearance.qml
-msgid "Element Order"
-msgstr "Ordre des éléments"
-
-#: contents/ui/configAppearance.qml
-msgid "Use the arrows to reorder elements from top to bottom."
-msgstr "Utilisez les flèches pour réorganiser les éléments de haut en bas."
-
-#: contents/ui/configAppearance.qml
-msgid "Reset Global Settings"
-msgstr "Réinitialiser les paramètres globaux"
-
-#: contents/ui/configAppearance.qml
-msgid "Restore global settings to defaults"
-msgstr "Restaurer les paramètres globaux par défaut"
-
-#: contents/ui/configAppearance.qml
-msgid "Reset Day Settings"
-msgstr "Réinitialiser les paramètres du jour"
-
-#: contents/ui/configAppearance.qml
-msgid "Restore day settings to defaults"
-msgstr "Restaurer les paramètres du jour par défaut"
-
-#: contents/ui/configAppearance.qml
-msgid "Reset Date Settings"
-msgstr "Réinitialiser les paramètres de la date"
-
-#: contents/ui/configAppearance.qml
-msgid "Restore date settings to defaults"
-msgstr "Restaurer les paramètres de la date par défaut"
-
-#: contents/ui/configAppearance.qml
 msgid "Reset Time Settings"
 msgstr "Réinitialiser les paramètres de l'heure"
 
 #: contents/ui/configAppearance.qml
 msgid "Restore time settings to defaults"
 msgstr "Restaurer les paramètres de l'heure par défaut"
-
-#: contents/ui/configAppearance.qml
-msgid "Adapt colors to system theme"
-msgstr "Adapter les couleurs au thème du système"
-
-#: contents/ui/configAppearance.qml
-msgid "Override element colors with the system theme text color for better contrast"
-msgstr "Remplacer les couleurs des éléments par la couleur du texte du thème système pour un meilleur contraste"
 
 #: contents/ui/configAppearance.qml
 msgid "Custom Text"
@@ -226,10 +286,6 @@ msgid "Select a timezone or type a custom IANA ID"
 msgstr "Sélectionnez un fuseau horaire ou saisissez un identifiant IANA personnalisé"
 
 #: contents/ui/configAppearance.qml
-msgid "e.g. America/New_York, Europe/Tokyo"
-msgstr "ex. America/New_York, Europe/Tokyo"
-
-#: contents/ui/configAppearance.qml
 msgid "Label:"
 msgstr "Étiquette :"
 
@@ -240,14 +296,6 @@ msgstr "ex. NYC, Tokyo"
 #: contents/ui/configAppearance.qml
 msgid "Short label displayed before the timezone time. Leave empty for no label."
 msgstr "Étiquette courte affichée avant l'heure du fuseau. Laisser vide pour aucune étiquette."
-
-#: contents/ui/configAppearance.qml
-msgid "Format:"
-msgstr "Format :"
-
-#: contents/ui/configAppearance.qml
-msgid "Time format using HH (24h), H, mm, m tokens"
-msgstr "Format d'heure utilisant les jetons HH (24h), H, mm, m"
 
 #: contents/ui/configAppearance.qml
 msgid "Reset Timezone Settings"
@@ -266,56 +314,8 @@ msgid "Save Current Theme"
 msgstr "Enregistrer le thème actuel"
 
 #: contents/ui/configAppearance.qml
-msgid "No saved themes yet."
-msgstr "Aucun thème enregistré pour le moment."
-
-#: contents/ui/configAppearance.qml
-msgid "Import Theme"
-msgstr "Importer un thème"
-
-#: contents/ui/configAppearance.qml
-msgid "Advanced: Raw JSON"
-msgstr "Avancé : JSON brut"
-
-#: contents/ui/configAppearance.qml
-msgid "Save Theme"
-msgstr "Enregistrer le thème"
-
-#: contents/ui/configAppearance.qml
-msgid "Export Theme"
-msgstr "Exporter le thème"
-
-#: contents/ui/configAppearance.qml
-msgid "Copy this JSON to share or back up your theme."
-msgstr "Copiez ce JSON pour partager ou sauvegarder votre thème."
-
-#: contents/ui/configAppearance.qml
-msgid "Paste a theme JSON below. It will be added to your saved themes."
-msgstr "Collez un JSON de thème ci-dessous. Il sera ajouté à vos thèmes enregistrés."
-
-#: contents/ui/configAppearance.qml
-msgid "Paste theme JSON here..."
-msgstr "Collez le JSON du thème ici..."
-
-#: contents/ui/configAppearance.qml
-msgid "Invalid JSON: %1"
-msgstr "JSON invalide : %1"
-
-#: contents/ui/configAppearance.qml
-msgid "Widget Configuration (Raw JSON)"
-msgstr "Configuration du widget (JSON brut)"
-
-#: contents/ui/configAppearance.qml
-msgid "Copy this JSON to save your full config, or paste a previously saved JSON to restore it."
-msgstr "Copiez ce JSON pour sauvegarder votre configuration complète, ou collez un JSON précédemment enregistré pour la restaurer."
-
-#: contents/ui/configAppearance.qml
-msgid "Apply Pasted Config"
-msgstr "Appliquer la configuration collée"
-
-#: contents/ui/configAppearance.qml
-msgid "Reset to current"
-msgstr "Réinitialiser à l'actuel"
+msgid "Untitled"
+msgstr "Sans titre"
 
 #: contents/ui/configAppearance.qml
 msgid "Load this theme"
@@ -330,113 +330,148 @@ msgid "Delete this theme"
 msgstr "Supprimer ce thème"
 
 #: contents/ui/configAppearance.qml
-msgid "Untitled"
-msgstr "Sans titre"
+msgid "No saved themes yet."
+msgstr "Aucun thème enregistré pour le moment."
+
+#: contents/ui/configAppearance.qml contents/ui/ThemeSheets.qml
+msgid "Import Theme"
+msgstr "Importer un thème"
 
 #: contents/ui/configAppearance.qml
+msgid "Advanced: Raw JSON"
+msgstr "Avancé : JSON brut"
+
+#: contents/ui/OrderSection.qml
+msgid "Timezone"
+msgstr ""
+
+#: contents/ui/OrderSection.qml
+msgid "Move up"
+msgstr ""
+
+#: contents/ui/OrderSection.qml
+msgid "Move down"
+msgstr ""
+
+#: contents/ui/ThemeSheets.qml
+msgid "Save Theme"
+msgstr "Enregistrer le thème"
+
+#: contents/ui/ThemeSheets.qml
 msgid "Name:"
 msgstr "Nom :"
 
-#: contents/ui/configAppearance.qml
-msgid "Description:"
-msgstr "Description :"
-
-#: contents/ui/configAppearance.qml
+#: contents/ui/ThemeSheets.qml
 msgid "My Theme"
 msgstr "Mon thème"
 
-#: contents/ui/configAppearance.qml
+#: contents/ui/ThemeSheets.qml
+msgid "Description:"
+msgstr "Description :"
+
+#: contents/ui/ThemeSheets.qml
 msgid "Optional description"
 msgstr "Description optionnelle"
 
-#: contents/ui/configAppearance.qml
-msgid "Preview"
-msgstr "Aperçu"
+#: contents/ui/ThemeSheets.qml
+msgid "Save"
+msgstr ""
 
-#: contents/ui/configAppearance.qml
-msgid "French"
-msgstr "Français"
+#: contents/ui/ThemeSheets.qml
+msgid "Cancel"
+msgstr ""
 
-#: contents/ui/configAppearance.qml
-msgid "English (US)"
-msgstr "Anglais (États-Unis)"
+#: contents/ui/ThemeSheets.qml
+msgid "Export Theme"
+msgstr "Exporter le thème"
 
-#: contents/ui/configAppearance.qml
-msgid "English (UK)"
-msgstr "Anglais (Royaume-Uni)"
+#: contents/ui/ThemeSheets.qml
+msgid "Copy this JSON to share or back up your theme."
+msgstr "Copiez ce JSON pour partager ou sauvegarder votre thème."
 
-#: contents/ui/configAppearance.qml
-msgid "German"
-msgstr "Allemand"
+#: contents/ui/ThemeSheets.qml
+msgid "Close"
+msgstr ""
 
-#: contents/ui/configAppearance.qml
-msgid "Spanish"
-msgstr "Espagnol"
+#: contents/ui/ThemeSheets.qml
+msgid "Paste a theme JSON below. It will be added to your saved themes."
+msgstr "Collez un JSON de thème ci-dessous. Il sera ajouté à vos thèmes enregistrés."
 
-#: contents/ui/configAppearance.qml
-msgid "Italian"
-msgstr "Italien"
+#: contents/ui/ThemeSheets.qml
+msgid "Paste theme JSON here..."
+msgstr "Collez le JSON du thème ici..."
 
-#: contents/ui/configAppearance.qml
-msgid "Dutch"
-msgstr "Néerlandais"
+#: contents/ui/ThemeSheets.qml
+msgid "Import"
+msgstr ""
 
-#: contents/ui/configAppearance.qml
-msgid "Polish"
-msgstr "Polonais"
+#: contents/ui/ThemeSheets.qml
+msgid "Invalid JSON: %1"
+msgstr "JSON invalide : %1"
 
-#: contents/ui/configAppearance.qml
-msgid "Portuguese"
-msgstr "Portugais"
+#: contents/ui/ThemeSheets.qml
+msgid "Widget Configuration (Raw JSON)"
+msgstr "Configuration du widget (JSON brut)"
 
-#: contents/ui/configAppearance.qml
-msgid "Russian"
-msgstr "Russe"
+#: contents/ui/ThemeSheets.qml
+msgid "Copy this JSON to save your full config, or paste a previously saved JSON to restore it."
+msgstr "Copiez ce JSON pour sauvegarder votre configuration complète, ou collez un JSON précédemment enregistré pour la restaurer."
 
-#: contents/ui/configAppearance.qml
-msgid "Japanese"
-msgstr "Japonais"
+#: contents/ui/ThemeSheets.qml
+msgid "Apply Pasted Config"
+msgstr "Appliquer la configuration collée"
 
-#: contents/ui/configAppearance.qml
-msgid "Language Preset:"
-msgstr "Préréglage de langue :"
+#: contents/ui/ThemeSheets.qml
+msgid "Reset to current"
+msgstr "Réinitialiser à l'actuel"
 
-#: contents/config/configAbout.qml
-msgid "About"
-msgstr "À propos"
+#~ msgid "General"
+#~ msgstr "Général"
 
-#: contents/config/configAbout.qml
-msgid "Modern reClock"
-msgstr "Modern reClock"
+#~ msgid "Locale:"
+#~ msgstr "Paramètres régionaux :"
 
-#: contents/config/configAbout.qml
-msgid "Version: %1"
-msgstr "Version : %1"
+#~ msgid "Day format:"
+#~ msgstr "Format du jour :"
 
-#: contents/config/configAbout.qml
-msgid "A modern looking clock widget for your KDE Plasma desktop!"
-msgstr "Un widget d'horloge moderne pour votre bureau KDE Plasma !"
+#~ msgid "Date format:"
+#~ msgstr "Format de la date :"
 
-#: contents/config/configAbout.qml
-msgid "Author"
-msgstr "Auteur"
+#~ msgid "Time format:"
+#~ msgstr "Format de l'heure :"
 
-#: contents/config/configAbout.qml
-msgid "Links"
-msgstr "Liens"
+#~ msgid "e.g. America/New_York, Europe/Tokyo"
+#~ msgstr "ex. America/New_York, Europe/Tokyo"
 
-#: contents/config/configAbout.qml
-msgid "Source Code"
-msgstr "Code source"
+#~ msgid "Time format using HH (24h), H, mm, m tokens"
+#~ msgstr "Format d'heure utilisant les jetons HH (24h), H, mm, m"
 
-#: contents/config/configAbout.qml
-msgid "Report a Bug"
-msgstr "Signaler un bug"
+#~ msgid "About"
+#~ msgstr "À propos"
 
-#: contents/config/configAbout.qml
-msgid "License"
-msgstr "Licence"
+#~ msgid "Modern reClock"
+#~ msgstr "Modern reClock"
 
-#: contents/config/configAbout.qml
-msgid "This widget is licensed under the GNU General Public License v3.0 (GPLv3)."
-msgstr "Ce widget est sous licence GNU General Public License v3.0 (GPLv3)."
+#~ msgid "Version: %1"
+#~ msgstr "Version : %1"
+
+#~ msgid "A modern looking clock widget for your KDE Plasma desktop!"
+#~ msgstr "Un widget d'horloge moderne pour votre bureau KDE Plasma !"
+
+#~ msgid "Author"
+#~ msgstr "Auteur"
+
+#~ msgid "Links"
+#~ msgstr "Liens"
+
+#~ msgid "Source Code"
+#~ msgstr "Code source"
+
+#~ msgid "Report a Bug"
+#~ msgstr "Signaler un bug"
+
+#~ msgid "License"
+#~ msgstr "Licence"
+
+#~ msgid "This widget is licensed under the GNU General Public License v3.0 (GPLv3)."
+#~ msgstr "Ce widget est sous licence GNU General Public License v3.0 (GPLv3)."

@@ -17,6 +17,7 @@
     "Website": "https://github.com/YoannDev90/KDE-Modern-reClock",
     "BugReportUrl": "https://github.com/YoannDev90/KDE-Modern-reClock/issues"
   },
+  "X-Plasma-MainScript": "ui/main.qml",
   "X-Plasma-API-Minimum-Version": "6.0",
   "X-Plasma-Provides": ["org.kde.plasma.time", "org.kde.plasma.date"],
   "KPackageStructure": "Plasma/Applet"
