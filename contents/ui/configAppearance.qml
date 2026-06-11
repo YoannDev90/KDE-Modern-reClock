@@ -6,7 +6,7 @@ import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.kquickcontrols as KQControls
 import org.kde.plasma.core as PlasmaCore
-import org.kde.plasma.private.modernreclock 1.0 as ModernRecClock
+import org.kde.plasma.private.modernreclock as ModernRecClock
 
 KCM.SimpleKCM {
     id: appearancePage
@@ -66,7 +66,9 @@ KCM.SimpleKCM {
     property alias cfg_show_timezone: showTimezone.checked
     property alias cfg_timezone_id: _timezoneIdStorage.text
     property alias cfg_timezone_label: timezoneLabel.text
-    property alias cfg_timezone_format: timezoneFmt.text
+    // Timezone format is now automatically derived from main time format (no seconds)
+    // Kept as empty string; the real format is computed in main.qml timezoneFormat()
+    property string cfg_timezone_format: ""
     property alias cfg_timezone_font_size: timezoneFontSize.value
     property alias cfg_timezone_letter_spacing: timezoneLetterSpacing.value
     property alias cfg_timezone_font_bold: timezoneFontBold.checked
@@ -90,7 +92,7 @@ KCM.SimpleKCM {
     }
 
     // ===== Theme management =====
-    property string savedThemesJson: plasmoid.configuration.saved_themes || "[]"
+    property string savedThemesJson: cfg_saved_themes || "[]"
     property var savedThemes: {
         try { return JSON.parse(savedThemesJson); }
         catch (e) { return []; }
@@ -117,21 +119,17 @@ KCM.SimpleKCM {
     readonly property var configKeys: ["day_font_size", "day_letter_spacing", "show_day", "date_font_size", "date_letter_spacing", "locale", "date_format", "show_date", "time_font_size", "time_letter_spacing", "time_format", "time_font_color", "show_time", "date_font_color", "day_font_color", "use_24_hour_format", "time_character", "widget_spacing", "day_format", "uppercase_day", "uppercase_date", "day_font_bold", "date_font_bold", "time_font_bold", "auto_scale", "adapt_to_theme", "fontFamilyDay", "fontFamilyDate", "fontFamilyTime", "fontFamilyCustom", "fontFamilyTimezone", "element_order", "saved_themes", "show_custom", "custom_text", "custom_format", "custom_font_size", "custom_letter_spacing", "custom_font_bold", "custom_font_color", "show_timezone", "timezone_id", "timezone_label", "timezone_format", "timezone_font_size", "timezone_letter_spacing", "timezone_font_bold", "timezone_font_color"]
 
     function getFullConfig() {
-        if (typeof (plasmoid) === "undefined" || !plasmoid || !plasmoid.configuration)
-            return "{}";
         let cfg = {};
-        configKeys.forEach(k => cfg[k] = plasmoid.configuration[k]);
+        configKeys.forEach(k => cfg[k] = appearancePage["cfg_" + k]);
         return JSON.stringify(cfg, null, 4);
     }
 
     function applyConfig(jsonString) {
-        if (typeof (plasmoid) === "undefined" || !plasmoid || !plasmoid.configuration)
-            return false;
         try {
             let cfg = JSON.parse(jsonString);
             for (let k in cfg) {
                 if (configKeys.indexOf(k) !== -1) {
-                    plasmoid.configuration[k] = cfg[k];
+                    appearancePage["cfg_" + k] = cfg[k];
                 }
             }
             return true;
@@ -205,20 +203,22 @@ KCM.SimpleKCM {
             previewCustomText = customTxt;
         }
 
-        // Timezone preview
+        // Timezone preview — format derived from main time format (no seconds)
         var tzId = appearancePage.cfg_timezone_id || "";
         var tzLabel = cfg_timezone_label || "";
-        var tzFormat = cfg_timezone_format || "HH:mm";
         if (tzId.length > 0) {
             try {
-                var tzObj = ModernRecClock.TimeZone.timeZoneObject(tzId);
-                if (tzObj) {
-                    var formatted = Qt.formatDateTime(new Date(), tzFormat, tzObj);
-                    if (formatted && formatted.length > 0) {
-                        previewTimezoneText = tzLabel.length > 0 ? tzLabel + " " + formatted : formatted;
-                    } else {
-                        previewTimezoneText = tzLabel.length > 0 ? tzLabel + " ??" : "??";
-                    }
+                // Derive format from main time format, strip seconds
+                var mainFmt = cfg_time_format ? cfg_time_format.trim() : "";
+                if (mainFmt.length === 0) {
+                    mainFmt = cfg_use_24_hour_format ? "hh:mm" : "hh:mm AP";
+                }
+                var tzFmt = mainFmt.replace(/s{1,3}/g, '').replace(/z{1,3}/g, '').replace(/[:\s.]+$/, '');
+                if (!tzFmt || tzFmt.trim().length === 0) tzFmt = "HH:mm";
+
+                var formatted = ModernRecClock.TimeZone.formatDateTimeInZone(new Date(), tzFmt, tzId);
+                if (formatted && formatted.length > 0) {
+                    previewTimezoneText = tzLabel.length > 0 ? tzLabel + " " + formatted : formatted;
                 } else {
                     previewTimezoneText = tzLabel.length > 0 ? tzLabel + " ??" : "??";
                 }
@@ -246,7 +246,7 @@ KCM.SimpleKCM {
         "date": { show: true, font: "Poppins", size: 19, spacing: 3, format: "dd MMM yyyy", uppercase: true, bold: false, color: "#FFFFFF" },
         "time": { show: true, font: "Poppins", size: 19, spacing: 3, format: "", uppercase: false, bold: false, color: "#FFFFFF", h24: false, deco: "-" },
         "custom": { show: false, font: "Poppins", size: 19, spacing: 3, text: "", formatText: false, bold: false, color: "#FFFFFF" },
-        "timezone": { show: false, font: "Poppins", size: 19, spacing: 3, id: "", label: "", format: "HH:mm", bold: false, color: "#FFFFFF" }
+        "timezone": { show: false, font: "Poppins", size: 19, spacing: 3, id: "", label: "", bold: false, color: "#FFFFFF" }
     })
 
     function resetSection(type) {
@@ -316,7 +316,7 @@ KCM.SimpleKCM {
                 timezoneIdField.currentIndex = 0;
             }
             timezoneLabel.text = d.label || "";
-            timezoneFmt.text = d.format || "HH:mm";
+            timezoneFmt.text = "";
             timezoneFontBold.checked = d.bold;
             timezoneFontColor.color = d.color;
         }
@@ -329,12 +329,7 @@ KCM.SimpleKCM {
         widgetSpacing.value = 5;
         localeField.text = "";
         elementOrderField.text = "day,date,time";
-        orderListModel.clear();
-        orderListModel.append({ "key": "day", "label": i18n("Day") });
-        orderListModel.append({ "key": "date", "label": i18n("Date") });
-        orderListModel.append({ "key": "time", "label": i18n("Time") });
-        orderListModel.append({ "key": "custom", "label": i18n("Custom") });
-        orderListModel.append({ "key": "timezone", "label": i18n("Timezone") });
+        _orderState.resetOrder();
         languageCombo.currentIndex = 0;
         updatePreview();
     }
@@ -348,11 +343,11 @@ KCM.SimpleKCM {
     // ===== THEME FUNCTIONS =====
     function saveCurrentTheme(name, description) {
         let cfg = {};
-        configKeys.forEach(k => cfg[k] = plasmoid.configuration[k]);
+        configKeys.forEach(k => cfg[k] = appearancePage["cfg_" + k]);
         let themes = savedThemes.slice();
         themes.push({ "name": name, "description": description, "config": cfg });
         savedThemesJson = JSON.stringify(themes);
-        plasmoid.configuration.saved_themes = savedThemesJson;
+        cfg_saved_themes = savedThemesJson;
     }
 
     function loadThemeConfig(index) {
@@ -373,7 +368,7 @@ KCM.SimpleKCM {
         let themes = savedThemes.slice();
         themes.splice(index, 1);
         savedThemesJson = JSON.stringify(themes);
-        plasmoid.configuration.saved_themes = savedThemesJson;
+        cfg_saved_themes = savedThemesJson;
     }
 
     function themeToJSON(index) {
@@ -620,9 +615,9 @@ KCM.SimpleKCM {
             textRole: "text"
 
             Component.onCompleted: {
-                if (typeof (plasmoid) === "undefined" || !plasmoid || !plasmoid.configuration)
+                if (!appearancePage)
                     return;
-                let currentLocale = plasmoid.configuration.locale;
+                let currentLocale = appearancePage.cfg_locale;
                 let found = false;
                 for (let i = 0; i < model.length; i++) {
                     if (model[i].locale === currentLocale) {
@@ -712,55 +707,63 @@ KCM.SimpleKCM {
             text: ""
         }
 
-        ListModel {
-            id: orderListModel
-        }
+        // ===== ORDER SYSTEM: pure JS array via QtObject =====
+        QtObject {
+            id: _orderState
+            property var keys: []
+            property int count: keys.length
 
-        Component.onCompleted: {
-            // Initialize the order list model from config
-            let order = appearancePage.cfg_element_order
-                ? appearancePage.cfg_element_order.split(",")
-                : ["day", "date", "time"];
-            for (let i = 0; i < order.length; i++) {
-                let label = order[i] === "day" ? i18n("Day")
-                    : order[i] === "date" ? i18n("Date")
-                    : order[i] === "time" ? i18n("Time")
-                    : order[i] === "custom" ? i18n("Custom")
-                    : order[i] === "timezone" ? i18n("Timezone")
-                    : order[i];
-                orderListModel.append({ "key": order[i], "label": label });
+            function labelForKey(key) {
+                if (key === "day") return i18n("Day");
+                if (key === "date") return i18n("Date");
+                if (key === "time") return i18n("Time");
+                if (key === "custom") return i18n("Custom");
+                if (key === "timezone") return i18n("Timezone");
+                return key;
+            }
+
+            function initOrder() {
+                let raw = appearancePage.cfg_element_order
+                    ? appearancePage.cfg_element_order.trim()
+                    : "";
+                let k = raw.length > 0 ? raw.split(",") : ["day", "date", "time"];
+                let valid = ["day", "date", "time", "custom", "timezone"];
+                k = k.filter(function(v) { return valid.indexOf(v.trim()) !== -1; }).map(function(v) { return v.trim(); });
+                if (k.length === 0) k = ["day", "date", "time"];
+                keys = k;
+            }
+
+            function moveOrder(from, to) {
+                let k = keys.slice();
+                let item = k.splice(from, 1)[0];
+                k.splice(to, 0, item);
+                keys = k;
+                appearancePage.cfg_element_order = k.join(",");
+            }
+
+            function resetOrder() {
+                keys = ["day", "date", "time", "custom", "timezone"];
+                appearancePage.cfg_element_order = "day,date,time,custom,timezone";
             }
         }
 
-        function moveOrderItem(from, to) {
-            let item = orderListModel.get(from);
-            orderListModel.remove(from);
-            orderListModel.insert(to, item);
-            syncOrderToConfig();
-        }
-
-        function syncOrderToConfig() {
-            let parts = [];
-            for (let i = 0; i < orderListModel.count; i++) {
-                parts.push(orderListModel.get(i).key);
-            }
-            appearancePage.cfg_element_order = parts.join(",");
-        }
+        Component.onCompleted: _orderState.initOrder()
 
         Repeater {
-            model: orderListModel
+            id: orderRepeater
+            model: _orderState.keys
             delegate: RowLayout {
                 Layout.fillWidth: true
 
                 QQC2.Label {
-                    text: model.label
+                    text: _orderState.labelForKey(modelData)
                     Layout.fillWidth: true
                 }
 
                 QQC2.Button {
                     icon.name: "arrow-up"
                     enabled: index > 0
-                    onClicked: appearancePage.moveOrderItem(index, index - 1)
+                    onClicked: _orderState.moveOrder(index, index - 1)
                     QQC2.ToolTip.text: i18n("Move up")
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.delay: 800
@@ -768,8 +771,8 @@ KCM.SimpleKCM {
 
                 QQC2.Button {
                     icon.name: "arrow-down"
-                    enabled: index < orderListModel.count - 1
-                    onClicked: appearancePage.moveOrderItem(index, index + 1)
+                    enabled: index < _orderState.keys.length - 1
+                    onClicked: _orderState.moveOrder(index, index + 1)
                     QQC2.ToolTip.text: i18n("Move down")
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.delay: 800
@@ -1209,14 +1212,12 @@ KCM.SimpleKCM {
             QQC2.ToolTip.delay: 800
         }
 
+        // Timezone format is now automatically derived from main time format (no seconds)
+        // Hidden field to keep config key alive for backward compatibility
         QQC2.TextField {
             id: timezoneFmt
-            Kirigami.FormData.label: i18n("Format:")
-            Layout.fillWidth: true
-            placeholderText: "HH:mm"
-            QQC2.ToolTip.text: i18n("Time format using HH (24h), H, mm, m tokens")
-            QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.delay: 800
+            visible: false
+            text: ""
         }
 
         QQC2.ComboBox {
@@ -1496,7 +1497,7 @@ KCM.SimpleKCM {
                                 let themes = appearancePage.savedThemes.slice();
                                 themes.push(data);
                                 appearancePage.savedThemesJson = JSON.stringify(themes);
-                                plasmoid.configuration.saved_themes = appearancePage.savedThemesJson;
+                                cfg_saved_themes = appearancePage.savedThemesJson;
                                 importThemeSheet.close();
                             } else {
                                 // It's raw config — import directly

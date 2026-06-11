@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
-import org.kde.plasma.private.modernreclock 1.0 as ModernRecClock
+import org.kde.plasma.private.modernreclock as ModernRecClock
 
 PlasmoidItem {
     id: root
@@ -187,19 +187,36 @@ PlasmoidItem {
         }
     }
 
+    // Derive timezone format from main time format, stripping seconds
+    function timezoneFormat() {
+        var base = currentTimeFormat(); // e.g. "HH:mm:ss" or "hh:mm AP"
+        // Strip seconds tokens (ss, s) and millisecond tokens (z, zzz)
+        base = base.replace(/s{1,3}/g, '');
+        base = base.replace(/z{1,3}/g, '');
+        // Clean up trailing separators (e.g. "HH:mm:" → "HH:mm")
+        base = base.replace(/[:\s.]+$/, '');
+        // If nothing left, fall back
+        if (!base || base.trim().length === 0) {
+            base = use24HourFormat ? "HH:mm" : "hh:mm";
+        }
+        return base;
+    }
+
     function timezoneText() {
         var tzId = plasmoid.configuration.timezone_id || "";
         if (tzId.length === 0) return "";
         var label = plasmoid.configuration.timezone_label || "";
-        var format = plasmoid.configuration.timezone_format || "HH:mm";
+        var format = timezoneFormat();
 
         try {
+            var formatted = ModernRecClock.TimeZone.formatDateTimeInZone(new Date(), format, tzId);
+            if (formatted && formatted.length > 0) {
+                return label.length > 0 ? label + " " + formatted : formatted;
+            }
+            // Fallback: try abbreviation
             var tzObj = ModernRecClock.TimeZone.timeZoneObject(tzId);
-            if (tzObj) {
-                var formatted = Qt.formatDateTime(new Date(), format, tzObj);
-                if (formatted && formatted.length > 0) {
-                    return label.length > 0 ? label + " " + formatted : formatted;
-                }
+            if (tzObj && tzObj.abbreviation) {
+                return label.length > 0 ? label + " " + tzObj.abbreviation : tzObj.abbreviation;
             }
         } catch (e) {
             console.warn("Modern reClock: timezone error for", tzId, "-", e.message);

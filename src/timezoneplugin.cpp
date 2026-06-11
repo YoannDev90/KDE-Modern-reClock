@@ -1,14 +1,12 @@
 #include <QQmlExtensionPlugin>
+#include <QQmlEngine>
 #include <QJSEngine>
 #include <QTimeZone>
 #include <QDateTime>
 #include <QDebug>
-#include <QtQml/qqmlregistration.h>
 
 class TimeZoneHelper : public QObject {
     Q_OBJECT
-    QML_ELEMENT
-    QML_SINGLETON
 public:
     explicit TimeZoneHelper(QObject* parent = nullptr) : QObject(parent) {}
 
@@ -66,6 +64,14 @@ public:
         obj.setProperty("abbreviation", tz.abbreviation(now));
         return obj;
     }
+
+    // Format a datetime string for a given timezone
+    Q_INVOKABLE QString formatDateTimeInZone(const QDateTime& dateTime, const QString& format, const QString& tzId) const {
+        QTimeZone tz(tzId.toUtf8());
+        if (!tz.isValid()) return QString();
+        QDateTime zoned = dateTime.toTimeZone(tz);
+        return zoned.toString(format);
+    }
 };
 
 class ModernRecClockPlugin : public QQmlExtensionPlugin {
@@ -74,7 +80,10 @@ class ModernRecClockPlugin : public QQmlExtensionPlugin {
 public:
     void registerTypes(const char* uri) override {
         Q_ASSERT(uri == QLatin1String("org.kde.plasma.private.modernreclock"));
-        // Singleton is auto-registered via QML_ELEMENT + QML_SINGLETON
+        qmlRegisterSingletonType<TimeZoneHelper>(uri, 1, 0, "TimeZone",
+            [](QQmlEngine*, QJSEngine*) -> QObject* {
+                return new TimeZoneHelper();
+            });
     }
 };
 

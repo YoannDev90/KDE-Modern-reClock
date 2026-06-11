@@ -134,7 +134,7 @@ jobs:
             if [ -f "$arch_dir/qmldir" ]; then
               cp "$arch_dir/qmldir" "$TMPDIR/$ARCH/"
             else
-              printf 'module org.kde.plasma.private.modernreclock\nlinktarget modernreclock_timezone\noptional plugin modernreclock_timezone\n' > "$TMPDIR/$ARCH/qmldir"
+              printf 'module org.kde.plasma.private.modernreclock\nlinktarget modernreclock_timezone\noptional plugin modernreclock_timezone\nclassname ModernRecClockPlugin\n' > "$TMPDIR/$ARCH/qmldir"
             fi
             (cd "$TMPDIR" && zip -r "$OLDPWD/release-assets/modernreclock-timezone-${VERSION}-${ARCH}.zip" "$ARCH/")
             rm -rf "$TMPDIR"

@@ -38,13 +38,12 @@ install(TARGETS ${PLUGIN_NAME}
     LIBRARY DESTINATION ${PLUGIN_INSTALL_DIR}
 )
 
-# Generate qmldir matching KDE convention (see brightnesscontrolplugin, digitalclock, etc.)
-# Note: no 'depends' line — QtCore/QtQml are already loaded by the QML engine,
-# and listing multiple modules without versions causes "invalid version" errors.
+# Generate qmldir matching KDE convention (see containmentlayoutmanager, digitalclock, etc.)
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/qmldir
     "module org.kde.plasma.private.modernreclock\n"
     "linktarget ${PLUGIN_NAME}\n"
     "optional plugin ${PLUGIN_NAME}\n"
+    "classname ModernRecClockPlugin\n"
 )
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/qmldir
     DESTINATION ${PLUGIN_INSTALL_DIR}
