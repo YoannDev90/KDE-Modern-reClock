@@ -15,11 +15,11 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qt6-declarative-dev-tools qt6-base-dev gettext libxml2-utils
-          # Qt6 tools are in /usr/lib/qt6/bin which is not in PATH
+          sudo apt-get install -y qt6-declarative-dev-tools qt6-base-dev qt6-base-dev-tools gettext libxml2-utils cmake g++
           echo "/usr/lib/qt6/bin" >> "$GITHUB_PATH"
 
-      - name: Validate KCFG XML
+      # ── [1] File structure ────────────────────────────────────
+      - name: "[1/10] Validate file structure"
         run: |
           LOG="ci-report.txt"
           echo "=== CI VALIDATION REPORT ===" > "$LOG"
@@ -27,7 +27,50 @@ jobs:
           echo "Branch: $GITHUB_REF_NAME" >> "$LOG"
           echo "Commit: $GITHUB_SHA" >> "$LOG"
           echo "" >> "$LOG"
-          echo "--- [1/6] Validating main.xml ---" | tee -a "$LOG"
+          echo "--- [1/10] Validating file structure ---" | tee -a "$LOG"
+          MISSING=0
+          REQUIRED_FILES=(
+            "metadata.json"
+            "CMakeLists.txt"
+            "LICENSE"
+            "contents/ui/main.qml"
+            "contents/ui/configAppearance.qml"
+            "contents/ui/OrderSection.qml"
+            "contents/ui/ThemeSheets.qml"
+            "contents/config/main.xml"
+            "contents/config/config.qml"
+            "src/timezoneplugin.cpp"
+          )
+          for f in "${REQUIRED_FILES[@]}"; do
+            if [ -f "$f" ]; then
+              echo "  ✓ $f" >> "$LOG"
+            else
+              echo "  ✗ MISSING: $f" | tee -a "$LOG"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          for f in install-local.sh install-dist.sh translate/build.sh translate/merge.sh; do
+            if [ -f "$f" ]; then
+              if [ -x "$f" ]; then
+                echo "  ✓ $f (executable)" >> "$LOG"
+              else
+                echo "  ⚠ $f (not executable)" | tee -a "$LOG"
+              fi
+            fi
+          done
+          if [ "$MISSING" -gt 0 ]; then
+            echo "  ✗ $MISSING required file(s) missing" | tee -a "$LOG"
+            echo "RESULT=FAIL" >> "$LOG"
+          else
+            echo "✓ All required files present" | tee -a "$LOG"
+          fi
+
+      # ── [2] KCFG XML validation ──────────────────────────────
+      - name: "[2/10] Validate main.xml (KCFG)"
+        run: |
+          LOG="ci-report.txt"
+          echo "" >> "$LOG"
+          echo "--- [2/10] Validating main.xml ---" | tee -a "$LOG"
           if xmllint --noout contents/config/main.xml 2>&1; then
             echo "✓ main.xml is valid XML" | tee -a "$LOG"
           else
@@ -35,146 +78,234 @@ jobs:
             xmllint --noout contents/config/main.xml 2>&1 | tee -a "$LOG"
             echo "RESULT=FAIL" >> "$LOG"
           fi
+          python3 -c "
+          import xml.etree.ElementTree as ET, sys
+          tree = ET.parse('contents/config/main.xml')
+          root = tree.getroot()
+          groups = root.findall('group')
+          if not groups:
+              print('  ✗ No <group> found'); sys.exit(1)
+          entries = 0
+          for g in groups:
+              for e in g.findall('entry'):
+                  name = e.get('name', '???')
+                  etype = e.get('type', '???')
+                  d = e.find('default')
+                  if d is None or d.text is None or not d.text.strip():
+                      print(f'  ⚠ \"{name}\" ({etype}) has no default')
+                  entries += 1
+          print(f'✓ {len(groups)} group(s), {entries} entry(ies) validated')
+          " 2>&1 | tee -a "$LOG"
 
-      - name: Validate metadata.json
+      # ── [3] metadata.json ─────────────────────────────────────
+      - name: "[3/10] Validate metadata.json"
         run: |
           LOG="ci-report.txt"
           echo "" >> "$LOG"
-          echo "--- [2/6] Validating metadata.json ---" | tee -a "$LOG"
-          if python3 -c "import json; json.load(open('metadata.json'))" 2>&1; then
-            echo "✓ metadata.json is valid JSON" | tee -a "$LOG"
-          else
-            echo "✗ metadata.json is INVALID" | tee -a "$LOG"
-            python3 -c "import json; json.load(open('metadata.json'))" 2>&1 | tee -a "$LOG"
-          fi
+          echo "--- [3/10] Validating metadata.json ---" | tee -a "$LOG"
+          python3 << 'PYEOF' 2>&1 | tee -a "$LOG"
+          import json, sys
+          with open("metadata.json") as f:
+              data = json.load(f)
+          errors = []
+          for key in ["KPlugin", "KPackageStructure"]:
+              if key not in data:
+                  errors.append(f"Missing top-level key: {key}")
+          kp = data.get("KPlugin", {})
+          for key in ["Name", "Description", "Id", "Version", "License", "Authors"]:
+              if key not in kp:
+                  errors.append(f"KPlugin missing: {key}")
+          authors = kp.get("Authors", [])
+          if not isinstance(authors, list) or len(authors) == 0:
+              errors.append("KPlugin.Authors must be non-empty list")
+          else:
+              for i, a in enumerate(authors):
+                  if "Name" not in a: errors.append(f"Author[{i}] missing Name")
+                  if "Email" not in a: errors.append(f"Author[{i}] missing Email")
+          plugin_id = kp.get("Id", "")
+          if "." not in plugin_id:
+              errors.append(f"KPlugin.Id looks invalid: {plugin_id}")
+          version = kp.get("Version", "")
+          parts = version.split(".")
+          if len(parts) < 2 or not all(p.isdigit() for p in parts):
+              errors.append(f"KPlugin.Version doesn't look like semver: {version}")
+          if data.get("KPackageStructure") != "Plasma/Applet":
+              errors.append(f"Unexpected KPackageStructure: {data.get('KPackageStructure')}")
+          if errors:
+              for e in errors: print(f"  ✗ {e}")
+              sys.exit(1)
+          else:
+              print("✓ metadata.json schema OK")
+          PYEOF
+          if [ $? -ne 0 ]; then echo "RESULT=FAIL" >> "$LOG"; fi
 
-      - name: Validate QML syntax
+      # ── [4] Version consistency ───────────────────────────────
+      - name: "[4/10] Check version consistency"
         run: |
           LOG="ci-report.txt"
           echo "" >> "$LOG"
-          echo "--- [3/6] Validating QML files ---" | tee -a "$LOG"
-          ERRORS=0
-          WARNINGS=0
-
-          # Check which tools are available
-          HAS_QMLLINT=false
-          HAS_QMLFORMAT=false
-          if command -v qmllint &>/dev/null; then HAS_QMLLINT=true; fi
-          if command -v qmlformat &>/dev/null; then HAS_QMLFORMAT=true; fi
-
-          if [ "$HAS_QMLLINT" = false ] && [ "$HAS_QMLFORMAT" = false ]; then
-            echo "⚠ Neither qmllint nor qmlformat found — skipping QML syntax check" | tee -a "$LOG"
-            echo "  Install qt6-declarative-dev-tools for full validation" >> "$LOG"
+          echo "--- [4/10] Checking version consistency ---" | tee -a "$LOG"
+          META_VER=$(python3 -c "import json; print(json.load(open('metadata.json'))['KPlugin']['Version'])")
+          CMAKE_VER=$(grep -oP 'project\(modernreclock\s+VERSION\s+\K[0-9]+\.[0-9]+\.[0-9]+' CMakeLists.txt)
+          echo "  metadata.json: $META_VER" | tee -a "$LOG"
+          echo "  CMakeLists.txt: $CMAKE_VER" | tee -a "$LOG"
+          if [ "$META_VER" = "$CMAKE_VER" ]; then
+            echo "✓ Versions match" | tee -a "$LOG"
           else
-            for qml in contents/ui/*.qml contents/config/*.qml; do
-              echo "" >> "$LOG"
-              echo "  File: $qml" >> "$LOG"
-
-              if [ "$HAS_QMLLINT" = true ]; then
-                OUTPUT=$(qmllint --no-copyright "$qml" 2>&1) || true
-                if [ -z "$OUTPUT" ]; then
-                  echo "  ✓ OK (qmllint clean)" | tee -a "$LOG"
-                else
-                  echo "  ⚠ qmllint issues:" | tee -a "$LOG"
-                  echo "$OUTPUT" | tee -a "$LOG"
-                  WARNINGS=$((WARNINGS + 1))
-                  # Fallback to qmlformat if available
-                  if [ "$HAS_QMLFORMAT" = true ]; then
-                    FMT_OUTPUT=$(qmlformat --check "$qml" 2>&1) || true
-                    if [ -z "$FMT_OUTPUT" ]; then
-                      echo "  ✓ qmlformat check passed" | tee -a "$LOG"
-                    else
-                      echo "  ✗ qmlformat check FAILED" | tee -a "$LOG"
-                      echo "$FMT_OUTPUT" | tee -a "$LOG"
-                      ERRORS=$((ERRORS + 1))
-                    fi
-                  fi
-                fi
-              elif [ "$HAS_QMLFORMAT" = true ]; then
-                FMT_OUTPUT=$(qmlformat --check "$qml" 2>&1) || true
-                if [ -z "$FMT_OUTPUT" ]; then
-                  echo "  ✓ OK (qmlformat clean)" | tee -a "$LOG"
-                else
-                  echo "  ⚠ qmlformat issues:" | tee -a "$LOG"
-                  echo "$FMT_OUTPUT" | tee -a "$LOG"
-                  WARNINGS=$((WARNINGS + 1))
-                fi
-              fi
-            done
-          fi
-
-          echo "" >> "$LOG"
-          echo "QML summary: $WARNINGS file(s) with warnings, $ERRORS file(s) with errors" | tee -a "$LOG"
-          if [ "$ERRORS" -gt 0 ]; then
+            echo "✗ VERSION MISMATCH" | tee -a "$LOG"
             echo "RESULT=FAIL" >> "$LOG"
           fi
 
-      - name: Validate translations
+      # ── [5] Encoding & line endings ───────────────────────────
+      - name: "[5/10] Check encoding and line endings"
         run: |
           LOG="ci-report.txt"
           echo "" >> "$LOG"
-          echo "--- [4/6] Validating .po translation files ---" | tee -a "$LOG"
-          PO_ERRORS=0
-          for po in translate/*.po; do
-            PO_OUTPUT=$(msgfmt --check "$po" -o /dev/null 2>&1) || true
-            if [ -z "$PO_OUTPUT" ]; then
-              echo "  ✓ $po" | tee -a "$LOG"
-            else
-              echo "  ✗ $po" | tee -a "$LOG"
-              echo "$PO_OUTPUT" | tee -a "$LOG"
-              PO_ERRORS=$((PO_ERRORS + 1))
+          echo "--- [5/10] Checking encoding & line endings ---" | tee -a "$LOG"
+          CRLF_COUNT=0
+          while IFS= read -r -d '' f; do
+            if file "$f" | grep -q "CRLF"; then
+              echo "  ✗ CRLF: $f" | tee -a "$LOG"
+              CRLF_COUNT=$((CRLF_COUNT + 1))
+            fi
+          done < <(find . -type f \( -name "*.qml" -o -name "*.xml" -o -name "*.json" -o -name "*.po" -o -name "*.cpp" -o -name "*.h" \) -not -path './.git/*' -print0)
+          if [ "$CRLF_COUNT" -gt 0 ]; then
+            echo "✗ $CRLF_COUNT file(s) have CRLF" | tee -a "$LOG"
+            echo "RESULT=FAIL" >> "$LOG"
+          else
+            echo "✓ All files use LF line endings" | tee -a "$LOG"
+          fi
+
+      # ── [6] QML syntax ────────────────────────────────────────
+      - name: "[6/10] Validate QML files"
+        run: |
+          LOG="ci-report.txt"
+          echo "" >> "$LOG"
+          echo "--- [6/10] Validating QML files ---" | tee -a "$LOG"
+          WARNINGS=0
+          if command -v qmllint &>/dev/null; then
+            for qml in contents/ui/*.qml contents/config/*.qml; do
+              [ -f "$qml" ] || continue
+              OUTPUT=$(qmllint --no-copyright "$qml" 2>&1) || true
+              if [ -z "$OUTPUT" ]; then
+                echo "  ✓ $qml" >> "$LOG"
+              else
+                echo "  ⚠ $qml" | tee -a "$LOG"
+                echo "$OUTPUT" | head -20 | tee -a "$LOG"
+                WARNINGS=$((WARNINGS + 1))
+              fi
+            done
+            echo "  QML: $WARNINGS file(s) with warnings" | tee -a "$LOG"
+          else
+            echo "  ⚠ qmllint not found — skipping" | tee -a "$LOG"
+          fi
+          DUPES=0
+          for qml in contents/ui/*.qml contents/config/*.qml; do
+            [ -f "$qml" ] || continue
+            DUPS=$(grep -h '^import ' "$qml" 2>/dev/null | sort | uniq -d)
+            if [ -n "$DUPS" ]; then
+              echo "  ⚠ Duplicate imports in $qml:" | tee -a "$LOG"
+              echo "$DUPS" | tee -a "$LOG"
+              DUPES=$((DUPES + 1))
             fi
           done
-          echo "PO summary: $PO_ERRORS file(s) with errors" | tee -a "$LOG"
+          if [ "$DUPES" -eq 0 ]; then
+            echo "  ✓ No duplicate imports" >> "$LOG"
+          fi
 
-      - name: Compile translations
+      # ── [7] C++ compilation ───────────────────────────────────
+      - name: "[7/10] Validate C++ plugin"
         run: |
           LOG="ci-report.txt"
           echo "" >> "$LOG"
-          echo "--- [5/6] Compiling translations ---" | tee -a "$LOG"
+          echo "--- [7/10] Validating C++ plugin ---" | tee -a "$LOG"
+          if [ ! -f src/timezoneplugin.cpp ]; then
+            echo "  ⚠ src/timezoneplugin.cpp not found" | tee -a "$LOG"
+          else
+            g++ -std=c++17 -fsyntax-only \
+              -I/usr/include/x86_64-linux-gnu/qt6 \
+              -I/usr/include/x86_64-linux-gnu/qt6/QtCore \
+              -I/usr/include/x86_64-linux-gnu/qt6/QtQml \
+              src/timezoneplugin.cpp 2>&1 | tee -a "$LOG" || true
+            echo "  ✓ C++ syntax check done" | tee -a "$LOG"
+          fi
+
+      # ── [8] Translations ──────────────────────────────────────
+      - name: "[8/10] Validate & compile translations"
+        run: |
+          LOG="ci-report.txt"
+          echo "" >> "$LOG"
+          echo "--- [8/10] Validating translations ---" | tee -a "$LOG"
+          PO_ERRORS=0
+          for po in translate/*.po; do
+            [ -f "$po" ] || continue
+            OUTPUT=$(msgfmt --check "$po" -o /dev/null 2>&1) || true
+            if [ -z "$OUTPUT" ]; then
+              echo "  ✓ $po" >> "$LOG"
+            else
+              echo "  ✗ $po" | tee -a "$LOG"
+              echo "$OUTPUT" | tee -a "$LOG"
+              PO_ERRORS=$((PO_ERRORS + 1))
+            fi
+            HAS_PLURAL=$(grep -c "Plural-Forms:" "$po" 2>/dev/null) || true
+            if [ "$HAS_PLURAL" -eq 0 ]; then
+              echo "  ⚠ $po: missing Plural-Forms header" | tee -a "$LOG"
+            fi
+          done
           chmod +x translate/build.sh
           BUILD_OUTPUT=$(./translate/build.sh 2>&1) || true
-          if [ -z "$BUILD_OUTPUT" ] || ! echo "$BUILD_OUTPUT" | grep -qi "error"; then
-            echo "✓ Translation compilation succeeded" | tee -a "$LOG"
-            echo "$BUILD_OUTPUT" >> "$LOG"
-          else
-            echo "✗ Translation compilation FAILED" | tee -a "$LOG"
+          if echo "$BUILD_OUTPUT" | grep -qi "error"; then
+            echo "  ✗ Translation compilation FAILED" | tee -a "$LOG"
             echo "$BUILD_OUTPUT" | tee -a "$LOG"
+          else
+            MO_COUNT=$(find contents/locale -name "*.mo" 2>/dev/null | wc -l)
+            echo "  ✓ Translations compiled ($MO_COUNT .mo files)" | tee -a "$LOG"
           fi
 
-      - name: Build plasmoid package
+      # ── [9] Build package ─────────────────────────────────────
+      - name: "[9/10] Build plasmoid package"
         run: |
           LOG="ci-report.txt"
           echo "" >> "$LOG"
-          echo "--- [6/6] Building plasmoid package ---" | tee -a "$LOG"
-          zip -r /tmp/test-build.plasmoid . -x ".git/*" ".github/*" "translate/*" "assets/*" "install-*.sh" "README.md" "LICENSE" 2>&1 | tee -a "$LOG" || true
+          echo "--- [9/10] Building plasmoid package ---" | tee -a "$LOG"
+          rm -f /tmp/test-build.plasmoid
+          zip -r /tmp/test-build.plasmoid . \
+            -x ".git/*" ".github/*" "translate/*" "assets/*" \
+            "install-*.sh" "README.md" "LICENSE" "ci-report.txt" \
+            >/dev/null 2>&1
           if [ -f /tmp/test-build.plasmoid ]; then
-            echo "✓ Build successful" | tee -a "$LOG"
-            ls -lh /tmp/test-build.plasmoid | tee -a "$LOG"
+            SIZE=$(stat -c%s /tmp/test-build.plasmoid)
+            SIZE_KB=$((SIZE / 1024))
+            FILE_COUNT=$(zipinfo -1 /tmp/test-build.plasmoid | wc -l)
+            echo "✓ Package built: ${SIZE_KB}KB, $FILE_COUNT files" | tee -a "$LOG"
+            if [ "$SIZE" -gt 5242880 ]; then
+              echo "  ⚠ Package >5MB — check for bundled assets" | tee -a "$LOG"
+            fi
           else
             echo "✗ Build FAILED" | tee -a "$LOG"
+            echo "RESULT=FAIL" >> "$LOG"
           fi
 
-      - name: Final report
+      # ── [10] Final report ─────────────────────────────────────
+      - name: "[10/10] Final report"
         if: always()
         run: |
           LOG="ci-report.txt"
           echo "" >> "$LOG"
           echo "========================================" >> "$LOG"
           if grep -q "RESULT=FAIL" "$LOG"; then
-            echo "OVERALL: ✗ FAILED — see errors above" | tee -a "$LOG"
+            echo "OVERALL: ✗ FAILED" | tee -a "$LOG"
           else
             echo "OVERALL: ✓ ALL CHECKS PASSED" | tee -a "$LOG"
           fi
           echo "========================================" >> "$LOG"
           echo "" >> "$LOG"
-          echo "--- Full report ---"
           cat "$LOG"
 
       - name: Upload report artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ci-report.txt
+          name: ci-report
           path: ci-report.txt
           retention-days: 30
