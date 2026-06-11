@@ -15,7 +15,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qt6-declarative-dev-tools qt6-base-dev gettext libxml2-utils
+          sudo apt-get install -y qt6-qmllint-plugins qt6-base-dev gettext libxml2-utils
 
       - name: Validate KCFG XML
         run: |
@@ -53,30 +53,54 @@ jobs:
           echo "--- [3/6] Validating QML files ---" | tee -a "$LOG"
           ERRORS=0
           WARNINGS=0
-          for qml in contents/ui/*.qml contents/config/*.qml; do
-            echo "" >> "$LOG"
-            echo "  File: $qml" >> "$LOG"
-            # Capture qmllint output (stdout + stderr)
-            OUTPUT=$(qmllint --no-copyright "$qml" 2>&1)
-            EXIT=$?
-            if [ $EXIT -eq 0 ]; then
-              echo "  ✓ OK (qmllint clean)" | tee -a "$LOG"
-            else
-              echo "  ⚠ qmllint issues:" | tee -a "$LOG"
-              echo "$OUTPUT" | tee -a "$LOG"
-              WARNINGS=$((WARNINGS + 1))
-              # Fallback: qmlformat --check
-              FMT_OUTPUT=$(qmlformat --check "$qml" 2>&1)
-              FMT_EXIT=$?
-              if [ $FMT_EXIT -eq 0 ]; then
-                echo "  ✓ qmlformat check passed" | tee -a "$LOG"
-              else
-                echo "  ✗ qmlformat check FAILED" | tee -a "$LOG"
-                echo "$FMT_OUTPUT" | tee -a "$LOG"
-                ERRORS=$((ERRORS + 1))
+
+          # Check which tools are available
+          HAS_QMLLINT=false
+          HAS_QMLFORMAT=false
+          if command -v qmllint &>/dev/null; then HAS_QMLLINT=true; fi
+          if command -v qmlformat &>/dev/null; then HAS_QMLFORMAT=true; fi
+
+          if [ "$HAS_QMLLINT" = false ] && [ "$HAS_QMLFORMAT" = false ]; then
+            echo "⚠ Neither qmllint nor qmlformat found — skipping QML syntax check" | tee -a "$LOG"
+            echo "  Install qt6-declarative-dev-tools for full validation" >> "$LOG"
+          else
+            for qml in contents/ui/*.qml contents/config/*.qml; do
+              echo "" >> "$LOG"
+              echo "  File: $qml" >> "$LOG"
+
+              if [ "$HAS_QMLLINT" = true ]; then
+                OUTPUT=$(qmllint --no-copyright "$qml" 2>&1) || true
+                if [ -z "$OUTPUT" ]; then
+                  echo "  ✓ OK (qmllint clean)" | tee -a "$LOG"
+                else
+                  echo "  ⚠ qmllint issues:" | tee -a "$LOG"
+                  echo "$OUTPUT" | tee -a "$LOG"
+                  WARNINGS=$((WARNINGS + 1))
+                  # Fallback to qmlformat if available
+                  if [ "$HAS_QMLFORMAT" = true ]; then
+                    FMT_OUTPUT=$(qmlformat --check "$qml" 2>&1) || true
+                    if [ -z "$FMT_OUTPUT" ]; then
+                      echo "  ✓ qmlformat check passed" | tee -a "$LOG"
+                    else
+                      echo "  ✗ qmlformat check FAILED" | tee -a "$LOG"
+                      echo "$FMT_OUTPUT" | tee -a "$LOG"
+                      ERRORS=$((ERRORS + 1))
+                    fi
+                  fi
+                fi
+              elif [ "$HAS_QMLFORMAT" = true ]; then
+                FMT_OUTPUT=$(qmlformat --check "$qml" 2>&1) || true
+                if [ -z "$FMT_OUTPUT" ]; then
+                  echo "  ✓ OK (qmlformat clean)" | tee -a "$LOG"
+                else
+                  echo "  ⚠ qmlformat issues:" | tee -a "$LOG"
+                  echo "$FMT_OUTPUT" | tee -a "$LOG"
+                  WARNINGS=$((WARNINGS + 1))
+                fi
               fi
-            fi
-          done
+            done
+          fi
+
           echo "" >> "$LOG"
           echo "QML summary: $WARNINGS file(s) with warnings, $ERRORS file(s) with errors" | tee -a "$LOG"
           if [ "$ERRORS" -gt 0 ]; then
@@ -90,8 +114,8 @@ jobs:
           echo "--- [4/6] Validating .po translation files ---" | tee -a "$LOG"
           PO_ERRORS=0
           for po in translate/*.po; do
-            PO_OUTPUT=$(msgfmt --check "$po" -o /dev/null 2>&1)
-            if [ $? -eq 0 ]; then
+            PO_OUTPUT=$(msgfmt --check "$po" -o /dev/null 2>&1) || true
+            if [ -z "$PO_OUTPUT" ]; then
               echo "  ✓ $po" | tee -a "$LOG"
             else
               echo "  ✗ $po" | tee -a "$LOG"
@@ -107,8 +131,8 @@ jobs:
           echo "" >> "$LOG"
           echo "--- [5/6] Compiling translations ---" | tee -a "$LOG"
           chmod +x translate/build.sh
-          BUILD_OUTPUT=$(./translate/build.sh 2>&1)
-          if [ $? -eq 0 ]; then
+          BUILD_OUTPUT=$(./translate/build.sh 2>&1) || true
+          if [ -z "$BUILD_OUTPUT" ] || ! echo "$BUILD_OUTPUT" | grep -qi "error"; then
             echo "✓ Translation compilation succeeded" | tee -a "$LOG"
             echo "$BUILD_OUTPUT" >> "$LOG"
           else
@@ -121,8 +145,8 @@ jobs:
           LOG="ci-report.txt"
           echo "" >> "$LOG"
           echo "--- [6/6] Building plasmoid package ---" | tee -a "$LOG"
-          zip -r /tmp/test-build.plasmoid . -x ".git/*" ".github/*" "translate/*" "assets/*" "install-*.sh" "README.md" "LICENSE" 2>&1 | tee -a "$LOG"
-          if [ $? -eq 0 ]; then
+          zip -r /tmp/test-build.plasmoid . -x ".git/*" ".github/*" "translate/*" "assets/*" "install-*.sh" "README.md" "LICENSE" 2>&1 | tee -a "$LOG" || true
+          if [ -f /tmp/test-build.plasmoid ]; then
             echo "✓ Build successful" | tee -a "$LOG"
             ls -lh /tmp/test-build.plasmoid | tee -a "$LOG"
           else

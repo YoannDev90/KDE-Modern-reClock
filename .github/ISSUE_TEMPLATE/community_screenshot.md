@@ -7,8 +7,7 @@ assignees: ''
 ---
 
 ### Screenshot
-<!-- Please paste your screenshot below or upload an image file -->
+<!-- ⚠️ Required — drag & drop or paste your image here -->
 
-### Short Description (Optional)
-
-Describe your setup (fonts, colors, etc.)
+### Description
+<!-- ⚠️ Required — describe your setup: fonts, colors, spacing, etc. -->
