@@ -5,9 +5,12 @@
 </p>
 
 <p align="center">
+<a href="https://github.com/YoannDev90/KDE-Modern-reClock/actions"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/YoannDev90/KDE-Modern-reClock/ci.yml?branch=main&label=CI&style=for-the-badge&logo=github"></a>
+<a href="https://github.com/YoannDev90/KDE-Modern-reClock/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/YoannDev90/KDE-Modern-reClock?color=%233DAEE9&style=for-the-badge&logo=github"></a>
 <a href="https://github.com/YoannDev90/KDE-Modern-reClock/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/YoannDev90/KDE-Modern-reClock?color=%233DAEE9&style=for-the-badge"></a>
 <a href="https://github.com/YoannDev90/KDE-Modern-reClock/network"><img alt="GitHub forks" src="https://img.shields.io/github/forks/YoannDev90/KDE-Modern-reClock?color=%233DAEE9&style=for-the-badge"></a>
 <a href="https://github.com/YoannDev90/KDE-Modern-reClock/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/YoannDev90/KDE-Modern-reClock?color=%233DAEE9&style=for-the-badge"></a>
+<a href="https://github.com/YoannDev90/KDE-Modern-reClock/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/YoannDev90/KDE-Modern-reClock?color=%233DAEE9&style=for-the-badge"></a>
 </p>
 
 <p align="center">

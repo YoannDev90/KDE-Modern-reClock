@@ -1,0 +1,109 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: '[Bug] '
+labels: ['🐛 Bug']
+assignees: ''
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill in the sections below so we can reproduce and fix it.
+
+  - type: input
+    id: version
+    attributes:
+      label: Widget version
+      description: "Found in Settings → About or metadata.json"
+      placeholder: "e.g. 2.5.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: plasma-version
+    attributes:
+      label: KDE Plasma version
+      options:
+        - "6.0"
+        - "6.1"
+        - "6.2"
+        - "6.3"
+        - "6.4"
+        - "6.5"
+        - "6.6"
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution
+      placeholder: "e.g. Fedora 44, Arch Linux, Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug description
+      description: A clear description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we trigger this bug?
+      placeholder: |
+        1. Right-click the widget → Configure
+        2. Enable "Show secondary timezone"
+        3. Select "Europe/Paris"
+        4. Click Apply → OK
+        5. Reopen settings
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happens?
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain the bug.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Error output
+      description: |
+        Paste any relevant logs from:
+        - `journalctl -f | grep plasmashell` (terminal)
+        - Settings dialog errors
+      render: shell
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Low — cosmetic issue
+        - Medium — feature broken but workaround exists
+        - High — feature completely unusable
+        - Critical — crashes Plasma
+    validations:
+      required: true
