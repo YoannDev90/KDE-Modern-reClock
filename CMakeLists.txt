@@ -10,9 +10,6 @@ include(GNUInstallDirs)
 # Qt 6
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Qml)
 
-# KF6 — no umbrella "KF6" package, use individual components
-find_package(KF6CoreAddons REQUIRED)
-
 # Plugin — keep default "lib" prefix so the .so is named libmodernreclock_timezone.so
 # which matches what qmldir expects (plugin <name> → lib<name>.so)
 set(PLUGIN_NAME modernreclock_timezone)
@@ -23,7 +20,6 @@ add_library(${PLUGIN_NAME} MODULE
 target_link_libraries(${PLUGIN_NAME} PRIVATE
     Qt6::Core
     Qt6::Qml
-    KF6::CoreAddons
 )
 
 # Install plugin to KDE QML dir so plasma shell can find it
