@@ -328,7 +328,7 @@ KCM.SimpleKCM {
         adaptToTheme.checked = false;
         widgetSpacing.value = 5;
         localeField.text = "";
-        _orderState.resetOrder();
+        orderSection.resetRequested();
         languageCombo.currentIndex = 0;
         updatePreview();
     }
@@ -706,159 +706,14 @@ KCM.SimpleKCM {
             text: ""
         }
 
-        // ===== ORDER SYSTEM: ListModel-based (no destroy/recreate on move) =====
-        ListModel {
-            id: orderListModel
-            ListElement { key: "day" }
-            ListElement { key: "date" }
-            ListElement { key: "time" }
-            ListElement { key: "custom" }
-            ListElement { key: "timezone" }
-        }
-
-        QtObject {
-            id: _orderState
-            readonly property var circledNumbers: ["\u2460", "\u2461", "\u2462", "\u2463", "\u2464"]
-
-            function labelForKey(key) {
-                if (key === "day") return i18n("Day");
-                if (key === "date") return i18n("Date");
-                if (key === "time") return i18n("Time");
-                if (key === "custom") return i18n("Custom");
-                if (key === "timezone") return i18n("Timezone");
-                return key;
-            }
-
-            function iconForKey(key) {
-                if (key === "day") return "weather-clear";
-                if (key === "date") return "view-calendar";
-                if (key === "time") return "clock";
-                if (key === "custom") return "text-x-generic";
-                if (key === "timezone") return "globe";
-                return "help";
-            }
-
-            function initOrder() {
-                let raw = appearancePage.cfg_element_order
-                    ? appearancePage.cfg_element_order.trim()
-                    : "";
-                if (!raw || raw.length === 0) return;
-
-                let k = raw.split(",");
-                let valid = ["day", "date", "time", "custom", "timezone"];
-                k = k.filter(function(v) { return valid.indexOf(v.trim()) !== -1; })
-                    .map(function(v) { return v.trim(); });
-                if (k.length === 0) return;
-
-                // Reorder ListModel to match saved config
-                var currentOrder = [];
-                for (var i = 0; i < orderListModel.count; i++)
-                    currentOrder.push(orderListModel.get(i).key);
-
-                for (var targetIdx = 0; targetIdx < k.length; targetIdx++) {
-                    var key = k[targetIdx];
-                    var currentIdx = currentOrder.indexOf(key);
-                    if (currentIdx !== -1 && currentIdx !== targetIdx) {
-                        orderListModel.move(currentIdx, targetIdx, 1);
-                        var moved = currentOrder.splice(currentIdx, 1)[0];
-                        currentOrder.splice(targetIdx, 0, moved);
-                    }
-                }
-                _orderState.saveOrder();
-            }
-
-            function moveOrder(from, to) {
-                if (from === to) return;
-                if (from < 0 || from >= orderListModel.count) return;
-                if (to < 0 || to >= orderListModel.count) return;
-                orderListModel.move(from, to, 1);
-                _orderState.saveOrder();
-            }
-
-            function saveOrder() {
-                var order = [];
-                for (var i = 0; i < orderListModel.count; i++)
-                    order.push(orderListModel.get(i).key);
-                appearancePage.cfg_element_order = order.join(",");
-            }
-
-            function resetOrder() {
-                orderListModel.clear();
-                orderListModel.append({"key": "day"});
-                orderListModel.append({"key": "date"});
-                orderListModel.append({"key": "time"});
-                orderListModel.append({"key": "custom"});
-                orderListModel.append({"key": "timezone"});
-                appearancePage.cfg_element_order = "day,date,time,custom,timezone";
-            }
-        }
-
-        Component.onCompleted: _orderState.initOrder()
-
-        ColumnLayout {
+        // ===== ORDER SYSTEM (extracted to OrderSection.qml) =====
+        OrderSection {
+            id: orderSection
             Layout.fillWidth: true
-            Layout.topMargin: Kirigami.Units.smallSpacing
-            spacing: 2
-
-            Repeater {
-                id: orderRepeater
-                model: orderListModel
-                delegate: Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: delegateRow.implicitHeight + Kirigami.Units.smallSpacing * 2
-                    radius: Kirigami.Units.cornerRadius
-                    color: index % 2 === 0
-                        ? Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                  Kirigami.Theme.highlightColor.g,
-                                  Kirigami.Theme.highlightColor.b, 0.08)
-                        : "transparent"
-
-                    RowLayout {
-                        id: delegateRow
-                        anchors.fill: parent
-                        anchors.margins: Kirigami.Units.smallSpacing
-                        spacing: Kirigami.Units.smallSpacing
-
-                        QQC2.Label {
-                            text: _orderState.circledNumbers[index] || (index + 1)
-                            font.bold: true
-                            font.pixelSize: 14
-                            Layout.preferredWidth: 28
-                            horizontalAlignment: Text.AlignHCenter
-                            color: Kirigami.Theme.highlightColor
-                        }
-
-                        Kirigami.Icon {
-                            source: _orderState.iconForKey(modelData)
-                            Layout.preferredWidth: 16
-                            Layout.preferredHeight: 16
-                        }
-
-                        QQC2.Label {
-                            text: _orderState.labelForKey(modelData)
-                            font.pixelSize: 13
-                            Layout.fillWidth: true
-                        }
-
-                        QQC2.Button {
-                            icon.name: "arrow-up"
-                            enabled: index > 0
-                            onClicked: _orderState.moveOrder(index, index - 1)
-                            QQC2.ToolTip.text: i18n("Move up")
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.delay: 800
-                        }
-
-                        QQC2.Button {
-                            icon.name: "arrow-down"
-                            enabled: index < orderListModel.count - 1
-                            onClicked: _orderState.moveOrder(index, index + 1)
-                            QQC2.ToolTip.text: i18n("Move down")
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.delay: 800
-                        }
-                    }
-                }
+            Layout.minimumHeight: 180
+            elementOrder: appearancePage.cfg_element_order
+            onOrderChanged: function(newOrder) {
+                appearancePage.cfg_element_order = newOrder;
             }
         }
 
@@ -1363,7 +1218,7 @@ KCM.SimpleKCM {
         QQC2.Button {
             text: i18n("Save Current Theme")
             icon.name: "document-save"
-            onClicked: saveThemeSheet.open()
+            onClicked: themeSheets.openSave()
         }
 
         Repeater {
@@ -1395,10 +1250,7 @@ KCM.SimpleKCM {
 
                 QQC2.Button {
                     icon.name: "document-export"
-                    onClicked: {
-                        exportThemeArea.text = appearancePage.themeToJSON(index);
-                        exportThemeSheet.open();
-                    }
+                    onClicked: themeSheets.openExport(index)
                     QQC2.ToolTip.text: i18n("Export this theme")
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.delay: 800
@@ -1428,228 +1280,31 @@ KCM.SimpleKCM {
             QQC2.Button {
                 text: i18n("Import Theme")
                 icon.name: "document-import"
-                onClicked: importThemeSheet.open()
+                onClicked: themeSheets.openImport()
             }
 
             QQC2.Button {
                 text: i18n("Advanced: Raw JSON")
                 icon.name: "text-x-generic"
-                onClicked: rawJsonSheet.open()
+                onClicked: themeSheets.openRawJson()
             }
         }
     }
 
-    // ===== Save Theme Sheet =====
-    Kirigami.OverlaySheet {
-        id: saveThemeSheet
-        header: Kirigami.Heading {
-            text: i18n("Save Theme")
-            level: 3
-        }
-
-        ColumnLayout {
-            spacing: Kirigami.Units.largeSpacing
-            implicitWidth: Kirigami.Units.gridUnit * 25
-
-            QQC2.TextField {
-                id: themeNameField
-                Kirigami.FormData.label: i18n("Name:")
-                Layout.fillWidth: true
-                placeholderText: i18n("My Theme")
-            }
-
-            QQC2.TextField {
-                id: themeDescField
-                Kirigami.FormData.label: i18n("Description:")
-                Layout.fillWidth: true
-                placeholderText: i18n("Optional description")
-            }
-
-            RowLayout {
-                Layout.alignment: Qt.AlignRight
-                QQC2.Button {
-                    text: i18n("Save")
-                    icon.name: "document-save"
-                    onClicked: {
-                        appearancePage.saveCurrentTheme(themeNameField.text, themeDescField.text);
-                        themeNameField.text = "";
-                        themeDescField.text = "";
-                        saveThemeSheet.close();
-                    }
-                }
-                QQC2.Button {
-                    text: i18n("Cancel")
-                    onClicked: saveThemeSheet.close()
-                }
-            }
-        }
-    }
-
-    // ===== Export Theme Sheet =====
-    Kirigami.OverlaySheet {
-        id: exportThemeSheet
-        header: Kirigami.Heading {
-            text: i18n("Export Theme")
-            level: 3
-        }
-
-        ColumnLayout {
-            spacing: Kirigami.Units.largeSpacing
-            implicitWidth: Kirigami.Units.gridUnit * 25
-
-            QQC2.Label {
-                text: i18n("Copy this JSON to share or back up your theme.")
-                wrapMode: Text.WordWrap
-                Layout.fillWidth: true
-            }
-
-            QQC2.ScrollView {
-                Layout.fillWidth: true
-                Layout.preferredHeight: Kirigami.Units.gridUnit * 12
-                contentWidth: -1
-                QQC2.TextArea {
-                    id: exportThemeArea
-                    readOnly: true
-                    wrapMode: Text.NoWrap
-                    font.family: "Monospace"
-                    width: parent.width
-                }
-            }
-
-            RowLayout {
-                Layout.alignment: Qt.AlignRight
-                QQC2.Button {
-                    text: i18n("Close")
-                    onClicked: exportThemeSheet.close()
-                }
-            }
-        }
-    }
-
-    // ===== Import Theme Sheet =====
-    Kirigami.OverlaySheet {
-        id: importThemeSheet
-        header: Kirigami.Heading {
-            text: i18n("Import Theme")
-            level: 3
-        }
-
-        ColumnLayout {
-            spacing: Kirigami.Units.largeSpacing
-            implicitWidth: Kirigami.Units.gridUnit * 25
-
-            QQC2.Label {
-                text: i18n("Paste a theme JSON below. It will be added to your saved themes.")
-                wrapMode: Text.WordWrap
-                Layout.fillWidth: true
-            }
-
-            QQC2.ScrollView {
-                Layout.fillWidth: true
-                Layout.preferredHeight: Kirigami.Units.gridUnit * 12
-                contentWidth: -1
-                QQC2.TextArea {
-                    id: importThemeArea
-                    wrapMode: Text.NoWrap
-                    font.family: "Monospace"
-                    placeholderText: i18n("Paste theme JSON here...")
-                    width: parent.width
-                }
-            }
-
-            QQC2.Label {
-                id: importErrorLabel
-                text: ""
-                color: Kirigami.Theme.negativeTextColor
-                visible: text.length > 0
-                wrapMode: Text.WordWrap
-                Layout.fillWidth: true
-            }
-
-            RowLayout {
-                Layout.alignment: Qt.AlignRight
-                QQC2.Button {
-                    text: i18n("Import")
-                    icon.name: "document-import"
-                    onClicked: {
-                        try {
-                            let data = JSON.parse(importThemeArea.text);
-                            if (data.config && data.name) {
-                                // It's a full theme object — save it
-                                let themes = appearancePage.savedThemes.slice();
-                                themes.push(data);
-                                appearancePage.savedThemesJson = JSON.stringify(themes);
-                                cfg_saved_themes = appearancePage.savedThemesJson;
-                                importThemeSheet.close();
-                            } else {
-                                // It's raw config — import directly
-                                appearancePage.applyConfig(importThemeArea.text);
-                                appearancePage.updatePreview();
-                                importThemeSheet.close();
-                            }
-                        } catch (e) {
-                            importErrorLabel.text = i18n("Invalid JSON: %1", e.message);
-                        }
-                    }
-                }
-                QQC2.Button {
-                    text: i18n("Cancel")
-                    onClicked: importThemeSheet.close()
-                }
-            }
-        }
-    }
-
-    // ===== Advanced: Raw JSON Sheet =====
-    Kirigami.OverlaySheet {
-        id: rawJsonSheet
-        header: Kirigami.Heading {
-            text: i18n("Widget Configuration (Raw JSON)")
-            level: 3
-        }
-
-        ColumnLayout {
-            spacing: Kirigami.Units.largeSpacing
-            implicitWidth: Kirigami.Units.gridUnit * 25
-
-            QQC2.Label {
-                text: i18n("Copy this JSON to save your full config, or paste a previously saved JSON to restore it.")
-                wrapMode: Text.WordWrap
-                Layout.fillWidth: true
-            }
-
-            QQC2.ScrollView {
-                Layout.fillWidth: true
-                Layout.preferredHeight: Kirigami.Units.gridUnit * 15
-                contentWidth: -1
-                QQC2.TextArea {
-                    id: backupArea
-                    text: appearancePage.getFullConfig()
-                    wrapMode: Text.NoWrap
-                    font.family: "Monospace"
-                    width: parent.width
-                }
-            }
-
-            RowLayout {
-                Layout.alignment: Qt.AlignRight
-                QQC2.Button {
-                    text: i18n("Apply Pasted Config")
-                    icon.name: "document-import"
-                    onClicked: {
-                        if (appearancePage.applyConfig(backupArea.text)) {
-                            appearancePage.updatePreview();
-                            rawJsonSheet.close();
-                        } else {
-                            backupArea.text = "INVALID JSON!";
-                        }
-                    }
-                }
-                QQC2.Button {
-                    text: i18n("Reset to current")
-                    onClicked: backupArea.text = appearancePage.getFullConfig()
-                }
-            }
+    // ===== Theme Sheets (extracted to ThemeSheets.qml) =====
+    ThemeSheets {
+        id: themeSheets
+        getFullConfig: appearancePage.getFullConfig
+        applyConfig: appearancePage.applyConfig
+        updatePreview: appearancePage.updatePreview
+        saveThemeFn: appearancePage.saveCurrentTheme
+        deleteThemeFn: appearancePage.deleteTheme
+        loadThemeFn: appearancePage.loadThemeConfig
+        themeToJSONFn: appearancePage.themeToJSON
+        themes: appearancePage.savedThemes
+        setThemesJson: function(json) {
+            appearancePage.savedThemesJson = json;
+            cfg_saved_themes = json;
         }
     }
 }
