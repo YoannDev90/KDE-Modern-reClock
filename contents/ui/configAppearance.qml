@@ -328,7 +328,6 @@ KCM.SimpleKCM {
         adaptToTheme.checked = false;
         widgetSpacing.value = 5;
         localeField.text = "";
-        elementOrderField.text = "day,date,time";
         _orderState.resetOrder();
         languageCombo.currentIndex = 0;
         updatePreview();
@@ -707,11 +706,19 @@ KCM.SimpleKCM {
             text: ""
         }
 
-        // ===== ORDER SYSTEM: pure JS array via QtObject =====
+        // ===== ORDER SYSTEM: ListModel-based (no destroy/recreate on move) =====
+        ListModel {
+            id: orderListModel
+            ListElement { key: "day" }
+            ListElement { key: "date" }
+            ListElement { key: "time" }
+            ListElement { key: "custom" }
+            ListElement { key: "timezone" }
+        }
+
         QtObject {
             id: _orderState
-            property var keys: []
-            property int count: keys.length
+            readonly property var circledNumbers: ["\u2460", "\u2461", "\u2462", "\u2463", "\u2464"]
 
             function labelForKey(key) {
                 if (key === "day") return i18n("Day");
@@ -722,60 +729,135 @@ KCM.SimpleKCM {
                 return key;
             }
 
+            function iconForKey(key) {
+                if (key === "day") return "weather-clear";
+                if (key === "date") return "view-calendar";
+                if (key === "time") return "clock";
+                if (key === "custom") return "text-x-generic";
+                if (key === "timezone") return "globe";
+                return "help";
+            }
+
             function initOrder() {
                 let raw = appearancePage.cfg_element_order
                     ? appearancePage.cfg_element_order.trim()
                     : "";
-                let k = raw.length > 0 ? raw.split(",") : ["day", "date", "time"];
+                if (!raw || raw.length === 0) return;
+
+                let k = raw.split(",");
                 let valid = ["day", "date", "time", "custom", "timezone"];
-                k = k.filter(function(v) { return valid.indexOf(v.trim()) !== -1; }).map(function(v) { return v.trim(); });
-                if (k.length === 0) k = ["day", "date", "time"];
-                keys = k;
+                k = k.filter(function(v) { return valid.indexOf(v.trim()) !== -1; })
+                    .map(function(v) { return v.trim(); });
+                if (k.length === 0) return;
+
+                // Reorder ListModel to match saved config
+                var currentOrder = [];
+                for (var i = 0; i < orderListModel.count; i++)
+                    currentOrder.push(orderListModel.get(i).key);
+
+                for (var targetIdx = 0; targetIdx < k.length; targetIdx++) {
+                    var key = k[targetIdx];
+                    var currentIdx = currentOrder.indexOf(key);
+                    if (currentIdx !== -1 && currentIdx !== targetIdx) {
+                        orderListModel.move(currentIdx, targetIdx, 1);
+                        var moved = currentOrder.splice(currentIdx, 1)[0];
+                        currentOrder.splice(targetIdx, 0, moved);
+                    }
+                }
+                _orderState.saveOrder();
             }
 
             function moveOrder(from, to) {
-                let k = keys.slice();
-                let item = k.splice(from, 1)[0];
-                k.splice(to, 0, item);
-                keys = k;
-                appearancePage.cfg_element_order = k.join(",");
+                if (from === to) return;
+                if (from < 0 || from >= orderListModel.count) return;
+                if (to < 0 || to >= orderListModel.count) return;
+                orderListModel.move(from, to, 1);
+                _orderState.saveOrder();
+            }
+
+            function saveOrder() {
+                var order = [];
+                for (var i = 0; i < orderListModel.count; i++)
+                    order.push(orderListModel.get(i).key);
+                appearancePage.cfg_element_order = order.join(",");
             }
 
             function resetOrder() {
-                keys = ["day", "date", "time", "custom", "timezone"];
+                orderListModel.clear();
+                orderListModel.append({"key": "day"});
+                orderListModel.append({"key": "date"});
+                orderListModel.append({"key": "time"});
+                orderListModel.append({"key": "custom"});
+                orderListModel.append({"key": "timezone"});
                 appearancePage.cfg_element_order = "day,date,time,custom,timezone";
             }
         }
 
         Component.onCompleted: _orderState.initOrder()
 
-        Repeater {
-            id: orderRepeater
-            model: _orderState.keys
-            delegate: RowLayout {
-                Layout.fillWidth: true
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.topMargin: Kirigami.Units.smallSpacing
+            spacing: 2
 
-                QQC2.Label {
-                    text: _orderState.labelForKey(modelData)
+            Repeater {
+                id: orderRepeater
+                model: orderListModel
+                delegate: Rectangle {
                     Layout.fillWidth: true
-                }
+                    Layout.preferredHeight: delegateRow.implicitHeight + Kirigami.Units.smallSpacing * 2
+                    radius: Kirigami.Units.cornerRadius
+                    color: index % 2 === 0
+                        ? Qt.rgba(Kirigami.Theme.highlightColor.r,
+                                  Kirigami.Theme.highlightColor.g,
+                                  Kirigami.Theme.highlightColor.b, 0.08)
+                        : "transparent"
 
-                QQC2.Button {
-                    icon.name: "arrow-up"
-                    enabled: index > 0
-                    onClicked: _orderState.moveOrder(index, index - 1)
-                    QQC2.ToolTip.text: i18n("Move up")
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.delay: 800
-                }
+                    RowLayout {
+                        id: delegateRow
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.smallSpacing
+                        spacing: Kirigami.Units.smallSpacing
 
-                QQC2.Button {
-                    icon.name: "arrow-down"
-                    enabled: index < _orderState.keys.length - 1
-                    onClicked: _orderState.moveOrder(index, index + 1)
-                    QQC2.ToolTip.text: i18n("Move down")
-                    QQC2.ToolTip.visible: hovered
-                    QQC2.ToolTip.delay: 800
+                        QQC2.Label {
+                            text: _orderState.circledNumbers[index] || (index + 1)
+                            font.bold: true
+                            font.pixelSize: 14
+                            Layout.preferredWidth: 28
+                            horizontalAlignment: Text.AlignHCenter
+                            color: Kirigami.Theme.highlightColor
+                        }
+
+                        Kirigami.Icon {
+                            source: _orderState.iconForKey(modelData)
+                            Layout.preferredWidth: 16
+                            Layout.preferredHeight: 16
+                        }
+
+                        QQC2.Label {
+                            text: _orderState.labelForKey(modelData)
+                            font.pixelSize: 13
+                            Layout.fillWidth: true
+                        }
+
+                        QQC2.Button {
+                            icon.name: "arrow-up"
+                            enabled: index > 0
+                            onClicked: _orderState.moveOrder(index, index - 1)
+                            QQC2.ToolTip.text: i18n("Move up")
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.delay: 800
+                        }
+
+                        QQC2.Button {
+                            icon.name: "arrow-down"
+                            enabled: index < orderListModel.count - 1
+                            onClicked: _orderState.moveOrder(index, index + 1)
+                            QQC2.ToolTip.text: i18n("Move down")
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.delay: 800
+                        }
+                    }
                 }
             }
         }

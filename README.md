@@ -27,6 +27,7 @@
 - **Custom locale** — override system locale for date/time names
 - **Language presets** — quick configuration with built-in locale presets
 - **Configurable spacing** — adjust spacing between elements
+- **C++ timezone plugin** — compiled Qt6/QML plugin for accurate timezone formatting (`formatDateTimeInZone`)
 
 ### Custom Text Element
 - **Static text** — display any custom message (e.g. "Good Morning", "Today is")
@@ -37,8 +38,8 @@
 - **Display any IANA timezone** — `America/New_York`, `Asia/Tokyo`, `Europe/Paris`, etc.
 - **Timezone selector** — preset list of 40+ major cities, or type a custom IANA ID
 - **Label support** — add a short label before the timezone (e.g. "NYC", "Tokyo")
-- **Custom format** — control how the timezone time is displayed (`HH:mm`, `H:mm`, etc.)
-- **DST-aware** — automatically handles daylight saving time via C++ Qt backend
+- **Auto-derived format** — timezone format mirrors the main time format (seconds always stripped)
+- **DST-aware** — C++ Qt backend with direct `QDateTime::toTimeZone()` conversion for accurate formatting
 
 ### Day/Night Mode Adaptation
 - **Auto color adaptation** — override all element colors with the system theme text color
@@ -52,11 +53,12 @@
 
 ### Settings Panel
 - **Live preview** — see changes immediately in the config panel
-- **Element reorder** — drag to reorder day, date, time, custom, and timezone
+- **Element reorder** — numbered list (① ② ③ ④ ⑤) with KDE-style arrows to reorder day, date, time, custom, and timezone
 - **Organized UI** — sections for Global, Day, Date, Time, Custom Text, Timezone, and Themes
 
 ### Internationalization
-- **13 languages** — English, French, German, Spanish, Italian, Dutch, Polish, Portuguese, Russian, Japanese, and more
+- **13 language presets** — locale presets for date/time formatting: English, French, German, Spanish, Italian, Dutch, Polish, Portuguese, Russian, Japanese, and more
+- **Translated UI** — currently translated in English, French, German, and Spanish
 - **Contributing** — translations welcome! See the [Translations](#translations) section
 
 ## Installation
