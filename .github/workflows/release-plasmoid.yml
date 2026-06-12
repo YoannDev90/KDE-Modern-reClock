@@ -48,18 +48,33 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake qt6-base-dev qt6-declarative-dev
           if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
-            # Aarch64 build using system Qt6 (no Docker needed)
+            # Aarch64 build using Qt6 cross-compilation
             # Install aarch64 cross-compilation toolchain
             sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-            # Install aarch64 Qt6 libraries from Ubuntu repository
-            sudo apt-get install -y qt6-base-dev:aarch64 qt6-declarative-dev:aarch64
+            # Download and install Qt6 for aarch64 cross-compilation
+            # Use the official Qt6 installer script for cross-compilation
+            wget -q https://download.qt.io/official_releases/qt/6.6/6.6.4/single/qt-everywhere-opensource-src-6.6.4.tar.xz
+            tar -xf qt-everywhere-opensource-src-6.6.4.tar.xz
+            cd qt-everywhere-opensource-src-6.6.4
+            mkdir build && cd build
+            cmake .. \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+              -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+              -DCMAKE_INSTALL_PREFIX=/usr \
+              -DQT_BUILD_TESTS=OFF \
+              -DQT6_CROSS_COMPILATION=1 \
+              -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+            make -j$(nproc)
+            sudo make install
+            cd ../..
+            rm -rf qt-everywhere-opensource-src-6.6.4 qt-everywhere-opensource-src-6.6.4.tar.xz
             mkdir -p build
             cd build
-            # Use cross-compilation toolchain
             cmake .. -DCMAKE_INSTALL_PREFIX=/usr \
               -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
               -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
-              -DQT6_CROSS_COMPILATION=1 \
+              -DQT6_DIR=/usr/local/qt6 \
               -DCMAKE_POSITION_INDEPENDENT_CODE=ON
             make -j$(nproc)
             cd ..
