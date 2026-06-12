@@ -219,7 +219,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to KDE Store
-        uses: YoannDev90/kde-store-publish@1.0.2
+        uses: YoannDev90/kde-store-publish@v1.0.2
         with:
           api-url: https://api.kde-look.org/ocs/v1/
           auth-method: login-password
