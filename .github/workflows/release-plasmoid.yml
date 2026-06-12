@@ -1,3 +1,21 @@
+# ───────────────────────────────────────────────────────────────────────
+# REQUIRED REPO SECRETS for KDE Store Publication
+# Create these in GitHub Settings → Secrets and Variables → Actions
+# ------------------------------------------------------------------------
+# KDE OCS authentication:
+#   OCS_LOGIN   : Your OCS login username or API key
+#   OCS_PASSWORD : Your OCS password (for login/password auth)
+#   OCS_CONTENT_ID : Your existing content ID on store.kde.org
+#
+# Example setup in GitHub UI:
+#   - Name: KDE_OCS_LOGIN    Value: your-ocs-username-or-api-key
+#   - Name: KDE_OCS_PASSWORD  Value: your-ocs-password
+#   - Name: KDE_OCS_CONTENT_ID  Value: 12345
+#
+# You can get your content ID after manually publishing your widget to
+# store.kde.org and checking the URL: store.kde.org/content/show.php?content=12345
+# ───────────────────────────────────────────────────────────────────────
+
 name: Release KDE Plasmoid
 
 on:
@@ -189,3 +207,20 @@ jobs:
           prerelease: ${{ github.event.inputs.prerelease || false }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to KDE Store
+        uses: YoannDev90/kde-store-publish@v1.0.0
+        with:
+          api-url: https://api.kde-look.org/ocs/v1/
+          auth-method: login-password
+          login: ${{ secrets.KDE_OCS_LOGIN }}
+          password: ${{ secrets.KDE_OCS_PASSWORD }}
+          service: content
+          action: edit
+          content-id: ${{ secrets.KDE_OCS_CONTENT_ID }}
+          name: Modern reClock
+          version: ${{ steps.get_version.outputs.version }}
+          changelog: ${{ steps.changelog.outputs.changes }}
+          file: com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid
+
+
