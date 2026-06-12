@@ -25,9 +25,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version (ex: 1.1.0)"
+        description: "Version (ex: 2.6.2)"
         required: true
-        default: "1.1.0"
+        default: "2.6.2"
       prerelease:
         description: "Mark as pre-release ?"
         required: false
@@ -48,11 +48,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake qt6-base-dev qt6-declarative-dev
           if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
-            sudo apt-get install -y qemu-user-static binfmt-support
-            docker run --rm --platform linux/arm64 -v $(pwd):/src -w /src ubuntu:24.04 bash -c "
-              apt-get update && apt-get install -y cmake g++ qt6-base-dev qt6-declarative-dev &&
-              mkdir -p build && cd build && cmake .. -DCMAKE_INSTALL_PREFIX=/usr && make -j\$(nproc)
-            "
+            # Cross-compilation for aarch64 instead of Docker (faster)
+            sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+            mkdir -p build
+            cd build
+            cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++
+            make -j$(nproc)
+            cd ..
             cp build/libmodernreclock_timezone.so modernreclock-timezone_aarch64.so
           else
             mkdir -p build && cd build
@@ -209,7 +211,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to KDE Store
-        uses: YoannDev90/kde-store-publish@v1.0.1
+        uses: YoannDev90/kde-store-publish@latest
         with:
           api-url: https://api.kde-look.org/ocs/v1/
           auth-method: login-password
