@@ -43,41 +43,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Check cache — skip rebuild if C++ sources haven't changed
+      - name: Check build cache
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: modernreclock-timezone_${{ matrix.arch }}.so
+          key: plugin-${{ matrix.arch }}-${{ hashFiles('src/**', 'CMakeLists.txt', 'build/qmldir') }}
+
       - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake qt6-base-dev qt6-declarative-dev
           if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
-            # Aarch64 build using Qt6 cross-compilation
-            # Install aarch64 cross-compilation toolchain
-            sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-            # Download and install Qt6 for aarch64 cross-compilation
-            # Use the official Qt6 installer script for cross-compilation
-            wget -q https://download.qt.io/official_releases/qt/6.6/6.6.4/single/qt-everywhere-opensource-src-6.6.4.tar.xz
-            tar -xf qt-everywhere-opensource-src-6.6.4.tar.xz
-            cd qt-everywhere-opensource-src-6.6.4
-            mkdir build && cd build
-            cmake .. \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
-              -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
-              -DCMAKE_INSTALL_PREFIX=/usr \
-              -DQT_BUILD_TESTS=OFF \
-              -DQT6_CROSS_COMPILATION=1 \
-              -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-            make -j$(nproc)
-            sudo make install
-            cd ../..
-            rm -rf qt-everywhere-opensource-src-6.6.4 qt-everywhere-opensource-src-6.6.4.tar.xz
-            mkdir -p build
-            cd build
-            cmake .. -DCMAKE_INSTALL_PREFIX=/usr \
-              -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
-              -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
-              -DQT6_DIR=/usr/local/qt6 \
-              -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-            make -j$(nproc)
-            cd ..
+            # Aarch64 build via Docker (Qt6 cross-compilation is not feasible in CI)
+            sudo apt-get install -y qemu-user-static binfmt-support
+            docker run --rm --platform linux/arm64 -v $(pwd):/src -w /src ubuntu:24.04 bash -c "
+              apt-get update && apt-get install -y cmake g++ qt6-base-dev qt6-declarative-dev &&
+              mkdir -p build && cd build && cmake .. -DCMAKE_INSTALL_PREFIX=/usr && make -j\$(nproc)
+            "
             cp build/libmodernreclock_timezone.so modernreclock-timezone_aarch64.so
           else
             mkdir -p build && cd build
