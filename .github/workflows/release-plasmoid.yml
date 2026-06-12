@@ -48,11 +48,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake qt6-base-dev qt6-declarative-dev
           if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
-            # Cross-compilation for aarch64 instead of Docker (faster)
+            # Aarch64 build using system Qt6 (no Docker needed)
+            # Install aarch64 cross-compilation toolchain
             sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+            # Install aarch64 Qt6 libraries from Ubuntu repository
+            sudo apt-get install -y qt6-base-dev:aarch64 qt6-declarative-dev:aarch64
             mkdir -p build
             cd build
-            cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++
+            # Use cross-compilation toolchain
+            cmake .. -DCMAKE_INSTALL_PREFIX=/usr \
+              -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+              -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+              -DQT6_CROSS_COMPILATION=1 \
+              -DCMAKE_POSITION_INDEPENDENT_CODE=ON
             make -j$(nproc)
             cd ..
             cp build/libmodernreclock_timezone.so modernreclock-timezone_aarch64.so
