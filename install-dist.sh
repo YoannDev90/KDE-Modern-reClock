@@ -15,7 +15,8 @@ if [ -f "translate/build.sh" ]; then
     ./translate/build.sh
 fi
 
-echo "--- Installing timezone plugin ---"
+echo "--- Installing C++ plugins ---"
+# modernreclock_backend.so includes TimeZone, Wallpaper, WallpaperConfig, WallpaperImageProvider, Logger
 PLUGIN_DIR="/usr/lib64/qt6/qml/org/kde/plasma/private/modernreclock"
 PLUGIN_INSTALLED=false
 
@@ -52,7 +53,10 @@ if [ "$PLUGIN_INSTALLED" = false ]; then
 fi
 
 if [ "$PLUGIN_INSTALLED" = false ]; then
-    echo "Warning: Could not install timezone plugin. Secondary timezone feature may not work."
+    echo "Warning: Could not install C++ plugins. Some features may not work:"
+    echo "  - Secondary timezone"
+    echo "  - Wallpaper detection & preview"
+    echo "  - Structured logging & debug export"
 fi
 
 echo "--- Installing the widget ---"

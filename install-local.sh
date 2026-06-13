@@ -11,7 +11,8 @@ if ! command -v kpackagetool6 &> /dev/null; then
     exit 1
 fi
 
-echo "--- Installing timezone plugin ---"
+echo "--- Installing C++ plugins ---"
+# Also known as: modernreclock_backend.so (includes TimeZone, Wallpaper, WallpaperConfig, WallpaperImageProvider, Logger)
 PLUGIN_DIR="/usr/lib64/qt6/qml/org/kde/plasma/private/modernreclock"
 PLUGIN_INSTALLED=false
 
@@ -50,7 +51,10 @@ if [ "$PLUGIN_INSTALLED" = false ]; then
 fi
 
 if [ "$PLUGIN_INSTALLED" = false ]; then
-    echo "Warning: Could not install timezone plugin. Secondary timezone feature may not work."
+    echo "Warning: Could not install C++ plugins. Some features may not work:"
+    echo "  - Secondary timezone (TimeZoneHelper)"
+    echo "  - Wallpaper detection & preview (WallpaperHelper, WallpaperImageProvider)"
+    echo "  - Logger (structured logging, async log fetch, export)"
     echo "Install cmake and kf6-devel packages to build from source, or open an issue."
 fi
 
@@ -64,9 +68,12 @@ echo "--- Installing the widget ---"
 # Try to update, if it fails (not installed yet), install it
 kpackagetool6 -t Plasma/Applet -u . || kpackagetool6 -t Plasma/Applet -i .
 
-echo "--- Cleaning Plasma cache ---"
-# Clear the QML cache to ensure changes are picked up immediately
+echo "--- Cleaning cache ---"
+# Clear QML caches to ensure changes are picked up immediately
 rm -rf ~/.cache/plasmashell/qmlcache/*modernreclock* 2>/dev/null || true
+rm -rf ~/.cache/kpackage/.*modernreclock* 2>/dev/null || true
+rm -rf ~/.cache/kirigami/*modernreclock* 2>/dev/null || true
+find ~/.cache -name "*.qmlc" -path "*modernreclock*" -delete 2>/dev/null || true
 
 if [[ " $* " == *" -force-reload "* ]] || [[ " $* " == *" --fr "* ]]; then
     echo "--- Restarting Plasmashell ---"

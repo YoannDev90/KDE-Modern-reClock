@@ -44,9 +44,17 @@
 - **Auto-derived format** — timezone format mirrors the main time format (seconds always stripped)
 - **DST-aware** — C++ Qt backend with direct `QDateTime::toTimeZone()` conversion for accurate formatting
 
-### Day/Night Mode Adaptation
-- **Auto color adaptation** — override all element colors with the system theme text color
-- **Better contrast** — automatically adapts to light/dark desktop backgrounds
+### Color Modes
+Four configurable color modes:
+- **Custom** — each element has its own independent color
+- **Follow system theme** — text inherits the Plasma theme text color (light/dark)
+- **Inverse system theme** — inverted color for maximum contrast on any background
+- **Wallpaper-derived** — automatically detects wallpaper brightness and picks white or black text for optimal contrast
+
+### Wallpaper Change Detection
+- **Real-time updates** — uses `QFileSystemWatcher` (C++) to detect wallpaper changes instantly
+- **No polling** — eliminates the old 5-second timer, reducing CPU usage
+- **Auto-adaptation** — color mode switches to wallpaper-based colors when wallpaper changes
 
 ### Theming
 - **Save/load themes** — save your configuration as named themes
@@ -54,10 +62,22 @@
 - **Per-section reset** — restore individual sections to defaults
 - **JSON import/export** — full configuration backup (dotfile support)
 
-### Settings Panel
-- **Live preview** — see changes immediately in the config panel
+### Settings Panel (KCM)
+- **Live preview** — real-time preview with your actual desktop wallpaper as background, at 16:9 aspect ratio with proportional text scaling
+- **Wallpaper preview** — the wallpaper image is rendered behind the preview text (C++ `QQuickImageProvider`), with a semi-transparent overlay for readability
+- **Auto-scale simulation** — when auto-scale is enabled, text size adapts to fit within the preview area
 - **Element reorder** — numbered list (① ② ③ ④ ⑤) with KDE-style arrows to reorder day, date, time, custom, and timezone
-- **Organized UI** — sections for Global, Day, Date, Time, Custom Text, Timezone, and Themes
+- **Organized UI** — sections for Preview, Global, Day, Date, Time, Custom Text, Timezone, and Themes
+
+### Debug Page
+- **System diagnostics** — displays Qt version, platform, screen resolution, locale
+- **Plugin status** — shows whether TimeZone and Wallpaper C++ plugins are loaded
+- **Theme color detection** — reports Plasma theme colors when available (shows "N/A" in standalone KCM context)
+- **Wallpaper info** — current wallpaper path, detected brightness (dark/light), color scheme
+- **Font browser** — lists up to 339 available system fonts
+- **Log viewer** — full log history displayed inline, with copy button
+- **Async log fetch** — fetch Plasma Shell logs via `journalctl` asynchronously (non-blocking)
+- **Export to file** — save complete debug info to `/tmp/modernreclock_log_export.txt`
 
 ### Internationalization
 - **13 language presets** — locale presets for date/time formatting: English, French, German, Spanish, Italian, Dutch, Polish, Portuguese, Russian, Japanese, and more
@@ -81,13 +101,13 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/YoannDev90/KDE-Modern-reCl
    ```
 3. Or use Plasma installer ("Add Widgets" > "Install from Local File")
 
-> **Timezone plugin**: The install script will try to build the C++ timezone plugin from source. If cmake/KF6-dev are not installed, it will automatically download the precompiled binary for your architecture from the release.
+> **C++ plugins**: The install script will try to build all C++ plugins (timezone, wallpaper, and logger) from source. If cmake/KF6-dev are not installed, it will automatically download precompiled binaries for your architecture from the release.
 
 ### Offline install (no internet required)
 
 1. Download from the release:
    - `com.github.yoanndev90.modernreclock-VERSION.plasmoid`
-   - `modernreclock-timezone-VERSION-ARCH.zip` (matching your architecture)
+   - `modernreclock-plugins-VERSION-ARCH.zip` (matching your architecture)
 2. Extract the zip, run `install-local.sh` from the extracted folder
 
 ### From source (for developers)
@@ -103,6 +123,18 @@ Use `--fr` to restart Plasma automatically:
 ./install-local.sh --fr
 ```
 
+## C++ Plugins
+
+The widget ships three C++ Qt6/QML plugins compiled into a single shared library `libmodernreclock_backend.so`:
+
+| Plugin | Namespace | Purpose |
+|--------|-----------|---------|
+| **TimeZoneHelper** | `ModernRecClock.TimeZone` | IANA timezone formatting via `QDateTime::toTimeZone()` |
+| **WallpaperHelper** | `ModernRecClock.Wallpaper` | Desktop wallpaper path detection + brightness + `QFileSystemWatcher` |
+| **WallpaperConfig** | Internal | Shared INI parsing for `plasma-org.kde.plasma.desktop-appletsrc` and `kdeglobals` |
+| **WallpaperImageProvider** | `image://modernreclock/wallpaper` | QQuickImageProvider serving the current wallpaper for the KCM preview |
+| **Logger** | `ModernRecClock.Log` | Structured logging (info/debug/warn), async journalctl fetch, file export |
+
 ## Supported Architectures
 
 | Arch | Status |
@@ -111,6 +143,17 @@ Use `--fr` to restart Plasma automatically:
 | aarch64 | ✅ Precompiled binary available |
 
 Other architectures: compile from source with `cmake` and `kf6-coreaddons-dev`.
+
+## Debugging
+
+Open the widget's configuration panel and navigate to the **Debug** tab. You can:
+
+1. View system info, plugin status, and wallpaper diagnostics
+2. Browse available system fonts
+3. Review the full log history for all widget components
+4. Copy debug info to clipboard for bug reports
+5. Export logs to `/tmp/modernreclock_log_export.txt` for sharing
+6. Fetch recent Plasma Shell logs asynchronously (requires `journalctl` access)
 
 ## Translations
 
