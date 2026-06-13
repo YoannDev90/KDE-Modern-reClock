@@ -219,18 +219,27 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to KDE Store
-        uses: YoannDev90/kde-store-publish@v1.0.4
+        uses: YoannDev90/kde-store-publish@v2.0.0
         with:
           api-url: https://api.kde-look.org/ocs/v1/
           auth-method: login-password
           login: ${{ secrets.KDE_OCS_LOGIN }}
           password: ${{ secrets.KDE_OCS_PASSWORD }}
-          service: content
           action: edit
           content-id: ${{ secrets.KDE_OCS_CONTENT_ID }}
           name: Modern reClock
           version: ${{ steps.get_version.outputs.version }}
           changelog: ${{ steps.changelog.outputs.changes }}
+
+      - name: Publish to KDE Store — upload plasmoid
+        uses: YoannDev90/kde-store-publish@v2.0.0
+        with:
+          api-url: https://api.kde-look.org/ocs/v1/
+          auth-method: login-password
+          login: ${{ secrets.KDE_OCS_LOGIN }}
+          password: ${{ secrets.KDE_OCS_PASSWORD }}
+          action: upload
+          content-id: ${{ secrets.KDE_OCS_CONTENT_ID }}
           file: com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid
 
 
