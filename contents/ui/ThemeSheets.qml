@@ -1,7 +1,9 @@
+import QtQml
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.private.modernreclock as ModernRecClock
 
 /**
  * Theme management OverlaySheets for configAppearance.qml.
@@ -19,6 +21,8 @@ import org.kde.kirigami as Kirigami
  */
 Item {
     id: root
+
+    readonly property var log: ModernRecClock.Log
 
     required property var getFullConfig
     required property var applyConfig
@@ -56,13 +60,17 @@ Item {
                 QQC2.Button {
                     text: i18n("Save"); icon.name: "document-save"
                     onClicked: {
+                        log.info("theme", "Saving theme via overlay: name=\"" + themeNameField.text + "\"");
                         root.saveThemeFn(themeNameField.text, themeDescField.text);
                         themeNameField.text = "";
                         themeDescField.text = "";
                         saveThemeSheet.close();
                     }
                 }
-                QQC2.Button { text: i18n("Cancel"); onClicked: saveThemeSheet.close() }
+                QQC2.Button { text: i18n("Cancel"); onClicked: {
+                    log.debug("theme", "Save theme cancelled");
+                    saveThemeSheet.close();
+                } }
             }
         }
     }
@@ -92,7 +100,10 @@ Item {
             }
             RowLayout {
                 Layout.alignment: Qt.AlignRight
-                QQC2.Button { text: i18n("Close"); onClicked: exportThemeSheet.close() }
+                QQC2.Button { text: i18n("Close"); onClicked: {
+                    log.debug("theme", "Export theme closed");
+                    exportThemeSheet.close();
+                } }
             }
         }
     }
@@ -133,21 +144,27 @@ Item {
                         try {
                             let data = JSON.parse(importThemeArea.text);
                             if (data.config && data.name) {
+                                log.info("theme", "Importing full theme: \"" + data.name + "\"");
                                 let themes = root.themes.slice();
                                 themes.push(data);
                                 root.setThemesJson(JSON.stringify(themes));
                                 importThemeSheet.close();
                             } else {
+                                log.info("theme", "Importing raw config JSON");
                                 root.applyConfig(importThemeArea.text);
                                 root.updatePreview();
                                 importThemeSheet.close();
                             }
                         } catch (e) {
+                            log.warn("theme", "Import failed: " + e.message);
                             importErrorLabel.text = i18n("Invalid JSON: %1", e.message);
                         }
                     }
                 }
-                QQC2.Button { text: i18n("Cancel"); onClicked: importThemeSheet.close() }
+                QQC2.Button { text: i18n("Cancel"); onClicked: {
+                    log.debug("theme", "Import cancelled");
+                    importThemeSheet.close();
+                } }
             }
         }
     }
@@ -179,17 +196,23 @@ Item {
                 QQC2.Button {
                     text: i18n("Apply Pasted Config"); icon.name: "document-import"
                     onClicked: {
+                        log.info("config", "Applying raw JSON config");
                         if (root.applyConfig(backupArea.text)) {
                             root.updatePreview();
+                            log.info("config", "Raw JSON config applied successfully");
                             rawJsonSheet.close();
                         } else {
+                            log.warn("config", "Raw JSON config application FAILED");
                             backupArea.text = "INVALID JSON!";
                         }
                     }
                 }
                 QQC2.Button {
                     text: i18n("Reset to current")
-                    onClicked: backupArea.text = root.getFullConfig()
+                    onClicked: {
+                        log.debug("config", "Resetting raw JSON to current config");
+                        backupArea.text = root.getFullConfig();
+                    }
                 }
             }
         }

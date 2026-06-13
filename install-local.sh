@@ -75,4 +75,3 @@ fi
 
 echo "--- Done! ---"
 echo "You can now add the 'Modern reClock' widget from your Plasma panel."
-echo "If the widget is already active, you might need to remove and re-add it to see all changes."

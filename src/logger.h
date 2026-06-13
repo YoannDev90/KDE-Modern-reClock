@@ -43,6 +43,7 @@ class Logger : public QObject {
     Q_PROPERTY(LogModel* model READ model CONSTANT)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(int maxEntries READ maxEntries WRITE setMaxEntries NOTIFY maxEntriesChanged)
+    Q_PROPERTY(QString logLevel READ logLevel WRITE setLogLevel NOTIFY logLevelChanged)
 public:
     explicit Logger(QObject* parent = nullptr);
 
@@ -50,6 +51,9 @@ public:
     int count() const { return m_model->rowCount(); }
     int maxEntries() const { return m_maxEntries; }
     void setMaxEntries(int max) { m_maxEntries = max; m_model->m_maxEntries = max; emit maxEntriesChanged(); }
+
+    QString logLevel() const { return m_logLevel; }
+    void setLogLevel(const QString& level) { m_logLevel = level; emit logLevelChanged(); }
 
     /// Log a message: category = "clock"|"timezone"|"wallpaper"|"config"|"theme"|"system"
     /// level = "debug"|"info"|"warn"|"error"
@@ -67,11 +71,25 @@ public:
     /// Export as plain text
     Q_INVOKABLE QString exportText() const;
 
+    /// Fetch filtered Plasma Shell logs from journalctl (synchronous)
+    Q_INVOKABLE QString fetchPlasmaLogs(int lines = 200) const;
+
+    /// Fetch Plasma Shell logs asynchronously. Emits plasmaLogsFetched() when done.
+    Q_INVOKABLE void fetchPlasmaLogsAsync(int lines = 200);
+
+    /// Export all log entries to a file in plain text format.
+    /// Returns true on success.
+    Q_INVOKABLE bool exportLogsToFile(const QString& filePath) const;
+
 signals:
+    void plasmaLogsFetched(const QString& result);
     void countChanged();
     void maxEntriesChanged();
+    void logLevelChanged();
 
 private:
+    bool shouldLog(const QString& level) const;
     LogModel* m_model;
     int m_maxEntries = 500;
+    QString m_logLevel = "debug"; // debug|info|warn|error
 };

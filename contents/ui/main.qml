@@ -97,13 +97,14 @@ PlasmoidItem {
         }
     }
 
-    Timer {
-        id: _wallpaperTimer
-        interval: 5000
-        repeat: true
-        running: root.colorMode === "wallpaper"
-        onTriggered: {
-            _loadWallpaper();
+    // React to wallpaper changes via QFileSystemWatcher (C++ signal)
+    Connections {
+        target: ModernRecClock.Wallpaper
+        function onWallpaperChanged() {
+            log.info("wallpaper", "Wallpaper changed (watcher notification) — reloading");
+            if (root.colorMode === "wallpaper") {
+                _loadWallpaper();
+            }
         }
     }
 
@@ -149,6 +150,7 @@ PlasmoidItem {
     function updateClock() {
         _invalidatePropsCache();
         currentDateTime = new Date();
+        log.debug("clock", "Clock updated → " + timeText());
         scheduleNextClockTick();
     }
 

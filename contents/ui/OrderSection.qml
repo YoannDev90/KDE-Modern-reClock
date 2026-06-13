@@ -1,7 +1,9 @@
+import QtQml
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.private.modernreclock as ModernRecClock
 
 /**
  * Element order section for configAppearance.qml.
@@ -12,6 +14,8 @@ import org.kde.kirigami as Kirigami
  */
 Item {
     id: root
+
+    readonly property var log: ModernRecClock.Log
 
     required property string elementOrder
 
@@ -52,13 +56,21 @@ Item {
 
         function initOrder() {
             let raw = root.elementOrder ? root.elementOrder.trim() : "";
-            if (!raw || raw.length === 0) return;
+            if (!raw || raw.length === 0) {
+                log.debug("config", "OrderSection.initOrder: empty order config, using defaults");
+                return;
+            }
 
             let k = raw.split(",");
             let valid = ["day", "date", "time", "custom", "timezone"];
             k = k.filter(function(v) { return valid.indexOf(v.trim()) !== -1; })
                 .map(function(v) { return v.trim(); });
-            if (k.length === 0) return;
+            if (k.length === 0) {
+                log.debug("config", "OrderSection.initOrder: no valid elements after filter");
+                return;
+            }
+
+            log.info("config", "OrderSection.initOrder: restoring order → " + k.join(","));
 
             var currentOrder = [];
             for (var i = 0; i < orderListModel.count; i++)
@@ -80,7 +92,9 @@ Item {
             if (from === to) return;
             if (from < 0 || from >= orderListModel.count) return;
             if (to < 0 || to >= orderListModel.count) return;
+            var key = orderListModel.get(from).key;
             orderListModel.move(from, to, 1);
+            log.debug("config", "OrderSection.moveOrder: " + key + " from " + from + " → " + to);
             _state.saveOrder();
         }
 
@@ -88,10 +102,13 @@ Item {
             var order = [];
             for (var i = 0; i < orderListModel.count; i++)
                 order.push(orderListModel.get(i).key);
-            root.orderChanged(order.join(","));
+            var newOrder = order.join(",");
+            log.info("config", "OrderSection.saveOrder → " + newOrder);
+            root.orderChanged(newOrder);
         }
 
         function resetOrder() {
+            log.info("config", "OrderSection.resetOrder: restoring default order");
             orderListModel.clear();
             orderListModel.append({"key": "day"});
             orderListModel.append({"key": "date"});

@@ -8,7 +8,7 @@ set(CMAKE_AUTOMOC ON)
 include(GNUInstallDirs)
 
 # Qt 6
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Qml Gui)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Qml Gui Quick)
 
 # Plugin — keep default "lib" prefix so the .so is named libmodernreclock_backend.so
 # which matches what qmldir expects (plugin <name> → lib<name>.so)
@@ -18,12 +18,15 @@ add_library(${PLUGIN_NAME} MODULE
     src/plugin.cpp
     src/timezonehelper.cpp
     src/wallpaperhelper.cpp
+    src/wallpaperimageprovider.cpp
+    src/wallpaperconfig.cpp
     src/logger.cpp
 )
 target_link_libraries(${PLUGIN_NAME} PRIVATE
     Qt6::Core
     Qt6::Qml
     Qt6::Gui
+    Qt6::Quick
 )
 
 # Install plugin to KDE QML dir so plasma shell can find it

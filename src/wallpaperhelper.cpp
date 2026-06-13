@@ -1,129 +1,68 @@
 #include "wallpaperhelper.h"
-#include <QFile>
-#include <QTextStream>
-#include <QDir>
-#include <QFileInfo>
-#include <QStandardPaths>
-#include <QImage>
+#include "wallpaperconfig.h"
+
+#include <QBuffer>
+#include <QByteArray>
 #include <QColor>
-
-// ── Color scheme detection ──
-
-QString WallpaperHelper::readKdeColorScheme() {
-    // Read ColorScheme= from ~/.config/kdeglobals
-    QString globalsPath = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
-        + QStringLiteral("/kdeglobals");
-    QFile f(globalsPath);
-    if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
-        return QString();
-
-    QTextStream in(&f);
-    bool inGeneral = false;
-    while (!in.atEnd()) {
-        QString line = in.readLine().trimmed();
-        if (line.startsWith('[')) {
-            inGeneral = (line == QStringLiteral("[General]"));
-            continue;
-        }
-        if (inGeneral && line.startsWith(QStringLiteral("ColorScheme="))) {
-            f.close();
-            return line.mid(12).trimmed();
-        }
-    }
-    f.close();
-    return QString();
-}
-
-bool WallpaperHelper::isDarkColorScheme() const {
-    QString scheme = readKdeColorScheme();
-    if (scheme.isEmpty())
-        return true; // default to dark if unknown
-    // KDE color scheme names containing "dark" (case-insensitive) indicate dark mode
-    return scheme.contains(QStringLiteral("dark"), Qt::CaseInsensitive);
-}
-
-// ── Wallpaper path detection ──
+#include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QImage>
+#include <QStandardPaths>
 
 WallpaperHelper::WallpaperHelper(QObject* parent)
-    : QObject(parent) {}
+    : QObject(parent)
+{
+    m_watcher = new QFileSystemWatcher(this);
+    connect(m_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString&) {
+        qDebug() << "[ModernRecClock] WallpaperHelper: wallpaper file changed, invalidating cache";
+        m_cachedPath.clear();
+        m_cachedBrightness.clear();
+        emit wallpaperChanged();
+        // Re-setup watcher (some editors/filesystems remove the watch on change)
+        setupWatcher(wallpaperPath());
+    });
+    qDebug() << "[ModernRecClock] WallpaperHelper created with QFileSystemWatcher";
+}
+
+void WallpaperHelper::setupWatcher(const QString& path) {
+    if (!m_watcher || path.isEmpty()) return;
+    const auto files = m_watcher->files();
+    if (!files.isEmpty()) m_watcher->removePaths(files);
+    m_watcher->addPath(path);
+    qDebug() << "[ModernRecClock] WallpaperHelper: watching" << path;
+}
 
 QString WallpaperHelper::wallpaperPath() const {
-    // 1. Find the Plasma desktop applet config file
-    QString configPath = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
-        + QStringLiteral("/plasma-org.kde.plasma.desktop-appletsrc");
-    QFile configFile(configPath);
-    if (!configFile.open(QIODevice::ReadOnly | QIODevice::Text))
-        return QString();
+    if (!m_cachedPath.isEmpty())
+        return m_cachedPath;
 
-    // 2. Parse the INI-style config to find wallpaper image path
-    //    Format: [Containments][N][Wallpaper][org.kde.image][General]\nImage=file:///...
-    QString imagePath;
-    QTextStream in(&configFile);
-    while (!in.atEnd()) {
-        QString line = in.readLine().trimmed();
-        if (line.isEmpty() || line.startsWith('#'))
-            continue;
-        // Look for Image= key inside a wallpaper section
-        if (line.startsWith(QStringLiteral("Image="))) {
-            imagePath = line.mid(6).trimmed();
-            break;
-        }
-    }
-    configFile.close();
+    m_cachedPath = WallpaperConfig::readWallpaperPath();
 
-    if (imagePath.isEmpty())
-        return QString();
-
-    // 3. Resolve the path — handle file:// scheme and directories
-    QString localPath = imagePath;
-    if (localPath.startsWith(QStringLiteral("file://")))
-        localPath = localPath.mid(7);
-
-    QFileInfo info(localPath);
-    if (info.isDir()) {
-        // KDE wallpaper dirs contain contents/images/ and/or contents/images_dark/
-        // Pick the directory matching the current color scheme first
-        bool dark = isDarkColorScheme();
-        QStringList subDirs;
-        if (dark) {
-            subDirs = {
-                QStringLiteral("/contents/images_dark"),
-                QStringLiteral("/contents/images")
-            };
-        } else {
-            subDirs = {
-                QStringLiteral("/contents/images"),
-                QStringLiteral("/contents/images_dark")
-            };
-        }
-        QStringList filters = {QStringLiteral("*.jpg"), QStringLiteral("*.jpeg"),
-                               QStringLiteral("*.png"), QStringLiteral("*.svg")};
-        for (const QString& sub : subDirs) {
-            QDir imgDir(localPath + sub);
-            if (imgDir.exists()) {
-                QStringList entries = imgDir.entryList(filters, QDir::Files, QDir::Size);
-                if (!entries.isEmpty())
-                    return imgDir.absoluteFilePath(entries.first());
-            }
-        }
-        return QString();
-    }
-
-    return localPath;
+    // Set up file watcher on the resolved path
+    if (!m_cachedPath.isEmpty())
+        const_cast<WallpaperHelper*>(this)->setupWatcher(m_cachedPath);
+    return m_cachedPath;
 }
 
 QString WallpaperHelper::wallpaperBrightness(const QString& path) const {
-    if (path.isEmpty())
+    if (path.isEmpty()) {
+        qDebug() << "[ModernRecClock] WallpaperHelper::wallpaperBrightness → dark (empty path)";
         return QStringLiteral("dark");
+    }
+    if (path == m_cachedPath && !m_cachedBrightness.isEmpty()) {
+        qDebug() << "[ModernRecClock] WallpaperHelper::wallpaperBrightness → cached:" << m_cachedBrightness;
+        return m_cachedBrightness;
+    }
 
     QImage img(path);
-    if (img.isNull())
+    if (img.isNull()) {
+        qDebug() << "[ModernRecClock] WallpaperHelper::wallpaperBrightness → dark (null image for" << path << ")";
         return QStringLiteral("dark");
+    }
 
-    // Scale down to 50x50 for fast processing
     QImage scaled = img.scaled(50, 50, Qt::IgnoreAspectRatio, Qt::FastTransformation);
-
-    // Sample a 5×5 grid from the center
     int cx = scaled.width() / 2;
     int cy = scaled.height() / 2;
     double sumR = 0, sumG = 0, sumB = 0;
@@ -141,9 +80,71 @@ QString WallpaperHelper::wallpaperBrightness(const QString& path) const {
         }
     }
 
-    if (count == 0)
+    if (count == 0) {
+        qDebug() << "[ModernRecClock] WallpaperHelper::wallpaperBrightness → dark (no pixels sampled)";
         return QStringLiteral("dark");
+    }
 
     double brightness = 0.299 * (sumR / count) + 0.587 * (sumG / count) + 0.114 * (sumB / count);
-    return brightness < 0.5 ? QStringLiteral("dark") : QStringLiteral("light");
+    QString result = brightness < 0.5 ? QStringLiteral("dark") : QStringLiteral("light");
+    qDebug() << "[ModernRecClock] WallpaperHelper::wallpaperBrightness" << path << "→" << result << "(luminance=" << brightness << ")";
+
+    m_cachedBrightness = result;
+    return result;
+}
+
+bool WallpaperHelper::isDarkColorScheme() const {
+    return WallpaperConfig::isDarkColorScheme();
+}
+
+QString WallpaperHelper::wallpaperDataUrl() const {
+    QString path = wallpaperPath();
+    if (path.isEmpty()) {
+        qDebug() << "[ModernRecClock] WallpaperHelper::wallpaperDataUrl → empty (no path)";
+        return QString();
+    }
+
+    QImage img(path);
+    if (img.isNull()) {
+        qDebug() << "[ModernRecClock] WallpaperHelper::wallpaperDataUrl → empty (null image)";
+        return QString();
+    }
+
+    if (img.width() > 800)
+        img = img.scaledToWidth(800, Qt::SmoothTransformation);
+
+    QByteArray ba;
+    QBuffer buf(&ba);
+    buf.open(QIODevice::WriteOnly);
+    img.save(&buf, "JPEG", 80);
+    buf.close();
+
+    QString url = QStringLiteral("data:image/jpeg;base64,") + ba.toBase64();
+    qDebug() << "[ModernRecClock] WallpaperHelper::wallpaperDataUrl →" << url.left(60) << "… (" << url.size() << " chars)";
+    return url;
+}
+
+QString WallpaperHelper::wallpaperTempFile() const {
+    QString path = wallpaperPath();
+    if (path.isEmpty()) {
+        qDebug() << "[ModernRecClock] WallpaperHelper::wallpaperTempFile → empty (no path)";
+        return QString();
+    }
+
+    QImage img(path);
+    if (img.isNull()) {
+        qDebug() << "[ModernRecClock] WallpaperHelper::wallpaperTempFile → empty (null image)";
+        return QString();
+    }
+
+    if (img.width() > 800)
+        img = img.scaledToWidth(800, Qt::SmoothTransformation);
+
+    QString tmpPath = QStringLiteral("/tmp/modernreclock_preview.jpg");
+    bool saved = img.save(tmpPath, "JPEG", 80);
+    qDebug() << "[ModernRecClock] WallpaperHelper::wallpaperTempFile →" << (saved ? tmpPath : "(save failed)");
+    if (saved)
+        return tmpPath;
+
+    return QString();
 }

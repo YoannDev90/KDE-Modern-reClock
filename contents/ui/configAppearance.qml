@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
+import QtQuick.Window
 
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
@@ -104,7 +105,8 @@ KCM.SimpleKCM {
     }
 
     // ===== System theme colors =====
-    readonly property color systemTextColor: PlasmaCore.Theme ? PlasmaCore.Theme.textColor : "#000000"
+    readonly property bool _hasTheme: typeof PlasmaCore.Theme !== 'undefined' && PlasmaCore.Theme !== null
+    readonly property color systemTextColor: _hasTheme && PlasmaCore.Theme.textColor ? PlasmaCore.Theme.textColor : "#FFFFFF"
     readonly property color systemBgColor: {
         var r = 1.0 - systemTextColor.r;
         var g = 1.0 - systemTextColor.g;
@@ -117,18 +119,30 @@ KCM.SimpleKCM {
         if (mode === "theme") return appearancePage.systemTextColor;
         if (mode === "theme_inverse") return appearancePage.systemBgColor;
         if (mode === "wallpaper") {
-            // Try to get wallpaper brightness for preview
             try {
                 var path = ModernRecClock.Wallpaper.wallpaperPath();
                 if (path && path.length > 0) {
-                    // Simple heuristic: check if path contains dark wallpaper names
-                    // Full extraction would need Canvas (not available in KCM context)
-                    return appearancePage.systemTextColor; // fallback
+                    var brightness = ModernRecClock.Wallpaper.wallpaperBrightness(path);
+                    log.debug("wallpaper", "Preview wallpaper brightness: " + brightness + " for " + path);
+                    return brightness === "light" ? "#000000" : "#FFFFFF";
                 }
-            } catch (e) {}
+            } catch (e) {
+                log.warn("wallpaper", "Preview wallpaper color resolution failed: " + e.message);
+            }
             return appearancePage.systemTextColor;
         }
         return cfgColor;
+    }
+
+    // Scale factor for preview — updated by updatePreview()
+    // 1.0 = use configured font sizes as-is; auto_scale reduces if text overflows
+    property real _previewScale: 1.0
+
+    // ===== WALLPAPER PREVIEW =====
+    function _loadPreviewWallpaper() {
+        if (previewWallpaperImage)
+            previewWallpaperImage.source = "image://modernreclock/wallpaper";
+        log.info("wallpaper", "Preview wallpaper source set to image://modernreclock/wallpaper");
     }
 
     // ===== Live preview =====
@@ -158,6 +172,7 @@ KCM.SimpleKCM {
         }
         configKeys = keys;
         updatePreview();
+        _loadPreviewWallpaper();
         log.info("config", "Config page opened — " + keys.length + " config keys discovered");
         log.info("config", "color_mode=" + cfg_color_mode + " locale=" + (cfg_locale || "(default)") + " auto_scale=" + cfg_auto_scale);
     }
@@ -277,7 +292,34 @@ KCM.SimpleKCM {
             previewTimezoneText = "";
         }
 
-        previewOrderArray = cfg_element_order ? cfg_element_order.split(",") : ["day", "date", "time"];
+        // Preview scale based on width relative to reference 400px
+        _previewScale = (previewFrame && previewFrame.width > 0) ? previewFrame.width / 400 : 1.0;
+        if (cfg_auto_scale && previewFrame && previewFrame.width > 0) {
+            var pw = previewFrame.width;
+            var previewH = pw * 9 / 16;
+            var margin = Kirigami.Units.largeSpacing * 2;
+            var availableH = Math.max(1, previewH - margin);
+            var totalH = 0;
+            var eCount = 0;
+            for (var i = 0; i < previewOrderArray.length; i++) {
+                var el = previewOrderArray[i];
+                var show = false;
+                if (el === "day") show = showDay.checked;
+                else if (el === "date") show = showDate.checked;
+                else if (el === "time") show = showTime.checked;
+                else if (el === "custom") show = showCustom.checked && previewCustomText.length > 0;
+                else if (el === "timezone") show = showTimezone.checked && previewTimezoneText.length > 0;
+                if (!show) continue;
+                eCount++;
+                var size = (el === "day") ? 28 : 16;
+                totalH += size * _previewScale;
+            }
+            if (eCount > 0) totalH += (eCount - 1) * widgetSpacing.value * _previewScale;
+            if (totalH > 0) {
+                var fitScale = availableH / totalH;
+                _previewScale = Math.max(0.3, Math.min(_previewScale, fitScale));
+            }
+        }
     }
 
     Timer {
@@ -453,20 +495,39 @@ KCM.SimpleKCM {
         }
 
         Rectangle {
+            id: previewFrame
             Layout.fillWidth: true
-            Layout.preferredHeight: previewContent.implicitHeight + Kirigami.Units.largeSpacing * 2
-            Layout.minimumHeight: 60
+            implicitHeight: Math.max(width * 9 / 16, previewContent.implicitHeight + Kirigami.Units.largeSpacing * 2)
             Layout.topMargin: Kirigami.Units.largeSpacing
             color: Qt.rgba(0, 0, 0, 0.6)
             radius: Kirigami.Units.cornerRadius
-            clip: false
+            clip: true
+            onWidthChanged: updatePreview()
+
+            Image {
+                id: previewWallpaperImage
+                anchors.fill: parent
+                fillMode: Image.PreserveAspectCrop
+                source: ""
+                onStatusChanged: {
+                    if (status === Image.Ready)
+                        log.info("wallpaper", "Preview wallpaper loaded");
+                    else if (status === Image.Error)
+                        log.warn("wallpaper", "Preview wallpaper error: " + errorString);
+                }
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                color: Qt.rgba(0, 0, 0, 0.3)
+            }
 
             Column {
                 id: previewContent
                 anchors.top: parent.top
                 anchors.topMargin: Kirigami.Units.largeSpacing
                 anchors.horizontalCenter: parent.horizontalCenter
-                spacing: widgetSpacing.value
+                spacing: widgetSpacing.value * appearancePage._previewScale
 
                 Repeater {
                     model: appearancePage.previewOrderArray
@@ -496,19 +557,21 @@ KCM.SimpleKCM {
                             return "";
                         }
                         font.pixelSize: {
-                            if (modelData === "day") return Math.min(dayFontSize.value, 36);
-                            if (modelData === "date") return Math.min(dateFontSize.value, 20);
-                            if (modelData === "time") return Math.min(timeFontSize.value, 20);
-                            if (modelData === "custom") return Math.min(customFontSize.value, 20);
-                            if (modelData === "timezone") return Math.min(timezoneFontSize.value, 20);
+                            var ps = appearancePage._previewScale;
+                            if (modelData === "day") return Math.round(28 * ps);
+                            if (modelData === "date") return Math.round(16 * ps);
+                            if (modelData === "time") return Math.round(16 * ps);
+                            if (modelData === "custom") return Math.round(16 * ps);
+                            if (modelData === "timezone") return Math.round(16 * ps);
                             return 1;
                         }
                         font.letterSpacing: {
-                            if (modelData === "day") return dayLetterSpacing.value;
-                            if (modelData === "date") return dateLetterSpacing.value;
-                            if (modelData === "time") return timeLetterSpacing.value;
-                            if (modelData === "custom") return customLetterSpacing.value;
-                            if (modelData === "timezone") return timezoneLetterSpacing.value;
+                            var s = appearancePage._previewScale;
+                            if (modelData === "day") return dayLetterSpacing.value * s;
+                            if (modelData === "date") return dateLetterSpacing.value * s;
+                            if (modelData === "time") return timeLetterSpacing.value * s;
+                            if (modelData === "custom") return customLetterSpacing.value * s;
+                            if (modelData === "timezone") return timezoneLetterSpacing.value * s;
                             return 0;
                         }
                         font.bold: {

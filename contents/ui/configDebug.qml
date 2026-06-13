@@ -11,65 +11,23 @@ import org.kde.plasma.private.modernreclock as ModernRecClock
 KCM.SimpleKCM {
     id: debugPage
 
-    // ===== Required cfg_* properties (KCM auto-sets these from main.xml) =====
-    // Declared as plain properties (not aliases) since this page doesn't bind to UI controls.
-    property bool   cfg_show_day: false
-    property bool   cfg_show_date: false
-    property bool   cfg_show_time: false
-    property bool   cfg_show_custom: false
-    property bool   cfg_show_timezone: false
-    property bool   cfg_use_24_hour_format: false
-    property bool   cfg_uppercase_day: false
-    property bool   cfg_uppercase_date: false
-    property bool   cfg_auto_scale: false
-    property bool   cfg_day_font_bold: false
-    property bool   cfg_date_font_bold: false
-    property bool   cfg_time_font_bold: false
-    property bool   cfg_custom_font_bold: false
-    property bool   cfg_timezone_font_bold: false
-    property bool   cfg_custom_format: false
-    property bool   cfg_adapt_to_theme: false
-    property int    cfg_day_font_size: 72
-    property int    cfg_date_font_size: 19
-    property int    cfg_time_font_size: 19
-    property int    cfg_custom_font_size: 19
-    property int    cfg_timezone_font_size: 19
-    property int    cfg_day_letter_spacing: 17
-    property int    cfg_date_letter_spacing: 3
-    property int    cfg_time_letter_spacing: 3
-    property int    cfg_custom_letter_spacing: 3
-    property int    cfg_timezone_letter_spacing: 3
-    property int    cfg_widget_spacing: 5
-    property string cfg_time_format: ""
-    property string cfg_date_format: "dd MMM yyyy"
-    property string cfg_day_format: "dddd"
-    property string cfg_time_character: "-"
-    property string cfg_locale: ""
-    property string cfg_element_order: ""
-    property string cfg_custom_text: ""
+    // ===== cfg_* needed by diagnostic grid (read-only, not bound to controls) =====
     property string cfg_timezone_id: ""
     property string cfg_timezone_label: ""
-    property string cfg_timezone_display_text: ""
-    property string cfg_timezone_format: "HH:mm"
-    property string cfg_saved_themes: ""
     property string cfg_fontFamilyDay: "Anurati"
     property string cfg_fontFamilyDate: "Poppins"
     property string cfg_fontFamilyTime: "Poppins"
-    property string cfg_fontFamilyCustom: "Poppins"
-    property string cfg_fontFamilyTimezone: "Poppins"
     property string cfg_color_mode: "custom"
     property color  cfg_day_font_color: "#FFFFFF"
     property color  cfg_date_font_color: "#FFFFFF"
     property color  cfg_time_font_color: "#FFFFFF"
-    property color  cfg_custom_font_color: "#FFFFFF"
-    property color  cfg_timezone_font_color: "#FFFFFF"
 
     // Shorthand
     readonly property var log: ModernRecClock.Log
     // Theme color helpers (guarded for KCM context)
     readonly property bool _hasTheme: typeof PlasmaCore.Theme !== 'undefined' && PlasmaCore.Theme !== null
     readonly property color _themeText: _hasTheme && PlasmaCore.Theme.textColor ? PlasmaCore.Theme.textColor : "#FFFFFF"
-    readonly property color _themeHighlight: _hasTheme && PlasmaCore.Theme.highlightColor ? PlasmaCore.Theme.highlightColor : "#1d99f3"
+    readonly property color _themeHighlight: _hasTheme && PlasmaCore.Theme.highlightColor ? PlasmaCore.Theme.highlightColor : "#3daee9"
 
     // ===== Filter =====
     property string filterCategory: ""
@@ -421,6 +379,27 @@ KCM.SimpleKCM {
                 QQC2.ToolTip.text: i18n("Clear log")
                 QQC2.ToolTip.visible: hovered
             }
+            QQC2.Button {
+                icon.name: "document-save"
+                onClicked: {
+                    var path = "/tmp/modernreclock_log_export.txt";
+                    if (debugPage.log.exportLogsToFile(path)) {
+                        log.info("system", "Logs exported to: " + path);
+                        _logExportLabel.text = i18n("Exported to %1", path);
+                    } else {
+                        log.error("system", "Failed to export logs");
+                        _logExportLabel.text = i18n("Export failed!");
+                    }
+                }
+                QQC2.ToolTip.text: i18n("Export logs to file")
+                QQC2.ToolTip.visible: hovered
+            }
+            QQC2.Label {
+                id: _logExportLabel
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                opacity: 0.6
+                visible: text.length > 0
+            }
         }
 
         // Log list
@@ -466,6 +445,72 @@ KCM.SimpleKCM {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
+                }
+            }
+        }
+
+        // ================= SECTION: PLASMA SHELL LOGS =================
+        Kirigami.Heading {
+            text: i18n("Plasma Shell Logs")
+            level: 2
+            Layout.fillWidth: true
+            Kirigami.FormData.isSection: true
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Button {
+                text: i18n("Fetch Logs")
+                icon.name: "view-refresh"
+                onClicked: {
+                    plasmaLogText.text = i18n("Loading...");
+                    log.info("system", "Fetching Plasma Shell logs asynchronously...");
+                    ModernRecClock.Log.fetchPlasmaLogsAsync(300);
+                }
+            }
+
+            Connections {
+                target: ModernRecClock.Log
+                function onPlasmaLogsFetched(result) {
+                    plasmaLogText.text = result || "(empty)";
+                    log.info("system", "Async logs fetched (" + (result ? result.length : 0) + " chars)");
+                }
+            }
+            QQC2.Button {
+                text: i18n("Copy")
+                icon.name: "edit-copy"
+                onClicked: {
+                    _copyHelper.text = plasmaLogText.text;
+                    _copyHelper.selectAll();
+                    _copyHelper.copy();
+                    log.info("system", "Plasma Shell logs copied");
+                }
+            }
+            Item { Layout.fillWidth: true }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 250
+            Layout.minimumHeight: 100
+            color: Qt.rgba(0, 0, 0, 0.4)
+            radius: Kirigami.Units.cornerRadius
+
+            QQC2.ScrollView {
+                anchors.fill: parent
+                anchors.margins: Kirigami.Units.smallSpacing
+
+                QQC2.TextArea {
+                    id: plasmaLogText
+                    readOnly: true
+                    wrapMode: TextEdit.Wrap
+                    font.family: "Monospace"
+                    font.pixelSize: 11
+                    color: Kirigami.Theme.textColor
+                    background: null
+                    text: i18n("Click 'Fetch Logs' to load Plasma Shell journal logs.")
                 }
             }
         }
