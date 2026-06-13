@@ -35,11 +35,12 @@ jobs:
             "LICENSE"
             "contents/ui/main.qml"
             "contents/ui/configAppearance.qml"
+            "contents/ui/configDebug.qml"
             "contents/ui/OrderSection.qml"
             "contents/ui/ThemeSheets.qml"
             "contents/config/main.xml"
             "contents/config/config.qml"
-            "src/timezoneplugin.cpp"
+            "src/plugin.cpp"
           )
           for f in "${REQUIRED_FILES[@]}"; do
             if [ -f "$f" ]; then
@@ -226,8 +227,8 @@ jobs:
           LOG="ci-report.txt"
           echo "" >> "$LOG"
           echo "--- [7/10] Validating C++ plugin ---" | tee -a "$LOG"
-          if [ ! -f src/timezoneplugin.cpp ]; then
-            echo "  ⚠ src/timezoneplugin.cpp not found" | tee -a "$LOG"
+          if [ ! -f src/plugin.cpp ]; then
+            echo "  \u26a0 src/plugin.cpp not found" | tee -a "$LOG"
           else
             g++ -std=c++17 -fsyntax-only \
               -I/usr/include/x86_64-linux-gnu/qt6 \
@@ -235,7 +236,7 @@ jobs:
               -I/usr/include/x86_64-linux-gnu/qt6/QtQml \
               -I/usr/include/x86_64-linux-gnu/qt6/QtQml/private \
               -I/usr/include/KF6/CoreAddons \
-              src/timezoneplugin.cpp 2>&1 | tee -a "$LOG" || true
+              src/plugin.cpp 2>&1 | tee -a "$LOG" || true
             echo "  ✓ C++ syntax check done" | tee -a "$LOG"
           fi
 

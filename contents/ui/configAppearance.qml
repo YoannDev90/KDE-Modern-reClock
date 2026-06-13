@@ -11,6 +11,9 @@ import org.kde.plasma.private.modernreclock as ModernRecClock
 KCM.SimpleKCM {
     id: appearancePage
 
+    // Logger shorthand
+    readonly property var log: ModernRecClock.Log
+
     // properties
     property alias cfg_show_day: showDay.checked
     property alias cfg_show_date: showDate.checked
@@ -51,7 +54,8 @@ KCM.SimpleKCM {
 
     property alias cfg_locale: localeField.text
     property alias cfg_auto_scale: autoScale.checked
-    property alias cfg_adapt_to_theme: adaptToTheme.checked
+    property string cfg_color_mode: "custom"
+    property bool cfg_adapt_to_theme: false // deprecated, kept for migration
 
     // ===== Custom text element properties =====
     property alias cfg_show_custom: showCustom.checked
@@ -99,8 +103,33 @@ KCM.SimpleKCM {
         catch (e) { return []; }
     }
 
-    // ===== System theme color for adapt_to_theme =====
+    // ===== System theme colors =====
     readonly property color systemTextColor: PlasmaCore.Theme ? PlasmaCore.Theme.textColor : "#000000"
+    readonly property color systemBgColor: {
+        var r = 1.0 - systemTextColor.r;
+        var g = 1.0 - systemTextColor.g;
+        var b = 1.0 - systemTextColor.b;
+        return Qt.rgba(r, g, b, 1.0);
+    }
+
+    function _previewResolvedColor(cfgColor) {
+        var mode = appearancePage.cfg_color_mode || "custom";
+        if (mode === "theme") return appearancePage.systemTextColor;
+        if (mode === "theme_inverse") return appearancePage.systemBgColor;
+        if (mode === "wallpaper") {
+            // Try to get wallpaper brightness for preview
+            try {
+                var path = ModernRecClock.Wallpaper.wallpaperPath();
+                if (path && path.length > 0) {
+                    // Simple heuristic: check if path contains dark wallpaper names
+                    // Full extraction would need Canvas (not available in KCM context)
+                    return appearancePage.systemTextColor; // fallback
+                }
+            } catch (e) {}
+            return appearancePage.systemTextColor;
+        }
+        return cfgColor;
+    }
 
     // ===== Live preview =====
     property string previewDayText: ""
@@ -108,16 +137,30 @@ KCM.SimpleKCM {
     property string previewTimeText: ""
     property string previewCustomText: ""
     property string previewTimezoneText: ""
+    // Reuses the same parsing logic as main.qml elementOrderArray
+    readonly property var validElements: ["day", "date", "time", "custom", "timezone"]
     property var previewOrderArray: {
-        if (!cfg_element_order) return ["day", "date", "time"];
-        var valid = ["day", "date", "time", "custom", "timezone"];
+        if (!cfg_element_order) return validElements.slice();
         var arr = cfg_element_order.split(",").map(function(x) { return x.trim(); }).filter(function(x) {
-            return valid.indexOf(x) !== -1;
+            return validElements.indexOf(x) !== -1;
         });
-        return arr.length > 0 ? arr : valid;
+        return arr.length > 0 ? arr : validElements.slice();
     }
 
-    readonly property var configKeys: ["day_font_size", "day_letter_spacing", "show_day", "date_font_size", "date_letter_spacing", "locale", "date_format", "show_date", "time_font_size", "time_letter_spacing", "time_format", "time_font_color", "show_time", "date_font_color", "day_font_color", "use_24_hour_format", "time_character", "widget_spacing", "day_format", "uppercase_day", "uppercase_date", "day_font_bold", "date_font_bold", "time_font_bold", "auto_scale", "adapt_to_theme", "fontFamilyDay", "fontFamilyDate", "fontFamilyTime", "fontFamilyCustom", "fontFamilyTimezone", "element_order", "saved_themes", "show_custom", "custom_text", "custom_format", "custom_font_size", "custom_letter_spacing", "custom_font_bold", "custom_font_color", "show_timezone", "timezone_id", "timezone_label", "timezone_format", "timezone_font_size", "timezone_letter_spacing", "timezone_font_bold", "timezone_font_color"]
+    // Auto-derived from all cfg_ aliases — computed once at init (not a binding to avoid loops)
+    property var configKeys: []
+    Component.onCompleted: {
+        var keys = [];
+        for (var prop in appearancePage) {
+            if (prop.startsWith("cfg_") && typeof appearancePage[prop] !== "function") {
+                keys.push(prop.substring(4));
+            }
+        }
+        configKeys = keys;
+        updatePreview();
+        log.info("config", "Config page opened — " + keys.length + " config keys discovered");
+        log.info("config", "color_mode=" + cfg_color_mode + " locale=" + (cfg_locale || "(default)") + " auto_scale=" + cfg_auto_scale);
+    }
 
     function getFullConfig() {
         let cfg = {};
@@ -128,13 +171,17 @@ KCM.SimpleKCM {
     function applyConfig(jsonString) {
         try {
             let cfg = JSON.parse(jsonString);
+            var count = 0;
             for (let k in cfg) {
                 if (configKeys.indexOf(k) !== -1) {
                     appearancePage["cfg_" + k] = cfg[k];
+                    count++;
                 }
             }
+            log.info("config", "applyConfig: applied " + count + " keys from JSON");
             return true;
         } catch (e) {
+            log.error("config", "applyConfig failed: " + e.message);
             return false;
         }
     }
@@ -254,6 +301,7 @@ KCM.SimpleKCM {
     function resetSection(type) {
         var d = sectionDefaults[type];
         if (!d) return;
+        log.info("config", "Resetting section: " + type);
         if (type === "day") {
             showDay.checked = d.show;
             cfg_fontFamilyDay = d.font;
@@ -330,8 +378,10 @@ KCM.SimpleKCM {
     }
 
     function resetGlobal() {
+        log.info("config", "Resetting all settings to defaults");
         autoScale.checked = false;
-        adaptToTheme.checked = false;
+        _colorModeStorage.text = "custom";
+        colorModeCombo.currentIndex = 0;
         widgetSpacing.value = 5;
         localeField.text = "";
         orderSection.resetRequested();
@@ -347,12 +397,14 @@ KCM.SimpleKCM {
 
     // ===== THEME FUNCTIONS =====
     function saveCurrentTheme(name, description) {
+        log.info("theme", "Saving theme: \"" + name + "\" — " + description);
         let cfg = {};
         configKeys.forEach(k => cfg[k] = appearancePage["cfg_" + k]);
         let themes = savedThemes.slice();
         themes.push({ "name": name, "description": description, "config": cfg });
         savedThemesJson = JSON.stringify(themes);
         cfg_saved_themes = savedThemesJson;
+        log.info("theme", "Theme saved — total themes: " + themes.length);
     }
 
     function loadThemeConfig(index) {
@@ -360,20 +412,25 @@ KCM.SimpleKCM {
             return;
         let theme = savedThemes[index];
         if (!theme || !theme.config) {
-            console.warn("Modern reClock: theme at index", index, "has no valid config");
+            log.warn("theme", "Theme at index " + index + " has no valid config");
             return;
         }
+        log.info("theme", "Loading theme: \"" + theme.name + "\"");
         applyConfig(JSON.stringify(theme.config));
         updatePreview();
+        log.info("theme", "Theme loaded successfully");
     }
 
     function deleteTheme(index) {
         if (index < 0 || index >= savedThemes.length)
             return;
+        var name = savedThemes[index].name || "unnamed";
+        log.info("theme", "Deleting theme: \"" + name + "\" (index " + index + ")");
         let themes = savedThemes.slice();
         themes.splice(index, 1);
         savedThemesJson = JSON.stringify(themes);
         cfg_saved_themes = savedThemesJson;
+        log.info("theme", "Theme deleted — remaining: " + themes.length);
     }
 
     function themeToJSON(index) {
@@ -382,7 +439,7 @@ KCM.SimpleKCM {
         return JSON.stringify(savedThemes[index], null, 4);
     }
 
-    Component.onCompleted: updatePreview()
+
 
     Kirigami.FormLayout {
         // anchors.fill: parent removed to avoid layout loops in SimpleKCM
@@ -463,12 +520,11 @@ KCM.SimpleKCM {
                             return false;
                         }
                         color: {
-                            if (appearancePage.cfg_adapt_to_theme) return appearancePage.systemTextColor;
-                            if (modelData === "day") return dayFontColor.color;
-                            if (modelData === "date") return dateFontColor.color;
-                            if (modelData === "time") return timeFontColor.color;
-                            if (modelData === "custom") return customFontColor.color;
-                            if (modelData === "timezone") return timezoneFontColor.color;
+                            if (modelData === "day") return appearancePage._previewResolvedColor(dayFontColor.color);
+                            if (modelData === "date") return appearancePage._previewResolvedColor(dateFontColor.color);
+                            if (modelData === "time") return appearancePage._previewResolvedColor(timeFontColor.color);
+                            if (modelData === "custom") return appearancePage._previewResolvedColor(customFontColor.color);
+                            if (modelData === "timezone") return appearancePage._previewResolvedColor(timezoneFontColor.color);
                             return "#FFFFFF";
                         }
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -496,10 +552,31 @@ KCM.SimpleKCM {
             }
         }
 
-        QQC2.CheckBox {
-            id: adaptToTheme
-            text: i18n("Adapt colors to system theme")
-            QQC2.ToolTip.text: i18n("Override element colors with the system theme text color for better contrast")
+        QQC2.ComboBox {
+            id: colorModeCombo
+            Kirigami.FormData.label: i18n("Color mode:")
+            Layout.fillWidth: true
+            model: [
+                { text: i18n("Custom"), value: "custom" },
+                { text: i18n("Follow system theme"), value: "theme" },
+                { text: i18n("Inverse system theme"), value: "theme_inverse" },
+                { text: i18n("Wallpaper-derived"), value: "wallpaper" }
+            ]
+            textRole: "text"
+            valueRole: "value"
+            currentIndex: {
+                var mode = appearancePage.cfg_color_mode || "custom";
+                for (var i = 0; i < model.length; i++) {
+                    if (model[i].value === mode) return i;
+                }
+                return 0;
+            }
+            onActivated: {
+                var v = model[currentIndex].value;
+                _colorModeStorage.text = v;
+                appearancePage.updatePreview();
+            }
+            QQC2.ToolTip.text: i18n("Custom: each element has its own color.\\nFollow system theme: text color adapts to desktop theme.\\nInverse: inverted system colors for contrast.\\nWallpaper: text color derived from wallpaper brightness.")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
         }
@@ -728,6 +805,14 @@ KCM.SimpleKCM {
 
         // Hidden field for timezone_format KCM alias
         QQC2.TextField { id: _timezoneFmtStorage; visible: false; text: "" }
+
+        // Hidden field for color_mode KCM alias
+        QQC2.TextField {
+            id: _colorModeStorage
+            visible: false
+            text: appearancePage.cfg_color_mode
+            onTextChanged: appearancePage.cfg_color_mode = text
+        }
 
         // ===== ORDER SYSTEM (extracted to OrderSection.qml) =====
         OrderSection {

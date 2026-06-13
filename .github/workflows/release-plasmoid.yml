@@ -63,13 +63,13 @@ jobs:
               apt-get update && apt-get install -y cmake g++ qt6-base-dev qt6-declarative-dev &&
               mkdir -p build && cd build && cmake .. -DCMAKE_INSTALL_PREFIX=/usr && make -j\$(nproc)
             "
-            cp build/libmodernreclock_timezone.so modernreclock-timezone_aarch64.so
+            cp build/libmodernreclock_backend.so modernreclock-timezone_aarch64.so
           else
             mkdir -p build && cd build
             cmake .. -DCMAKE_INSTALL_PREFIX=/usr
             make -j$(nproc)
             cd ..
-            cp build/libmodernreclock_timezone.so modernreclock-timezone_x86_64.so
+            cp build/libmodernreclock_backend.so modernreclock-timezone_x86_64.so
           fi
 
       - name: Upload plugin artifact
@@ -162,7 +162,7 @@ jobs:
             if [ -f "$arch_dir/qmldir" ]; then
               cp "$arch_dir/qmldir" "$TMPDIR/$ARCH/"
             else
-              printf 'module org.kde.plasma.private.modernreclock\nlinktarget modernreclock_timezone\noptional plugin modernreclock_timezone\nclassname ModernRecClockPlugin\n' > "$TMPDIR/$ARCH/qmldir"
+              printf 'module org.kde.plasma.private.modernreclock\nlinktarget modernreclock_backend\noptional plugin modernreclock_backend\nclassname ModernRecClockPlugin\ndepends Qt6Core 6.4\ndepends Qt6Qml 6.4\n' > "$TMPDIR/$ARCH/qmldir"
             fi
             (cd "$TMPDIR" && zip -r "$OLDPWD/release-assets/modernreclock-timezone-${VERSION}-${ARCH}.zip" "$ARCH/")
             rm -rf "$TMPDIR"

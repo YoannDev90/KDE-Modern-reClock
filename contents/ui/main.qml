@@ -9,6 +9,9 @@ import org.kde.plasma.private.modernreclock as ModernRecClock
 PlasmoidItem {
     id: root
 
+    // Logger shorthand
+    readonly property var log: ModernRecClock.Log
+
     // Setting background as transparent with a drop shadow
     Plasmoid.backgroundHints: PlasmaCore.Types.ShadowBackground | PlasmaCore.Types.ConfigurableBackground
 
@@ -36,7 +39,12 @@ PlasmoidItem {
     property bool uppercaseDay: plasmoid.configuration.uppercase_day
     property bool uppercaseDate: plasmoid.configuration.uppercase_date
     property bool autoScale: plasmoid.configuration.auto_scale
-    property bool adaptToTheme: plasmoid.configuration.adapt_to_theme
+    property string colorMode: {
+        // Migration: convert old adapt_to_theme bool to new color_mode string
+        if (plasmoid.configuration.adapt_to_theme && (!plasmoid.configuration.color_mode || plasmoid.configuration.color_mode === "custom"))
+            return "theme";
+        return plasmoid.configuration.color_mode || "custom";
+    }
 
     // ===== ELEMENT ORDER =====
     readonly property var validElements: ["day", "date", "time", "custom", "timezone"]
@@ -64,8 +72,45 @@ PlasmoidItem {
     property string fontFamilyCustom: plasmoid.configuration.fontFamilyCustom
     property string fontFamilyTimezone: plasmoid.configuration.fontFamilyTimezone
 
-    // ===== SYSTEM THEME COLOR =====
+    // ===== SYSTEM THEME COLORS =====
     readonly property color systemTextColor: PlasmaCore.Theme ? PlasmaCore.Theme.textColor : "#FFFFFF"
+    readonly property color systemBgColor: {
+        var r = 1.0 - systemTextColor.r;
+        var g = 1.0 - systemTextColor.g;
+        var b = 1.0 - systemTextColor.b;
+        return Qt.rgba(r, g, b, 1.0);
+    }
+
+    // ===== WALLPAPER COLOR EXTRACTION =====
+    property color _wallpaperColor: systemTextColor
+
+    function _loadWallpaper() {
+        var path = ModernRecClock.Wallpaper.wallpaperPath();
+        log.debug("wallpaper", "wallpaperPath() returned: " + (path || "(empty)"));
+        if (path && path.length > 0) {
+            var brightness = ModernRecClock.Wallpaper.wallpaperBrightness(path);
+            log.info("wallpaper", "Wallpaper loaded: " + path + " → brightness=" + brightness);
+            _wallpaperColor = (brightness === "light") ? "#000000" : "#FFFFFF";
+            log.debug("wallpaper", "Resolved wallpaper color: " + _wallpaperColor.toString());
+        } else {
+            log.warn("wallpaper", "No wallpaper path found, using theme color");
+        }
+    }
+
+    Timer {
+        id: _wallpaperTimer
+        interval: 5000
+        repeat: true
+        running: root.colorMode === "wallpaper"
+        onTriggered: {
+            _loadWallpaper();
+        }
+    }
+
+    onColorModeChanged: {
+        log.info("config", "colorMode changed → " + colorMode);
+        if (colorMode === "wallpaper") _loadWallpaper();
+    }
 
     onLocaleNameChanged: updateClock()
     onDateFormatChanged: updateClock()
@@ -212,29 +257,38 @@ PlasmoidItem {
         try {
             var formatted = ModernRecClock.TimeZone.formatDateTimeInZone(new Date(), format, tzId);
             if (formatted && formatted.length > 0) {
+                log.debug("timezone", "Timezone " + tzId + " → " + formatted);
                 return label.length > 0 ? label + " " + formatted : formatted;
             }
             // Fallback: try abbreviation
             var tzObj = ModernRecClock.TimeZone.timeZoneObject(tzId);
             if (tzObj && tzObj.abbreviation) {
+                log.debug("timezone", "Timezone " + tzId + " abbreviation: " + tzObj.abbreviation);
                 return label.length > 0 ? label + " " + tzObj.abbreviation : tzObj.abbreviation;
             }
         } catch (e) {
-            console.warn("Modern reClock: timezone error for", tzId, "-", e.message);
+            log.error("timezone", "Timezone error for " + tzId + ": " + e.message);
         }
         return label.length > 0 ? label + " ??" : "??";
     }
 
     // ===== ELEMENT PROPERTY HELPERS (data-driven) =====
+    function _resolvedColor(cfgColor) {
+        var mode = root.colorMode;
+        if (mode === "theme") return root.systemTextColor;
+        if (mode === "theme_inverse") return root.systemBgColor;
+        if (mode === "wallpaper") return root._wallpaperColor;
+        return cfgColor; // "custom" mode
+    }
+
     function _elementProps(type) {
         var cfg = plasmoid.configuration;
-        var tc = root.adaptToTheme ? root.systemTextColor : undefined;
 
-        if (type === "day") return { show: cfg.show_day, text: dayText(), font: fontFamilyDay, size: cfg.day_font_size, spacing: cfg.day_letter_spacing, bold: cfg.day_font_bold, color: tc !== undefined ? tc : cfg.day_font_color };
-        if (type === "date") return { show: cfg.show_date, text: dateText(), font: fontFamilyDate, size: cfg.date_font_size, spacing: cfg.date_letter_spacing, bold: cfg.date_font_bold, color: tc !== undefined ? tc : cfg.date_font_color };
-        if (type === "time") return { show: cfg.show_time, text: timeText(), font: fontFamilyTime, size: cfg.time_font_size, spacing: cfg.time_letter_spacing, bold: cfg.time_font_bold, color: tc !== undefined ? tc : cfg.time_font_color };
-        if (type === "custom") return { show: cfg.show_custom, text: customText(), font: fontFamilyCustom, size: cfg.custom_font_size, spacing: cfg.custom_letter_spacing, bold: cfg.custom_font_bold, color: tc !== undefined ? tc : cfg.custom_font_color };
-        if (type === "timezone") return { show: cfg.show_timezone, text: timezoneText(), font: fontFamilyTimezone, size: cfg.timezone_font_size, spacing: cfg.timezone_letter_spacing, bold: cfg.timezone_font_bold, color: tc !== undefined ? tc : cfg.timezone_font_color };
+        if (type === "day") return { show: cfg.show_day, text: dayText(), font: fontFamilyDay, size: cfg.day_font_size, spacing: cfg.day_letter_spacing, bold: cfg.day_font_bold, color: _resolvedColor(cfg.day_font_color) };
+        if (type === "date") return { show: cfg.show_date, text: dateText(), font: fontFamilyDate, size: cfg.date_font_size, spacing: cfg.date_letter_spacing, bold: cfg.date_font_bold, color: _resolvedColor(cfg.date_font_color) };
+        if (type === "time") return { show: cfg.show_time, text: timeText(), font: fontFamilyTime, size: cfg.time_font_size, spacing: cfg.time_letter_spacing, bold: cfg.time_font_bold, color: _resolvedColor(cfg.time_font_color) };
+        if (type === "custom") return { show: cfg.show_custom, text: customText(), font: fontFamilyCustom, size: cfg.custom_font_size, spacing: cfg.custom_letter_spacing, bold: cfg.custom_font_bold, color: _resolvedColor(cfg.custom_font_color) };
+        if (type === "timezone") return { show: cfg.show_timezone, text: timezoneText(), font: fontFamilyTimezone, size: cfg.timezone_font_size, spacing: cfg.timezone_letter_spacing, bold: cfg.timezone_font_bold, color: _resolvedColor(cfg.timezone_font_color) };
         return null;
     }
 
@@ -259,7 +313,36 @@ PlasmoidItem {
 
     onResolvedTimeFormatChanged: updateClock()
 
-    Component.onCompleted: updateClock()
+    Component.onCompleted: {
+        log.info("clock", "═══ Modern reClock started ═══");
+        var cfg = plasmoid.configuration;
+        log.info("clock", "Time format: " + resolvedTimeFormat + " (24h=" + use24HourFormat + ")");
+        log.info("clock", "Locale: " + effectiveLocale().name + (localeName ? " (custom='" + localeName + "')" : " (system)"));
+        log.info("clock", "Color mode: " + colorMode);
+        log.info("clock", "Element order: " + elementOrderArray.join(","));
+        log.info("clock", "Day format: '" + (dayFormat || "dddd") + "' uppercase=" + uppercaseDay);
+        log.info("clock", "Date format: '" + (dateFormat || "dd MMM yyyy") + "' uppercase=" + uppercaseDate);
+        log.info("clock", "Time character: '" + (timeCharacter || "(none)") + "'");
+        log.info("clock", "Auto scale: " + autoScale + " spacing: " + plasmoid.configuration.widget_spacing);
+        log.info("clock", "Show: day=" + cfg.show_day + " date=" + cfg.show_date + " time=" + cfg.show_time + " custom=" + cfg.show_custom + " tz=" + cfg.show_timezone);
+
+        // Element fonts and colors
+        log.debug("clock", "Day: font=" + (fontFamilyDay || "Anurati") + " size=" + cfg.day_font_size + " color=" + _resolvedColor(cfg.day_font_color).toString());
+        log.debug("clock", "Date: font=" + (fontFamilyDate || "Poppins") + " size=" + cfg.date_font_size + " color=" + _resolvedColor(cfg.date_font_color).toString());
+        log.debug("clock", "Time: font=" + (fontFamilyTime || "Poppins") + " size=" + cfg.time_font_size + " color=" + _resolvedColor(cfg.time_font_color).toString());
+        log.debug("clock", "Custom: font=" + (fontFamilyCustom || "Poppins") + " size=" + cfg.custom_font_size + " text='" + (cfg.custom_text || "") + "' fmt=" + cfg.custom_format);
+        log.debug("clock", "Tz: id=" + (cfg.timezone_id || "(none)") + " label='" + (cfg.timezone_label || "") + "' font=" + (fontFamilyTimezone || "Poppins") + " size=" + cfg.timezone_font_size);
+
+        // Resolved values
+        log.debug("clock", "Day text: '" + dayText() + "'");
+        log.debug("clock", "Date text: '" + dateText() + "'");
+        log.debug("clock", "Time text: '" + timeText() + "'");
+        var tzResult = timezoneText();
+        log.debug("clock", "Timezone text: '" + tzResult + "'");
+
+        updateClock();
+        if (colorMode === "wallpaper") _loadWallpaper();
+    }
 
     fullRepresentation: Item {
         id: containerWrapper

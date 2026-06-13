@@ -6,4 +6,9 @@ ConfigModel {
         icon: "preferences-desktop-color"
         source: "configAppearance.qml"
     }
+    ConfigCategory {
+        name: i18n("Debug")
+        icon: "tools-report-bug"
+        source: "configDebug.qml"
+    }
 }

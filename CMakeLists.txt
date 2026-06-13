@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(modernreclock VERSION 2.5.1 LANGUAGES CXX)
+project(modernreclock VERSION 2.6.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -8,18 +8,22 @@ set(CMAKE_AUTOMOC ON)
 include(GNUInstallDirs)
 
 # Qt 6
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Qml)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Qml Gui)
 
-# Plugin — keep default "lib" prefix so the .so is named libmodernreclock_timezone.so
+# Plugin — keep default "lib" prefix so the .so is named libmodernreclock_backend.so
 # which matches what qmldir expects (plugin <name> → lib<name>.so)
-set(PLUGIN_NAME modernreclock_timezone)
+set(PLUGIN_NAME modernreclock_backend)
 
 add_library(${PLUGIN_NAME} MODULE
-    src/timezoneplugin.cpp
+    src/plugin.cpp
+    src/timezonehelper.cpp
+    src/wallpaperhelper.cpp
+    src/logger.cpp
 )
 target_link_libraries(${PLUGIN_NAME} PRIVATE
     Qt6::Core
     Qt6::Qml
+    Qt6::Gui
 )
 
 # Install plugin to KDE QML dir so plasma shell can find it
@@ -40,6 +44,8 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/qmldir
     "linktarget ${PLUGIN_NAME}\n"
     "optional plugin ${PLUGIN_NAME}\n"
     "classname ModernRecClockPlugin\n"
+    "depends Qt6Core 6.4\n"
+    "depends Qt6Qml 6.4\n"
 )
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/qmldir
     DESTINATION ${PLUGIN_INSTALL_DIR}

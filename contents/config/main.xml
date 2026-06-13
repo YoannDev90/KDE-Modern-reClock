@@ -164,9 +164,14 @@
             <default>#FFFFFF</default>
         </entry>
 
-        <!-- Theme adaptation -->
+        <!-- Color mode: custom, theme, theme_inverse, wallpaper -->
+        <entry name="color_mode" type="String">
+            <label>Color mode for elements. custom = per-element colors, theme = follow system text color, theme_inverse = inverse of system text color, wallpaper = derived from wallpaper brightness</label>
+            <default>custom</default>
+        </entry>
+
+        <!-- Deprecated: kept for migration from older configs -->
         <entry name="adapt_to_theme" type="Bool">
-            <label>Override element colors with the system theme text color</label>
             <default>false</default>
         </entry>
     </group>
