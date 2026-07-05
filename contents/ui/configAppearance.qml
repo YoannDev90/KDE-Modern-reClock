@@ -1279,16 +1279,29 @@ KCM.SimpleKCM {
                     ? model.get(currentIndex).text : "";
             }
             onEditTextChanged: {
-                // User typed a custom IANA ID not in the presets
                 if (editText !== undefined && editText.length > 0) {
-                    var found = false;
+                    var matched = false;
+                    // Match by text role first (display string from dropdown)
                     for (var i = 0; i < model.count; i++) {
-                        if (model.get(i).value === editText) {
-                            found = true;
+                        if (model.get(i).text === editText) {
+                            _timezoneIdStorage.text = model.get(i).value;
+                            _timezoneDisplayStorage.text = editText;
+                            matched = true;
                             break;
                         }
                     }
-                    if (!found) {
+                    if (!matched) {
+                        // Match by value role (user typed a known IANA ID)
+                        for (var i = 0; i < model.count; i++) {
+                            if (model.get(i).value === editText) {
+                                _timezoneIdStorage.text = editText;
+                                matched = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!matched) {
+                        // Custom IANA ID typed by user
                         _timezoneIdStorage.text = editText;
                     }
                 }
