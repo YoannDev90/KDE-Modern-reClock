@@ -388,7 +388,7 @@ KCM.SimpleKCM {
         contentItem: ColumnLayout {
             spacing: Kirigami.Units.largeSpacing
 
-            QKC2.Label {
+            QQC2.Label {
                 text: i18n("Give your theme a name and description before exporting.")
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
@@ -642,7 +642,6 @@ KCM.SimpleKCM {
                                 }
                             }
                         }
-                    }
                     }
                 }
             }
