@@ -17,6 +17,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMap>
+#include <QDBusInterface>
+#include <QDBusMessage>
 #include <QGuiApplication>
 #include <QDebug>
 #include <fontconfig/fontconfig.h>
@@ -261,14 +263,46 @@ QString ThemeManager::cachedThemePath(const QString &themeId)
 
 // ===== PREVIEW GENERATOR =====
 
-QString ThemeManager::generatePreview(const QString &jsonConfig,
-                                       const QString &wallpaperPath)
+static QRect queryWidgetGeometry(int appletId)
 {
-    qDebug() << "[ThemeManager] generatePreview called";
+    if (appletId < 0) return {};
+    QDBusInterface iface(QStringLiteral("org.kde.plasmashell"),
+                          QStringLiteral("/Applets/%1").arg(appletId),
+                          QStringLiteral("org.kde.plasma.Applet"));
+    if (!iface.isValid()) return {};
+
+    // Try property: geometry
+    QDBusMessage reply = iface.call(QStringLiteral("geometry"));
+    if (reply.type() == QDBusMessage::ReplyMessage && reply.arguments().size() == 1) {
+        QVariant v = reply.arguments().first();
+        if (v.canConvert<QRect>()) return v.toRect();
+    }
+
+    // Try via Properties interface
+    QDBusInterface props(QStringLiteral("org.kde.plasmashell"),
+                          QStringLiteral("/Applets/%1").arg(appletId),
+                          QStringLiteral("org.freedesktop.DBus.Properties"));
+    QDBusMessage get = props.call(QStringLiteral("Get"),
+                                   QStringLiteral("org.kde.plasma.Applet"),
+                                   QStringLiteral("geometry"));
+    if (get.type() == QDBusMessage::ReplyMessage && get.arguments().size() == 1) {
+        QVariant v = get.arguments().first();
+        if (v.canConvert<QRect>()) return v.toRect();
+    }
+
+    return {};
+}
+
+QString ThemeManager::generatePreview(const QString &jsonConfig,
+                                       const QString &wallpaperPath,
+                                       int appletId,
+                                       int containmentId)
+{
+    Q_UNUSED(containmentId)
+    qDebug() << "[ThemeManager] generatePreview called appletId:" << appletId;
     QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
     QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
 
-    // Parse config
     QJsonDocument doc = QJsonDocument::fromJson(jsonConfig.toUtf8());
     if (doc.isNull() || !doc.isObject()) {
         qDebug() << "[ThemeManager]   invalid config JSON";
@@ -276,35 +310,33 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     }
     QJsonObject cfg = doc.object();
 
-    // Read order
-    QString orderStr = cfg.value(QStringLiteral("element_order")).toString(QStringLiteral("day,date,time,custom,timezone"));
+    // Load wallpaper full resolution
+    QImage canvas;
+    if (QFile::exists(wallpaperPath)) {
+        canvas = QImage(wallpaperPath);
+        qDebug() << "[ThemeManager]   loaded wallpaper:" << wallpaperPath << canvas.size();
+    }
+    if (canvas.isNull()) {
+        canvas = QImage(1920, 1080, QImage::Format_ARGB32);
+        canvas.fill(QColor(42, 42, 50));
+    }
+
+    // Get widget geometry on screen
+    QRect widgetRect = queryWidgetGeometry(appletId);
+    qDebug() << "[ThemeManager]   widget geometry:" << widgetRect;
+
+    // Parse order
+    QString orderStr = cfg.value(QStringLiteral("element_order"))
+                          .toString(QStringLiteral("day,date,time,custom,timezone"));
     QStringList order = orderStr.split(',');
 
-    // Load wallpaper or fallback background
-    QImage bg;
-    if (QFile::exists(wallpaperPath)) {
-        bg = QImage(wallpaperPath);
-        qDebug() << "[ThemeManager]   loaded wallpaper:" << wallpaperPath << bg.size();
-    }
-    if (bg.isNull()) {
-        bg = QImage(400, 225, QImage::Format_ARGB32);
-        bg.fill(QColor(42, 42, 50));
-    }
+    // If no geometry, use default position (center-ish)
+    int baseX = widgetRect.isValid() ? widgetRect.x() : canvas.width() / 2 - 100;
+    int baseY = widgetRect.isValid() ? widgetRect.y() : canvas.height() / 2 - 50;
+    int elemWidth = widgetRect.isValid() ? widgetRect.width() : 200;
 
-    // Scale to preview size
-    QImage canvas = bg.scaled(400, 225, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    if (canvas.width() < 400 || canvas.height() < 225) {
-        // Extend with blurred edge or just center
-        QImage padded(400, 225, QImage::Format_ARGB32);
-        padded.fill(QColor(42, 42, 50));
-        QPainter pp(&padded);
-        pp.drawImage((400 - canvas.width()) / 2, (225 - canvas.height()) / 2, canvas);
-        pp.end();
-        canvas = padded;
-    }
-
-    // Calculate total height of visible elements
     int spacing = static_cast<int>(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
+
     struct ClockElement {
         bool visible;
         QString fontFamily;
@@ -316,14 +348,13 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     QMap<QString, ClockElement> elements;
 
     auto addElement = [&](const QString &name, const QString &fontKey, int defaultSize,
-                          const QString &sample, const QString formatKey = {}) {
+                          const QString &sample) {
         ClockElement e;
         e.visible = cfg.value(QStringLiteral("show_") + name).toBool(true);
         e.fontFamily = cfg.value(QStringLiteral("fontFamily") + fontKey).toString();
         e.fontSize = static_cast<int>(cfg.value(name + QStringLiteral("_font_size")).toDouble(defaultSize));
         e.bold = cfg.value(name + QStringLiteral("_font_bold")).toBool(false);
-        QString colStr = cfg.value(name + QStringLiteral("_font_color")).toString(QStringLiteral("#FFFFFF"));
-        e.color = QColor(colStr);
+        e.color = QColor(cfg.value(name + QStringLiteral("_font_color")).toString(QStringLiteral("#FFFFFF")));
         if (!e.color.isValid()) e.color = Qt::white;
         e.sampleText = sample;
         elements.insert(name, e);
@@ -332,27 +363,14 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     addElement(QStringLiteral("day"),    QStringLiteral("Day"),    72, QStringLiteral("Wednesday"));
     addElement(QStringLiteral("date"),  QStringLiteral("Date"),   19, QStringLiteral("15 Jan 2026"));
     addElement(QStringLiteral("time"),  QStringLiteral("Time"),   19, QStringLiteral("14:30:00"));
-    addElement(QStringLiteral("custom"),QStringLiteral("Custom"), 19, cfg.value(QStringLiteral("custom_text")).toString(QStringLiteral("Custom Text")));
-    // timezone not in export config keys, use placeholder
+    addElement(QStringLiteral("custom"),QStringLiteral("Custom"), 19,
+               cfg.value(QStringLiteral("custom_text")).toString(QStringLiteral("Custom Text")));
     addElement(QStringLiteral("timezone"), QStringLiteral("Timezone"), 14, QStringLiteral("UTC+8:00"));
 
-    // Calculate layout
-    int totalHeight = 0;
-    for (const QString &el : order) {
-        if (!elements.contains(el)) continue;
-        auto &e = elements[el];
-        if (!e.visible) continue;
-        totalHeight += e.fontSize + spacing;
-    }
-    if (totalHeight > 0) totalHeight -= spacing; // remove last spacing
-
     // Paint
-    int y = (225 - totalHeight) / 2;
-    if (y < 10) y = 10; // min top padding
-
     QPainter p(&canvas);
     p.setRenderHint(QPainter::TextAntialiasing);
-    QString lastFamily;
+    int y = baseY;
 
     for (const QString &el : order) {
         if (!elements.contains(el)) continue;
@@ -360,22 +378,23 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         if (!e.visible) continue;
 
         QFont f;
-        if (!e.fontFamily.isEmpty()) {
+        if (!e.fontFamily.isEmpty())
             f = QFont(e.fontFamily, qMax(8, e.fontSize));
-        } else {
+        else
             f = QFont(QStringLiteral("sans-serif"), qMax(8, e.fontSize));
-        }
         f.setPixelSize(qMax(8, e.fontSize));
         f.setBold(e.bold);
         p.setFont(f);
         p.setPen(e.color);
-        p.drawText(QRect(10, y, 380, e.fontSize + 4), Qt::AlignHCenter | Qt::AlignVCenter, e.sampleText);
+        p.drawText(QRect(baseX, y, elemWidth, e.fontSize + 4),
+                   Qt::AlignLeft | Qt::AlignVCenter, e.sampleText);
         y += e.fontSize + spacing;
     }
 
     p.end();
     canvas.save(outPath, "PNG");
-    qDebug() << "[ThemeManager]   saved preview:" << outPath;
+    qint64 size = QFileInfo(outPath).size();
+    qDebug() << "[ThemeManager]   saved:" << outPath << "size:" << size << "dims:" << canvas.size();
     return outPath;
 }
 
@@ -392,59 +411,7 @@ QString ThemeManager::fallbackPreview(const QString &outPath)
     return outPath;
 }
 
-// ===== SCREENSHOT =====
 
-QString ThemeManager::captureScreenshot(int delayMs)
-{
-    Q_UNUSED(delayMs)
-    qDebug() << "[ThemeManager] captureScreenshot called";
-    QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
-    QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
-
-    bool isWayland = !qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY");
-    bool ok = false;
-
-    if (isWayland) {
-        qDebug() << "[ThemeManager]   Wayland detected, using spectacle";
-        QStringList args;
-        args << QStringLiteral("-b") << QStringLiteral("-n")
-             << QStringLiteral("-o") << outPath;
-        int ret = QProcess::execute(QStringLiteral("spectacle"), args);
-        if (ret == 0) {
-            qDebug() << "[ThemeManager]   spectacle OK";
-            ok = true;
-        } else {
-            qDebug() << "[ThemeManager]   spectacle failed, exit code:" << ret;
-        }
-    } else {
-        qDebug() << "[ThemeManager]   X11/Wayland not detected, using grabWindow";
-        QScreen *screen = QGuiApplication::primaryScreen();
-        if (screen) {
-            QPixmap full = screen->grabWindow(0);
-            qDebug() << "[ThemeManager]   grabbed:" << full.width() << "x" << full.height();
-            if (!full.isNull()) {
-                QImage thumb = full.toImage().scaled(400, 225, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-                ok = thumb.save(outPath, "PNG");
-            }
-        }
-    }
-
-    if (!ok) {
-        qDebug() << "[ThemeManager]   capture failed, creating fallback image";
-        QPixmap fb(400, 225);
-        fb.fill(QColor(42, 42, 50));
-        QPainter p(&fb);
-        p.setPen(Qt::white);
-        p.setFont(QFont(QStringLiteral("sans-serif"), 12));
-        p.drawText(fb.rect(), Qt::AlignCenter, QStringLiteral("Preview: capture unavailable.\nInstall 'spectacle' or run on X11."));
-        p.end();
-        ok = fb.toImage().save(outPath, "PNG");
-    }
-
-    qint64 size = ok ? QFileInfo(outPath).size() : 0;
-    qDebug() << "[ThemeManager]   saved:" << ok << "size:" << size;
-    return ok ? outPath : QString{};
-}
 
 // ===== FONT PERSISTENCE =====
 

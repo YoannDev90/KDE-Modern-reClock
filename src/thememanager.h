@@ -42,10 +42,11 @@ public:
     Q_INVOKABLE void persistActiveFonts(const QStringList &fontPaths);
     Q_INVOKABLE void restorePersistedFonts();
 
-    // === SCREENSHOT ===
-    Q_INVOKABLE QString captureScreenshot(int delayMs = 500);
+    // === PREVIEW ===
     Q_INVOKABLE QString generatePreview(const QString &jsonConfig,
-                                         const QString &wallpaperPath);
+                                         const QString &wallpaperPath,
+                                         int appletId = -1,
+                                         int containmentId = -1);
 
 signals:
     void indexFetchComplete(bool success);

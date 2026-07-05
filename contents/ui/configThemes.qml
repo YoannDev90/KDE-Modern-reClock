@@ -416,7 +416,10 @@ KCM.SimpleKCM {
             log.info("export", "Export dialog opened, generating preview");
             var cfgJson = themesPage.getExportConfig();
             var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
-            var result = themeManager.generatePreview(cfgJson, wpPath);
+            var aid = typeof plasmoid !== 'undefined' && plasmoid ? (plasmoid.appletId || -1) : -1;
+            var cid = typeof plasmoid !== 'undefined' && plasmoid ? (plasmoid.containmentId || -1) : -1;
+            log.info("export", "AppletId: " + aid + " ContainmentId: " + cid);
+            var result = themeManager.generatePreview(cfgJson, wpPath, aid, cid);
             log.info("export", "Preview generated: " + result);
         }
 
