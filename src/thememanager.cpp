@@ -20,6 +20,7 @@
 #include <QMap>
 #include <QDBusInterface>
 #include <QDBusMessage>
+#include <QDBusObjectPath>
 #include <QGuiApplication>
 #include <QDebug>
 #include <fontconfig/fontconfig.h>
@@ -264,31 +265,78 @@ QString ThemeManager::cachedThemePath(const QString &themeId)
 
 // ===== PREVIEW GENERATOR =====
 
-static QRect queryWidgetGeometry(int appletId)
+static QRect findWidgetGeometry()
 {
-    if (appletId < 0) return {};
-    QDBusInterface iface(QStringLiteral("org.kde.plasmashell"),
-                          QStringLiteral("/Applets/%1").arg(appletId),
-                          QStringLiteral("org.kde.plasma.Applet"));
-    if (!iface.isValid()) return {};
-
-    QDBusMessage reply = iface.call(QStringLiteral("geometry"));
-    if (reply.type() == QDBusMessage::ReplyMessage && reply.arguments().size() == 1) {
-        QVariant v = reply.arguments().first();
-        if (v.canConvert<QRect>()) return v.toRect();
+    // Enumerate containments via D-Bus
+    QDBusInterface shellIface(QStringLiteral("org.kde.plasmashell"),
+                               QStringLiteral("/PlasmaShell"),
+                               QStringLiteral("org.kde.PlasmaShell"));
+    if (!shellIface.isValid()) {
+        qDebug() << "[ThemeManager]   plasmashell D-Bus not available";
+        return {};
     }
 
-    QDBusInterface props(QStringLiteral("org.kde.plasmashell"),
-                          QStringLiteral("/Applets/%1").arg(appletId),
-                          QStringLiteral("org.freedesktop.DBus.Properties"));
-    QDBusMessage get = props.call(QStringLiteral("Get"),
-                                   QStringLiteral("org.kde.plasma.Applet"),
-                                   QStringLiteral("geometry"));
-    if (get.type() == QDBusMessage::ReplyMessage && get.arguments().size() == 1) {
-        QVariant v = get.arguments().first();
-        if (v.canConvert<QRect>()) return v.toRect();
+    QDBusMessage containmentsMsg = shellIface.call(QStringLiteral("listContainments"));
+    if (containmentsMsg.type() != QDBusMessage::ReplyMessage) return {};
+
+    for (const QVariant &v : containmentsMsg.arguments()) {
+        QStringList contPaths;
+        if (v.canConvert<QStringList>()) contPaths = v.toStringList();
+        else if (v.canConvert<QList<QDBusObjectPath>>()) {
+            for (auto &p : v.value<QList<QDBusObjectPath>>())
+                contPaths << p.path();
+        }
+        else continue;
+
+        for (const QString &contPath : contPaths) {
+            QDBusInterface contIface(QStringLiteral("org.kde.plasmashell"),
+                                      contPath,
+                                      QStringLiteral("org.kde.Plasma.Containment"));
+            if (!contIface.isValid()) continue;
+
+            QDBusMessage appletsMsg = contIface.call(QStringLiteral("applets"));
+            if (appletsMsg.type() != QDBusMessage::ReplyMessage) continue;
+
+            for (const QVariant &av : appletsMsg.arguments()) {
+                QStringList appletPaths;
+                if (av.canConvert<QStringList>()) appletPaths = av.toStringList();
+                else if (av.canConvert<QList<QDBusObjectPath>>()) {
+                    for (auto &p : av.value<QList<QDBusObjectPath>>())
+                        appletPaths << p.path();
+                }
+                else continue;
+
+                for (const QString &appletPath : appletPaths) {
+                    // Check if this applet is our widget by querying its plugin metadata
+                    QDBusInterface appletIface(QStringLiteral("org.kde.plasmashell"),
+                                                appletPath,
+                                                QStringLiteral("org.kde.plasma.Applet"));
+                    if (!appletIface.isValid()) continue;
+
+                    // Try to get the plugin name
+                    QDBusMessage pluginMsg = appletIface.call(QStringLiteral("pluginName"));
+                    if (pluginMsg.type() == QDBusMessage::ReplyMessage && !pluginMsg.arguments().isEmpty()) {
+                        QString pluginName = pluginMsg.arguments().first().toString();
+                        qDebug() << "[ThemeManager]   found applet:" << appletPath << "plugin:" << pluginName;
+                        if (pluginName.contains("modernreclock", Qt::CaseInsensitive)) {
+                            // Found our widget! Get geometry
+                            QDBusMessage geoMsg = appletIface.call(QStringLiteral("geometry"));
+                            if (geoMsg.type() == QDBusMessage::ReplyMessage && !geoMsg.arguments().isEmpty()) {
+                                QVariant geoVar = geoMsg.arguments().first();
+                                if (geoVar.canConvert<QRect>()) {
+                                    QRect r = geoVar.toRect();
+                                    qDebug() << "[ThemeManager]   our widget geometry:" << r;
+                                    return r;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
+    qDebug() << "[ThemeManager]   widget not found in any containment";
     return {};
 }
 
@@ -297,7 +345,8 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
                                        int appletId,
                                        const QStringList &fontPaths)
 {
-    if (m_log) m_log->info("theme", QString("generatePreview appletId: %1").arg(appletId));
+    Q_UNUSED(appletId)
+    if (m_log) m_log->info("theme", "generatePreview called");
     QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
     QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
 
@@ -354,7 +403,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     }
 
     // Widget geometry on screen
-    QRect widgetRect = queryWidgetGeometry(appletId);
+    QRect widgetRect = findWidgetGeometry();
     if (m_log) m_log->info("theme", QString("widget geomscreen: %1,%2 %3x%4").arg(widgetRect.x()).arg(widgetRect.y()).arg(widgetRect.width()).arg(widgetRect.height()));
 
     // Position on wallpaper
