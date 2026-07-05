@@ -13,7 +13,7 @@
     "License": "GPLv3",
     "Name": "Modern reClock",
     "TranslationDomain": "plasma_applet_com.github.yoanndev90.modernreclock",
-    "Version": "2.6.1",
+    "Version": "2.6.3",
     "Website": "https://github.com/YoannDev90/KDE-Modern-reClock",
     "BugReportUrl": "https://github.com/YoannDev90/KDE-Modern-reClock/issues"
   },
