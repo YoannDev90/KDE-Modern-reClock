@@ -503,6 +503,10 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     }
     if (m_log) m_log->info("theme", QString("widgetFontScale: %1").arg(widgetFontScale, 0, 'f', 3));
 
+    // Final scale = widget auto-scale × wallpaper/screen scale
+    double finalScale = widgetFontScale * scaleX;
+    if (m_log) m_log->info("theme", QString("finalScale: %1 (widget %2 × screen %3)").arg(finalScale, 0, 'f', 3).arg(widgetFontScale, 0, 'f', 3).arg(scaleX, 0, 'f', 2));
+
     // Step 3: Render with scaled sizes, centered in widget area
     QPainter p(&canvas);
     p.setRenderHint(QPainter::TextAntialiasing);
@@ -514,10 +518,10 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         if (!elements.contains(el)) continue;
         auto &e = elements[el];
         if (!e.visible) continue;
-        int scaledSize = qMax(8, qRound(e.configSize * widgetFontScale));
+        int scaledSize = qMax(8, qRound(e.configSize * finalScale));
         totalRenderedHeight += scaledSize;
     }
-    totalRenderedHeight += qRound(configSpacing * widgetFontScale) * qMax(0, order.count() - 1);
+    totalRenderedHeight += qRound(configSpacing * finalScale) * qMax(0, order.count() - 1);
 
     int y = wpY + qMax(0, (wpH - totalRenderedHeight) / 2);
 
@@ -526,9 +530,9 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         auto &e = elements[el];
         if (!e.visible) continue;
 
-        int scaledSize = qMax(8, qRound(e.configSize * widgetFontScale));
-        int scaledSpacing = qRound(e.letterSpacing * widgetFontScale);
-        int scaledElemSpacing = qRound(configSpacing * widgetFontScale);
+        int scaledSize = qMax(8, qRound(e.configSize * finalScale));
+        int scaledSpacing = qRound(e.letterSpacing * finalScale);
+        int scaledElemSpacing = qRound(configSpacing * finalScale);
 
         QString resolvedFamily = resolveFamily(e.family);
         QFont f;
