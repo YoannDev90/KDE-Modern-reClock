@@ -5,6 +5,8 @@
 #include <QNetworkReply>
 #include <QStringList>
 
+class Logger;
+
 class ThemeManager : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString cacheDir READ cacheDir CONSTANT)
@@ -13,6 +15,7 @@ public:
     explicit ThemeManager(QObject *parent = nullptr);
     ~ThemeManager();
 
+    void setLogger(Logger *logger) { m_log = logger; }
     QString cacheDir() const;
 
     // === EXPORT ===
@@ -54,6 +57,7 @@ signals:
     void errorOccurred(const QString &message);
 
 private:
+    Logger *m_log = nullptr;
     QString m_cacheDir;
     QNetworkAccessManager *m_net;
     QString fallbackPreview(const QString &outPath);

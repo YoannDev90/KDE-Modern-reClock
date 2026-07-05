@@ -11,31 +11,29 @@
 class ModernRecClockPlugin : public QQmlExtensionPlugin {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QQmlExtensionInterface/1.0")
+    static Logger *s_logger;
 public:
     void registerTypes(const char* uri) override {
-        qDebug() << "[ModernRecClock] ModernRecClockPlugin::registerTypes uri=" << uri;
         Q_ASSERT(uri == QLatin1String("org.kde.plasma.private.modernreclock"));
         qmlRegisterSingletonType<TimeZoneHelper>(uri, 1, 0, "TimeZone",
             [](QQmlEngine*, QJSEngine*) -> QObject* {
-                qDebug() << "[ModernRecClock] Creating TimeZoneHelper singleton";
                 return new TimeZoneHelper();
             });
         qmlRegisterSingletonType<WallpaperHelper>(uri, 1, 0, "Wallpaper",
             [](QQmlEngine*, QJSEngine*) -> QObject* {
-                qDebug() << "[ModernRecClock] Creating WallpaperHelper singleton";
                 return new WallpaperHelper();
             });
         qmlRegisterSingletonType<Logger>(uri, 1, 0, "Log",
             [](QQmlEngine*, QJSEngine*) -> QObject* {
-                qDebug() << "[ModernRecClock] Creating Logger singleton";
-                return new Logger();
+                s_logger = new Logger();
+                return s_logger;
             });
         qmlRegisterSingletonType<ThemeManager>(uri, 1, 0, "ThemeManager",
             [](QQmlEngine*, QJSEngine*) -> QObject* {
-                qDebug() << "[ModernRecClock] Creating ThemeManager singleton";
-                return new ThemeManager();
+                ThemeManager *tm = new ThemeManager();
+                if (s_logger) tm->setLogger(s_logger);
+                return tm;
             });
-        qDebug() << "[ModernRecClock] ModernRecClockPlugin::registerTypes done";
     }
 
     void initializeEngine(QQmlEngine* engine, const char* uri) override {
@@ -44,5 +42,7 @@ public:
         qDebug() << "[ModernRecClock] Image provider 'modernreclock' registered for engine" << engine;
     }
 };
+
+Logger* ModernRecClockPlugin::s_logger = nullptr;
 
 #include "plugin.moc"

@@ -1,5 +1,6 @@
 #include "thememanager.h"
 #include "mrtarchive.h"
+#include "logger.h"
 
 #include <QDir>
 #include <QFile>
@@ -56,19 +57,19 @@ QString ThemeManager::exportTheme(const QString &filePath,
     entries.append({QStringLiteral("mimetype"), QStringLiteral("application/zip").toUtf8()});
     entries.append({QStringLiteral("theme.json"), jsonConfig.toUtf8()});
 
-    qDebug() << "[ThemeManager] exportTheme:" << filePath;
-    qDebug() << "[ThemeManager]   jsonConfig size:" << jsonConfig.size();
-    qDebug() << "[ThemeManager]   embedFonts:" << embedFonts;
-    qDebug() << "[ThemeManager]   wallpaperPath:" << wallpaperPath;
+    if (m_log) m_log->info("theme", QString("exportTheme: %1").arg(filePath));
+    if (m_log) m_log->info("theme", QString("jsonConfig size: %1").arg(jsonConfig.size()));
+    if (m_log) m_log->info("theme", QString("embedFonts: [%1]").arg(embedFonts.join(", ")));
+    if (m_log) m_log->info("theme", QString("wallpaperPath: %1").arg(wallpaperPath));
 
     // Preview image (if captured)
     QString previewPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
-    qDebug() << "[ThemeManager]   checking preview:" << previewPath << "exists:" << QFile::exists(previewPath);
+    if (m_log) m_log->info("theme", QString("checking preview: %1 exists: %2").arg(previewPath).arg(QFile::exists(previewPath)));
     if (QFile::exists(previewPath)) {
         QFile pf(previewPath);
         if (pf.open(QIODevice::ReadOnly)) {
             QByteArray data = pf.readAll();
-            qDebug() << "[ThemeManager]   preview size:" << data.size();
+            if (m_log) m_log->info("theme", QString("preview size: %1").arg(data.size()));
             entries.append({QStringLiteral("preview.png"), data});
             pf.close();
         }
@@ -96,7 +97,7 @@ QString ThemeManager::exportTheme(const QString &filePath,
     }
 
     // Wallpaper image (if available and color_mode is wallpaper)
-    qDebug() << "[ThemeManager]   checking wallpaper:" << wallpaperPath << "exists:" << QFile::exists(wallpaperPath);
+    if (m_log) m_log->info("theme", QString("checking wallpaper: %1 exists: %2").arg(wallpaperPath).arg(QFile::exists(wallpaperPath)));
     if (QFile::exists(wallpaperPath)) {
         QFile wf(wallpaperPath);
         if (wf.open(QIODevice::ReadOnly)) {
@@ -107,13 +108,13 @@ QString ThemeManager::exportTheme(const QString &filePath,
         }
     }
 
-    qDebug() << "[ThemeManager]   entries count:" << entries.size();
+    if (m_log) m_log->info("theme", QString("entries count: %1").arg(entries.size()));
     if (!MrtArchive::write(filePath, entries)) {
-        qDebug() << "[ThemeManager]   FAILED to write archive";
+        if (m_log) m_log->info("theme", "FAILED to write archive");
         emit errorOccurred(QStringLiteral("Cannot create: %1").arg(filePath));
         return {};
     }
-    qDebug() << "[ThemeManager]   export OK";
+    if (m_log) m_log->info("theme", "export OK");
     return filePath;
 }
 
@@ -296,7 +297,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
                                        int appletId,
                                        const QStringList &fontPaths)
 {
-    qDebug() << "[ThemeManager] generatePreview appletId:" << appletId;
+    if (m_log) m_log->info("theme", QString("generatePreview appletId: %1").arg(appletId));
     QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
     QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
 
@@ -305,10 +306,10 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     for (const QString &fp : fontPaths) {
         int id = QFontDatabase::addApplicationFont(fp);
         QStringList families = QFontDatabase::applicationFontFamilies(id);
-        qDebug() << "[ThemeManager]   font:" << fp << "id:" << id << "families:" << families;
+        if (m_log) m_log->info("theme", QString("font: %1 id: %2 families: %3").arg(fp).arg(id).arg(families.join(", ")));
         loadedFamilies.append(families);
     }
-    qDebug() << "[ThemeManager]   all loaded families:" << loadedFamilies;
+    if (m_log) m_log->info("theme", QString("all loaded families: [%1]").arg(loadedFamilies.join(", ")));
 
     // Build a lookup from config family name to actual loaded family name
     auto resolveFamily = [&](const QString &configName) -> QString {
@@ -326,7 +327,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
 
     QJsonDocument doc = QJsonDocument::fromJson(jsonConfig.toUtf8());
     if (doc.isNull() || !doc.isObject()) {
-        qDebug() << "[ThemeManager]   invalid config JSON";
+        if (m_log) m_log->info("theme", "invalid config JSON");
         return fallbackPreview(outPath);
     }
     QJsonObject cfg = doc.object();
@@ -335,7 +336,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     QImage canvas;
     if (QFile::exists(wallpaperPath)) {
         canvas = QImage(wallpaperPath);
-        qDebug() << "[ThemeManager]   wallpaper:" << canvas.size();
+        if (m_log) m_log->info("theme", QString("wallpaper: %1x%2").arg(canvas.width()).arg(canvas.height()));
     }
     if (canvas.isNull()) {
         canvas = QImage(1920, 1080, QImage::Format_ARGB32);
@@ -349,12 +350,12 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         QSize screenSize = screen->size();
         scaleX = (double)canvas.width() / screenSize.width();
         scaleY = (double)canvas.height() / screenSize.height();
-        qDebug() << "[ThemeManager]   screen:" << screenSize << "scale:" << scaleX << scaleY;
+        if (m_log) m_log->info("theme", QString("screen: %1 scale: %2x%3").arg(screenSize.width()).arg(scaleX, 0, 'f', 2).arg(scaleY, 0, 'f', 2));
     }
 
     // Widget geometry on screen
     QRect widgetRect = queryWidgetGeometry(appletId);
-    qDebug() << "[ThemeManager]   widget geomscreen:" << widgetRect;
+    if (m_log) m_log->info("theme", QString("widget geomscreen: %1,%2 %3x%4").arg(widgetRect.x()).arg(widgetRect.y()).arg(widgetRect.width()).arg(widgetRect.height()));
 
     // Position on wallpaper
     int baseX = widgetRect.isValid() ? qRound(widgetRect.x() * scaleX) : 0;
@@ -419,7 +420,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
             f = QFont(QStringLiteral("sans-serif"), qMax(8, e.fontSize));
         f.setPixelSize(qMax(8, e.fontSize));
         f.setBold(e.bold);
-        qDebug() << "[ThemeManager]   paint" << el << "family:" << e.family << "→" << resolvedFamily << "size:" << e.fontSize << "bold:" << e.bold;
+        if (m_log) m_log->info("theme", QString("paint %1 family: %2 → %3 size: %4 bold: %5").arg(el, e.family, resolvedFamily).arg(e.fontSize).arg(e.bold ? "yes" : "no"));
         p.setFont(f);
         p.setPen(e.color);
         p.drawText(QRect(baseX, y, elemWidth, e.fontSize + 4),
@@ -430,7 +431,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     p.end();
     canvas.save(outPath, "PNG");
     qint64 size = QFileInfo(outPath).size();
-    qDebug() << "[ThemeManager]   saved:" << outPath << "size:" << size;
+    if (m_log) m_log->info("theme", QString("saved: %1 size: %2").arg(outPath).arg(size));
     return outPath;
 }
 
