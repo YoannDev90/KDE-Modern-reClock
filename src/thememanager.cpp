@@ -13,6 +13,7 @@
 #include <QImage>
 #include <QPixmap>
 #include <QGuiApplication>
+#include <QDebug>
 #include <fontconfig/fontconfig.h>
 
 static const QString FONTS_CACHE_SUBDIR = QStringLiteral("modernreclock-fonts");
@@ -48,12 +49,20 @@ QString ThemeManager::exportTheme(const QString &filePath,
     entries.append({QStringLiteral("mimetype"), QStringLiteral("application/zip").toUtf8()});
     entries.append({QStringLiteral("theme.json"), jsonConfig.toUtf8()});
 
+    qDebug() << "[ThemeManager] exportTheme:" << filePath;
+    qDebug() << "[ThemeManager]   jsonConfig size:" << jsonConfig.size();
+    qDebug() << "[ThemeManager]   embedFonts:" << embedFonts;
+    qDebug() << "[ThemeManager]   wallpaperPath:" << wallpaperPath;
+
     // Preview image (if captured)
     QString previewPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
+    qDebug() << "[ThemeManager]   checking preview:" << previewPath << "exists:" << QFile::exists(previewPath);
     if (QFile::exists(previewPath)) {
         QFile pf(previewPath);
         if (pf.open(QIODevice::ReadOnly)) {
-            entries.append({QStringLiteral("preview.png"), pf.readAll()});
+            QByteArray data = pf.readAll();
+            qDebug() << "[ThemeManager]   preview size:" << data.size();
+            entries.append({QStringLiteral("preview.png"), data});
             pf.close();
         }
     }
@@ -80,6 +89,7 @@ QString ThemeManager::exportTheme(const QString &filePath,
     }
 
     // Wallpaper image (if available and color_mode is wallpaper)
+    qDebug() << "[ThemeManager]   checking wallpaper:" << wallpaperPath << "exists:" << QFile::exists(wallpaperPath);
     if (QFile::exists(wallpaperPath)) {
         QFile wf(wallpaperPath);
         if (wf.open(QIODevice::ReadOnly)) {
@@ -90,10 +100,13 @@ QString ThemeManager::exportTheme(const QString &filePath,
         }
     }
 
+    qDebug() << "[ThemeManager]   entries count:" << entries.size();
     if (!MrtArchive::write(filePath, entries)) {
+        qDebug() << "[ThemeManager]   FAILED to write archive";
         emit errorOccurred(QStringLiteral("Cannot create: %1").arg(filePath));
         return {};
     }
+    qDebug() << "[ThemeManager]   export OK";
     return filePath;
 }
 
@@ -246,15 +259,18 @@ QString ThemeManager::cachedThemePath(const QString &themeId)
 QString ThemeManager::captureScreenshot(int delayMs)
 {
     Q_UNUSED(delayMs)
+    qDebug() << "[ThemeManager] captureScreenshot called";
     QScreen *screen = QGuiApplication::primaryScreen();
-    if (!screen) return {};
+    if (!screen) { qDebug() << "[ThemeManager]   no primary screen"; return {}; }
 
     QPixmap full = screen->grabWindow(0);
+    qDebug() << "[ThemeManager]   grabbed screen:" << full.width() << "x" << full.height();
     QImage thumb = full.toImage().scaled(400, 225, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
     QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
     QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
     thumb.save(outPath, "PNG");
+    qDebug() << "[ThemeManager]   saved preview to:" << outPath;
 
     return outPath;
 }

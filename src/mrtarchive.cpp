@@ -2,6 +2,7 @@
 
 #include <QDataStream>
 #include <QDateTime>
+#include <QDebug>
 #include <zlib.h>
 
 // ===== CRC32 via zlib (Qt links zlib internally) =====
@@ -129,11 +130,14 @@ bool MrtArchive::write(const QString &filePath, const QList<MrtArchiveEntry> &en
 
     QByteArray fileData;
 
+    qDebug() << "[MRT] write:" << filePath << "entries:" << entries.size();
+
     for (const auto &entry : entries) {
         QByteArray nameBytes = entry.name.toUtf8();
         quint16 nameLen = static_cast<quint16>(nameBytes.size());
         quint32 size = static_cast<quint32>(entry.data.size());
         quint32 crc = crc32(entry.data);
+        qDebug() << "[MRT] entry:" << entry.name << "size:" << size << "crc:" << crc;
 
         // ===== Local file header (30 + name) =====
         // ZIP local header layout:
@@ -205,6 +209,8 @@ bool MrtArchive::write(const QString &filePath, const QList<MrtArchiveEntry> &en
     file.write(centralDir);
     file.write(eocd);
     file.close();
+
+    qDebug() << "[MRT] wrote" << fileData.size() + centralDir.size() + eocd.size() << "bytes, entries:" << entries.size() << "cdOffset:" << cdOffset;
 
     return true;
 }

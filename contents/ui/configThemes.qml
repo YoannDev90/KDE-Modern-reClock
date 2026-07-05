@@ -415,8 +415,9 @@ KCM.SimpleKCM {
             themesPage.exportThemeName = "";
             themesPage.exportThemeDesc = "";
             themesPage.exportThemeAuthor = "";
-            // Capture screenshot for preview
-            themeManager.captureScreenshot(500);
+            log.info("export", "Export dialog opened, capturing screenshot");
+            var result = themeManager.captureScreenshot(500);
+            log.info("export", "Screenshot captured: " + result);
         }
 
         onAccepted: {
@@ -526,15 +527,26 @@ KCM.SimpleKCM {
         property string _themeJson: ""
         onAccepted: {
             var filePath = exportSaveFileDialog.selectedFile.toString().replace("file://", "");
+            log.info("export", "Save dialog accepted, path: " + filePath);
+
             // Auto-resolve font paths from config font families
             var resolvedFonts = themesPage.resolveFontPathsFromConfig();
+            log.info("export", "Auto-detected fonts: " + JSON.stringify(resolvedFonts));
+
             // Also include manually added fonts
             for (var i = 0; i < themesPage.embedFontPaths.length; i++) {
                 var path = themeManager.resolveFontPath(themesPage.embedFontPaths[i].split("/").pop().replace(/\.(ttf|otf)$/i, ""));
-                if (path && resolvedFonts.indexOf(path) === -1) resolvedFonts.push(path);
+                if (path && resolvedFonts.indexOf(path) === -1) {
+                    resolvedFonts.push(path);
+                    log.info("export", "Added manual font: " + path);
+                }
             }
-            var result = themeManager.exportTheme(filePath, exportSaveFileDialog._themeJson, resolvedFonts, 
-                ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "");
+
+            var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
+            log.info("export", "Wallpaper path: " + wpPath);
+            log.info("export", "Theme JSON length: " + exportSaveFileDialog._themeJson.length);
+
+            var result = themeManager.exportTheme(filePath, exportSaveFileDialog._themeJson, resolvedFonts, wpPath);
             if (result)
                 log.info("themes", "Theme exported to: " + result);
             else
