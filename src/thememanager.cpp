@@ -12,11 +12,8 @@
 #include <QScreen>
 #include <QImage>
 #include <QPixmap>
+#include <QPainter>
 #include <QGuiApplication>
-#include <QDBusInterface>
-#include <QDBusReply>
-#include <QEventLoop>
-#include <QTimer>
 #include <QDebug>
 #include <fontconfig/fontconfig.h>
 
@@ -265,41 +262,29 @@ QString ThemeManager::captureScreenshot(int delayMs)
     Q_UNUSED(delayMs)
     qDebug() << "[ThemeManager] captureScreenshot called";
 
-    // Try to show desktop via KWin (minimizes all windows)
-    QDBusInterface kwin(QStringLiteral("org.kde.KWin"),
-                         QStringLiteral("/KWin"),
-                         QStringLiteral("org.kde.KWin"));
-    if (kwin.isValid()) {
-        qDebug() << "[ThemeManager]   KWin D-Bus found, calling showDesktop";
-        kwin.call(QStringLiteral("showDesktop"));
-    } else {
-        qDebug() << "[ThemeManager]   KWin D-Bus NOT available, trying PlasmaShell";
-        QDBusInterface plasmaShell(QStringLiteral("org.kde.plasmashell"),
-                                    QStringLiteral("/PlasmaShell"),
-                                    QStringLiteral("org.kde.PlasmaShell"));
-        if (plasmaShell.isValid()) {
-            plasmaShell.call(QStringLiteral("showDesktop"));
-        }
-    }
-
-    // Short wait for desktop to render
-    QEventLoop loop;
-    QTimer::singleShot(500, &loop, &QEventLoop::quit);
-    loop.exec();
-
     QScreen *screen = QGuiApplication::primaryScreen();
     if (!screen) { qDebug() << "[ThemeManager]   no primary screen"; return {}; }
 
     QPixmap full = screen->grabWindow(0);
-    qDebug() << "[ThemeManager]   grabbed screen:" << full.width() << "x" << full.height();
-    QImage thumb = full.toImage().scaled(400, 225, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    qDebug() << "[ThemeManager]   grabbed screen:" << full.width() << "x" << full.height() << "null?" << full.isNull();
 
+    if (full.isNull()) {
+        qDebug() << "[ThemeManager]   grabWindow returned null, creating fallback";
+        full = QPixmap(400, 225);
+        full.fill(QColor(42, 42, 50));
+        QPainter p(&full);
+        p.setPen(Qt::white);
+        p.drawText(full.rect(), Qt::AlignCenter, "Preview unavailable");
+        p.end();
+    }
+
+    QImage thumb = full.toImage().scaled(400, 225, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
     QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
-    thumb.save(outPath, "PNG");
-    qDebug() << "[ThemeManager]   saved preview to:" << outPath;
+    bool saved = thumb.save(outPath, "PNG");
+    qDebug() << "[ThemeManager]   saved:" << saved << "to" << outPath << "size:" << QFileInfo(outPath).size();
 
-    return outPath;
+    return saved ? outPath : QString{};
 }
 
 // ===== FONT PERSISTENCE =====
