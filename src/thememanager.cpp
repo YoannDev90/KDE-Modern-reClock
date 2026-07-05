@@ -13,6 +13,7 @@
 #include <QImage>
 #include <QPixmap>
 #include <QPainter>
+#include <QProcess>
 #include <QGuiApplication>
 #include <QDebug>
 #include <fontconfig/fontconfig.h>
@@ -261,30 +262,52 @@ QString ThemeManager::captureScreenshot(int delayMs)
 {
     Q_UNUSED(delayMs)
     qDebug() << "[ThemeManager] captureScreenshot called";
-
-    QScreen *screen = QGuiApplication::primaryScreen();
-    if (!screen) { qDebug() << "[ThemeManager]   no primary screen"; return {}; }
-
-    QPixmap full = screen->grabWindow(0);
-    qDebug() << "[ThemeManager]   grabbed screen:" << full.width() << "x" << full.height() << "null?" << full.isNull();
-
-    if (full.isNull()) {
-        qDebug() << "[ThemeManager]   grabWindow returned null, creating fallback";
-        full = QPixmap(400, 225);
-        full.fill(QColor(42, 42, 50));
-        QPainter p(&full);
-        p.setPen(Qt::white);
-        p.drawText(full.rect(), Qt::AlignCenter, "Preview unavailable");
-        p.end();
-    }
-
-    QImage thumb = full.toImage().scaled(400, 225, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
     QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
-    bool saved = thumb.save(outPath, "PNG");
-    qDebug() << "[ThemeManager]   saved:" << saved << "to" << outPath << "size:" << QFileInfo(outPath).size();
 
-    return saved ? outPath : QString{};
+    bool isWayland = !qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY");
+    bool ok = false;
+
+    if (isWayland) {
+        qDebug() << "[ThemeManager]   Wayland detected, using spectacle";
+        QStringList args;
+        args << QStringLiteral("-b") << QStringLiteral("-n")
+             << QStringLiteral("-o") << outPath;
+        int ret = QProcess::execute(QStringLiteral("spectacle"), args);
+        if (ret == 0) {
+            qDebug() << "[ThemeManager]   spectacle OK";
+            ok = true;
+        } else {
+            qDebug() << "[ThemeManager]   spectacle failed, exit code:" << ret;
+        }
+    } else {
+        qDebug() << "[ThemeManager]   X11/Wayland not detected, using grabWindow";
+        QScreen *screen = QGuiApplication::primaryScreen();
+        if (screen) {
+            QPixmap full = screen->grabWindow(0);
+            qDebug() << "[ThemeManager]   grabbed:" << full.width() << "x" << full.height();
+            if (!full.isNull()) {
+                QImage thumb = full.toImage().scaled(400, 225, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                ok = thumb.save(outPath, "PNG");
+            }
+        }
+    }
+
+    if (!ok) {
+        qDebug() << "[ThemeManager]   capture failed, creating fallback image";
+        QPixmap fb(400, 225);
+        fb.fill(QColor(42, 42, 50));
+        QPainter p(&fb);
+        p.setPen(Qt::white);
+        p.setFont(QFont(QStringLiteral("sans-serif"), 12));
+        p.drawText(fb.rect(), Qt::AlignCenter, QStringLiteral("Preview: capture unavailable.\nInstall 'spectacle' or run on X11."));
+        p.end();
+        ok = fb.toImage().save(outPath, "PNG");
+    }
+
+    qint64 size = ok ? QFileInfo(outPath).size() : 0;
+    qDebug() << "[ThemeManager]   saved:" << ok << "size:" << size;
+    return ok ? outPath : QString{};
 }
 
 // ===== FONT PERSISTENCE =====
