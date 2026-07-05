@@ -46,7 +46,7 @@ public:
     Q_INVOKABLE QString generatePreview(const QString &jsonConfig,
                                          const QString &wallpaperPath,
                                          int appletId = -1,
-                                         int containmentId = -1);
+                                         const QStringList &fontPaths = {});
 
 signals:
     void indexFetchComplete(bool success);

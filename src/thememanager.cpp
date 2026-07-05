@@ -271,14 +271,12 @@ static QRect queryWidgetGeometry(int appletId)
                           QStringLiteral("org.kde.plasma.Applet"));
     if (!iface.isValid()) return {};
 
-    // Try property: geometry
     QDBusMessage reply = iface.call(QStringLiteral("geometry"));
     if (reply.type() == QDBusMessage::ReplyMessage && reply.arguments().size() == 1) {
         QVariant v = reply.arguments().first();
         if (v.canConvert<QRect>()) return v.toRect();
     }
 
-    // Try via Properties interface
     QDBusInterface props(QStringLiteral("org.kde.plasmashell"),
                           QStringLiteral("/Applets/%1").arg(appletId),
                           QStringLiteral("org.freedesktop.DBus.Properties"));
@@ -296,12 +294,17 @@ static QRect queryWidgetGeometry(int appletId)
 QString ThemeManager::generatePreview(const QString &jsonConfig,
                                        const QString &wallpaperPath,
                                        int appletId,
-                                       int containmentId)
+                                       const QStringList &fontPaths)
 {
-    Q_UNUSED(containmentId)
-    qDebug() << "[ThemeManager] generatePreview called appletId:" << appletId;
+    qDebug() << "[ThemeManager] generatePreview appletId:" << appletId;
     QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
     QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
+
+    // Load fonts before rendering
+    for (const QString &fp : fontPaths) {
+        int id = QFontDatabase::addApplicationFont(fp);
+        qDebug() << "[ThemeManager]   load font:" << fp << "id:" << id;
+    }
 
     QJsonDocument doc = QJsonDocument::fromJson(jsonConfig.toUtf8());
     if (doc.isNull() || !doc.isObject()) {
@@ -314,35 +317,47 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     QImage canvas;
     if (QFile::exists(wallpaperPath)) {
         canvas = QImage(wallpaperPath);
-        qDebug() << "[ThemeManager]   loaded wallpaper:" << wallpaperPath << canvas.size();
+        qDebug() << "[ThemeManager]   wallpaper:" << canvas.size();
     }
     if (canvas.isNull()) {
         canvas = QImage(1920, 1080, QImage::Format_ARGB32);
         canvas.fill(QColor(42, 42, 50));
     }
 
-    // Get widget geometry on screen
+    // Scale factor from screen to wallpaper
+    QScreen *screen = QGuiApplication::primaryScreen();
+    double scaleX = 1.0, scaleY = 1.0;
+    if (screen && !canvas.isNull()) {
+        QSize screenSize = screen->size();
+        scaleX = (double)canvas.width() / screenSize.width();
+        scaleY = (double)canvas.height() / screenSize.height();
+        qDebug() << "[ThemeManager]   screen:" << screenSize << "scale:" << scaleX << scaleY;
+    }
+
+    // Widget geometry on screen
     QRect widgetRect = queryWidgetGeometry(appletId);
-    qDebug() << "[ThemeManager]   widget geometry:" << widgetRect;
+    qDebug() << "[ThemeManager]   widget geomscreen:" << widgetRect;
+
+    // Position on wallpaper
+    int baseX = widgetRect.isValid() ? qRound(widgetRect.x() * scaleX) : 0;
+    int baseY = widgetRect.isValid() ? qRound(widgetRect.y() * scaleY) : 0;
+    int elemWidth = widgetRect.isValid() ? qRound(widgetRect.width() * scaleX) : canvas.width();
+    // Font scale: use geometric mean of scale factors
+    double fontScale = qMin(scaleX, scaleY);
 
     // Parse order
     QString orderStr = cfg.value(QStringLiteral("element_order"))
                           .toString(QStringLiteral("day,date,time,custom,timezone"));
     QStringList order = orderStr.split(',');
 
-    // If no geometry, use default position (center-ish)
-    int baseX = widgetRect.isValid() ? widgetRect.x() : canvas.width() / 2 - 100;
-    int baseY = widgetRect.isValid() ? widgetRect.y() : canvas.height() / 2 - 50;
-    int elemWidth = widgetRect.isValid() ? widgetRect.width() : 200;
-
-    int spacing = static_cast<int>(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
+    int spacing = qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5) * fontScale);
 
     struct ClockElement {
         bool visible;
-        QString fontFamily;
         int fontSize;
         bool bold;
         QColor color;
+        QString family;
         QString sampleText;
     };
     QMap<QString, ClockElement> elements;
@@ -351,8 +366,8 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
                           const QString &sample) {
         ClockElement e;
         e.visible = cfg.value(QStringLiteral("show_") + name).toBool(true);
-        e.fontFamily = cfg.value(QStringLiteral("fontFamily") + fontKey).toString();
-        e.fontSize = static_cast<int>(cfg.value(name + QStringLiteral("_font_size")).toDouble(defaultSize));
+        e.family = cfg.value(QStringLiteral("fontFamily") + fontKey).toString();
+        e.fontSize = qRound(cfg.value(name + QStringLiteral("_font_size")).toDouble(defaultSize) * fontScale);
         e.bold = cfg.value(name + QStringLiteral("_font_bold")).toBool(false);
         e.color = QColor(cfg.value(name + QStringLiteral("_font_color")).toString(QStringLiteral("#FFFFFF")));
         if (!e.color.isValid()) e.color = Qt::white;
@@ -378,8 +393,8 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         if (!e.visible) continue;
 
         QFont f;
-        if (!e.fontFamily.isEmpty())
-            f = QFont(e.fontFamily, qMax(8, e.fontSize));
+        if (!e.family.isEmpty())
+            f = QFont(e.family, qMax(8, e.fontSize));
         else
             f = QFont(QStringLiteral("sans-serif"), qMax(8, e.fontSize));
         f.setPixelSize(qMax(8, e.fontSize));
@@ -394,7 +409,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     p.end();
     canvas.save(outPath, "PNG");
     qint64 size = QFileInfo(outPath).size();
-    qDebug() << "[ThemeManager]   saved:" << outPath << "size:" << size << "dims:" << canvas.size();
+    qDebug() << "[ThemeManager]   saved:" << outPath << "size:" << size;
     return outPath;
 }
 
