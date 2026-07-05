@@ -6,6 +6,7 @@
 #include "wallpaperhelper.h"
 #include "logger.h"
 #include "wallpaperimageprovider.h"
+#include "thememanager.h"
 
 class ModernRecClockPlugin : public QQmlExtensionPlugin {
     Q_OBJECT
@@ -28,6 +29,11 @@ public:
             [](QQmlEngine*, QJSEngine*) -> QObject* {
                 qDebug() << "[ModernRecClock] Creating Logger singleton";
                 return new Logger();
+            });
+        qmlRegisterSingletonType<ThemeManager>(uri, 1, 0, "ThemeManager",
+            [](QQmlEngine*, QJSEngine*) -> QObject* {
+                qDebug() << "[ModernRecClock] Creating ThemeManager singleton";
+                return new ThemeManager();
             });
         qDebug() << "[ModernRecClock] ModernRecClockPlugin::registerTypes done";
     }

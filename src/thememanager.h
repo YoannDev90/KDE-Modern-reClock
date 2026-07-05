@@ -1,0 +1,52 @@
+#pragma once
+
+#include <QObject>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QStringList>
+
+class ThemeManager : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString cacheDir READ cacheDir CONSTANT)
+
+public:
+    explicit ThemeManager(QObject *parent = nullptr);
+    ~ThemeManager();
+
+    QString cacheDir() const;
+
+    // === EXPORT ===
+    Q_INVOKABLE QString exportTheme(const QString &filePath,
+                                     const QString &jsonConfig,
+                                     const QStringList &embedFonts);
+
+    // === IMPORT ===
+    Q_INVOKABLE QString parseTheme(const QString &filePath);
+
+    // === FONTS ===
+    Q_INVOKABLE QStringList installThemeFonts(const QString &themePath);
+    Q_INVOKABLE void cleanupTempFonts(const QStringList &fontPaths);
+    Q_INVOKABLE QString resolveFontPath(const QString &familyName);
+
+    // === GALLERY NETWORK ===
+    Q_INVOKABLE void fetchIndex();
+    Q_INVOKABLE bool downloadTheme(const QString &themeId, const QString &url);
+    Q_INVOKABLE void clearCache();
+
+    // === GALLERY CACHE ===
+    Q_INVOKABLE QString cachedPreviewPath(const QString &themeId);
+    Q_INVOKABLE QString cachedThemePath(const QString &themeId);
+
+    // === FONT PERSISTENCE ===
+    Q_INVOKABLE void persistActiveFonts(const QStringList &fontPaths);
+    Q_INVOKABLE void restorePersistedFonts();
+
+signals:
+    void indexFetchComplete(bool success);
+    void themeDownloaded(const QString &themeId, bool success);
+    void errorOccurred(const QString &message);
+
+private:
+    QString m_cacheDir;
+    QNetworkAccessManager *m_net;
+};
