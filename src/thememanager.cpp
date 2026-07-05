@@ -439,7 +439,9 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         e.bold = cfg.value(name + QStringLiteral("_font_bold")).toBool(false);
         e.color = QColor(cfg.value(name + QStringLiteral("_font_color")).toString(QStringLiteral("#FFFFFF")));
         if (!e.color.isValid()) e.color = Qt::white;
-        e.sampleText = sample;
+        // Apply uppercase setting if present
+        bool upper = cfg.value(QStringLiteral("uppercase_") + name).toBool(false);
+        e.sampleText = upper ? sample.toUpper() : sample;
         elements.insert(name, e);
     };
 

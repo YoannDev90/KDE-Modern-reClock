@@ -418,10 +418,18 @@ KCM.SimpleKCM {
             log.info("export", "Export dialog opened, generating preview");
             var cfgJson = themesPage.getExportConfig();
             var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
+            // Try to get widget geometry from plasmoid context
             var aid = -1;
             try {
-                if (plasmoid && plasmoid.appletId !== undefined) aid = plasmoid.appletId;
-            } catch(e) {}
+                if (typeof plasmoid !== 'undefined' && plasmoid) {
+                    var keys = [];
+                    for (var k in plasmoid) keys.push(k + "=" + typeof plasmoid[k]);
+                    log.info("export", "plasmoid props: " + keys.join(", "));
+                    if (plasmoid.appletId !== undefined && plasmoid.appletId !== null) aid = plasmoid.appletId;
+                } else {
+                    log.info("export", "plasmoid NOT available in KCM context");
+                }
+            } catch(e) { log.error("export", "plasmoid error: " + e.message); }
             log.info("export", "AppletId: " + aid);
             var fonts = themesPage.resolveFontPathsFromConfig();
             log.info("export", "Fonts: " + JSON.stringify(fonts));
