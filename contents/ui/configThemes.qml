@@ -317,7 +317,6 @@ KCM.SimpleKCM {
         id: previewDialog
         title: themesPage.previewThemeData.name || i18n("Theme Preview")
         modal: true
-        parent: Overlay.overlay
         anchors.centerIn: parent
         standardButtons: QQC2.Dialog.Cancel | QQC2.Dialog.Apply
         implicitWidth: Kirigami.Units.gridUnit * 28
@@ -406,7 +405,6 @@ KCM.SimpleKCM {
         id: exportDialog
         title: i18n("Export Theme")
         modal: true
-        parent: Overlay.overlay
         anchors.centerIn: parent
         standardButtons: QQC2.Dialog.Cancel | QQC2.Dialog.Save
         implicitWidth: Kirigami.Units.gridUnit * 28
@@ -415,9 +413,11 @@ KCM.SimpleKCM {
             themesPage.exportThemeName = "";
             themesPage.exportThemeDesc = "";
             themesPage.exportThemeAuthor = "";
-            log.info("export", "Export dialog opened, capturing screenshot");
-            var result = themeManager.captureScreenshot(500);
-            log.info("export", "Screenshot captured: " + result);
+            log.info("export", "Export dialog opened, generating preview");
+            var cfgJson = themesPage.getExportConfig();
+            var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
+            var result = themeManager.generatePreview(cfgJson, wpPath);
+            log.info("export", "Preview generated: " + result);
         }
 
         onAccepted: {

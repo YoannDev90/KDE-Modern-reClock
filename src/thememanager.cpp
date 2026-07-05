@@ -14,6 +14,9 @@
 #include <QPixmap>
 #include <QPainter>
 #include <QProcess>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QMap>
 #include <QGuiApplication>
 #include <QDebug>
 #include <fontconfig/fontconfig.h>
@@ -254,6 +257,139 @@ QString ThemeManager::cachedPreviewPath(const QString &themeId)
 QString ThemeManager::cachedThemePath(const QString &themeId)
 {
     return m_cacheDir + "/themes/" + themeId + ".mrt";
+}
+
+// ===== PREVIEW GENERATOR =====
+
+QString ThemeManager::generatePreview(const QString &jsonConfig,
+                                       const QString &wallpaperPath)
+{
+    qDebug() << "[ThemeManager] generatePreview called";
+    QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
+    QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
+
+    // Parse config
+    QJsonDocument doc = QJsonDocument::fromJson(jsonConfig.toUtf8());
+    if (doc.isNull() || !doc.isObject()) {
+        qDebug() << "[ThemeManager]   invalid config JSON";
+        return fallbackPreview(outPath);
+    }
+    QJsonObject cfg = doc.object();
+
+    // Read order
+    QString orderStr = cfg.value(QStringLiteral("element_order")).toString(QStringLiteral("day,date,time,custom,timezone"));
+    QStringList order = orderStr.split(',');
+
+    // Load wallpaper or fallback background
+    QImage bg;
+    if (QFile::exists(wallpaperPath)) {
+        bg = QImage(wallpaperPath);
+        qDebug() << "[ThemeManager]   loaded wallpaper:" << wallpaperPath << bg.size();
+    }
+    if (bg.isNull()) {
+        bg = QImage(400, 225, QImage::Format_ARGB32);
+        bg.fill(QColor(42, 42, 50));
+    }
+
+    // Scale to preview size
+    QImage canvas = bg.scaled(400, 225, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    if (canvas.width() < 400 || canvas.height() < 225) {
+        // Extend with blurred edge or just center
+        QImage padded(400, 225, QImage::Format_ARGB32);
+        padded.fill(QColor(42, 42, 50));
+        QPainter pp(&padded);
+        pp.drawImage((400 - canvas.width()) / 2, (225 - canvas.height()) / 2, canvas);
+        pp.end();
+        canvas = padded;
+    }
+
+    // Calculate total height of visible elements
+    int spacing = static_cast<int>(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
+    struct ClockElement {
+        bool visible;
+        QString fontFamily;
+        int fontSize;
+        bool bold;
+        QColor color;
+        QString sampleText;
+    };
+    QMap<QString, ClockElement> elements;
+
+    auto addElement = [&](const QString &name, const QString &fontKey, int defaultSize,
+                          const QString &sample, const QString formatKey = {}) {
+        ClockElement e;
+        e.visible = cfg.value(QStringLiteral("show_") + name).toBool(true);
+        e.fontFamily = cfg.value(QStringLiteral("fontFamily") + fontKey).toString();
+        e.fontSize = static_cast<int>(cfg.value(name + QStringLiteral("_font_size")).toDouble(defaultSize));
+        e.bold = cfg.value(name + QStringLiteral("_font_bold")).toBool(false);
+        QString colStr = cfg.value(name + QStringLiteral("_font_color")).toString(QStringLiteral("#FFFFFF"));
+        e.color = QColor(colStr);
+        if (!e.color.isValid()) e.color = Qt::white;
+        e.sampleText = sample;
+        elements.insert(name, e);
+    };
+
+    addElement(QStringLiteral("day"),    QStringLiteral("Day"),    72, QStringLiteral("Wednesday"));
+    addElement(QStringLiteral("date"),  QStringLiteral("Date"),   19, QStringLiteral("15 Jan 2026"));
+    addElement(QStringLiteral("time"),  QStringLiteral("Time"),   19, QStringLiteral("14:30:00"));
+    addElement(QStringLiteral("custom"),QStringLiteral("Custom"), 19, cfg.value(QStringLiteral("custom_text")).toString(QStringLiteral("Custom Text")));
+    // timezone not in export config keys, use placeholder
+    addElement(QStringLiteral("timezone"), QStringLiteral("Timezone"), 14, QStringLiteral("UTC+8:00"));
+
+    // Calculate layout
+    int totalHeight = 0;
+    for (const QString &el : order) {
+        if (!elements.contains(el)) continue;
+        auto &e = elements[el];
+        if (!e.visible) continue;
+        totalHeight += e.fontSize + spacing;
+    }
+    if (totalHeight > 0) totalHeight -= spacing; // remove last spacing
+
+    // Paint
+    int y = (225 - totalHeight) / 2;
+    if (y < 10) y = 10; // min top padding
+
+    QPainter p(&canvas);
+    p.setRenderHint(QPainter::TextAntialiasing);
+    QString lastFamily;
+
+    for (const QString &el : order) {
+        if (!elements.contains(el)) continue;
+        auto &e = elements[el];
+        if (!e.visible) continue;
+
+        QFont f;
+        if (!e.fontFamily.isEmpty()) {
+            f = QFont(e.fontFamily, qMax(8, e.fontSize));
+        } else {
+            f = QFont(QStringLiteral("sans-serif"), qMax(8, e.fontSize));
+        }
+        f.setPixelSize(qMax(8, e.fontSize));
+        f.setBold(e.bold);
+        p.setFont(f);
+        p.setPen(e.color);
+        p.drawText(QRect(10, y, 380, e.fontSize + 4), Qt::AlignHCenter | Qt::AlignVCenter, e.sampleText);
+        y += e.fontSize + spacing;
+    }
+
+    p.end();
+    canvas.save(outPath, "PNG");
+    qDebug() << "[ThemeManager]   saved preview:" << outPath;
+    return outPath;
+}
+
+QString ThemeManager::fallbackPreview(const QString &outPath)
+{
+    QPixmap fb(400, 225);
+    fb.fill(QColor(42, 42, 50));
+    QPainter p(&fb);
+    p.setPen(Qt::white);
+    p.setFont(QFont(QStringLiteral("sans-serif"), 12));
+    p.drawText(fb.rect(), Qt::AlignCenter, QStringLiteral("Preview"));
+    p.end();
+    fb.toImage().save(outPath, "PNG");
+    return outPath;
 }
 
 // ===== SCREENSHOT =====

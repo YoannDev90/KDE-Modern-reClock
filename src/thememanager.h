@@ -44,6 +44,8 @@ public:
 
     // === SCREENSHOT ===
     Q_INVOKABLE QString captureScreenshot(int delayMs = 500);
+    Q_INVOKABLE QString generatePreview(const QString &jsonConfig,
+                                         const QString &wallpaperPath);
 
 signals:
     void indexFetchComplete(bool success);
@@ -53,4 +55,5 @@ signals:
 private:
     QString m_cacheDir;
     QNetworkAccessManager *m_net;
+    QString fallbackPreview(const QString &outPath);
 };
