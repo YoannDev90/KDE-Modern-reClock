@@ -500,8 +500,10 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         int th = fm.height();
         if (tw > naturalWidth) naturalWidth = tw;
         naturalHeight += th;
+        if (m_log) m_log->info("theme", QString("  measure %1: text='%2' tw=%3 th=%4 asc=%5 des=%6").arg(el, e.sampleText.left(20)).arg(tw).arg(th).arg(fm.ascent()).arg(fm.descent()));
     }
-    naturalHeight += configSpacing * qMax(0, order.count() - 1);
+    int totalSpacing = configSpacing * qMax(0, order.count() - 1);
+    naturalHeight += totalSpacing;
     metricsPainter.end();
 
     if (m_log) m_log->info("theme", QString("natural: %1x%2 widget: %3x%4").arg(naturalWidth).arg(naturalHeight).arg(widgetRect.width()).arg(widgetRect.height()));
