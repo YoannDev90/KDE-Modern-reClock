@@ -21,6 +21,7 @@
 #include <QDBusInterface>
 #include <QDBusMessage>
 #include <QDBusObjectPath>
+#include <QRegularExpression>
 #include <QGuiApplication>
 #include <QDebug>
 #include <fontconfig/fontconfig.h>
@@ -267,77 +268,88 @@ QString ThemeManager::cachedThemePath(const QString &themeId)
 
 QRect ThemeManager::findWidgetGeometry()
 {
-    QDBusInterface shellIface(QStringLiteral("org.kde.plasmashell"),
-                               QStringLiteral("/PlasmaShell"),
-                               QStringLiteral("org.kde.PlasmaShell"));
-    if (!shellIface.isValid()) {
-        if (m_log) m_log->info("theme", "plasmashell D-Bus not available");
+    // Read plasma config file to find our widget's geometry
+    // Format: ~/.config/plasma-org.kde.plasma.desktop-appletsrc
+    QString configPath = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+                          + QStringLiteral("/plasma-org.kde.plasma.desktop-appletsrc");
+    QFile file(configPath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (m_log) m_log->info("theme", "plasma config not found: " + configPath);
         return {};
     }
 
-    QDBusMessage containmentsMsg = shellIface.call(QStringLiteral("listContainments"));
-    if (containmentsMsg.type() != QDBusMessage::ReplyMessage) {
-        if (m_log) m_log->info("theme", "listContainments failed");
-        return {};
-    }
+    QByteArray data = file.readAll();
+    file.close();
+    QString text = QString::fromUtf8(data);
+    if (m_log) m_log->info("theme", "plasma config: " + configPath + " (" + QByteArray::number(data.size()) + " bytes)");
 
-    for (const QVariant &v : containmentsMsg.arguments()) {
-        QStringList contPaths;
-        if (v.canConvert<QStringList>()) contPaths = v.toStringList();
-        else if (v.canConvert<QList<QDBusObjectPath>>()) {
-            for (auto &p : v.value<QList<QDBusObjectPath>>())
-                contPaths << p.path();
+    // Find the applet section containing our plugin
+    int appletId = -1;
+    int containmentId = -1;
+    QRegularExpression pluginRe(QStringLiteral("plugin\\s*=\\s*com\\.github\\.yoanndev90\\.modernreclock"));
+    QRegularExpression sectionRe(QStringLiteral("\\[Containments\\]\\[(\\d+)\\]\\[Applets\\]\\[(\\d+)\\]"));
+
+    // Split into lines and find our applet
+    QStringList lines = text.split(QLatin1Char('\n'));
+    int currentContainment = -1;
+    int currentApplet = -1;
+
+    for (const QString &line : lines) {
+        // Track which section we're in
+        QRegularExpressionMatch m = sectionRe.match(line);
+        if (m.hasMatch()) {
+            currentContainment = m.captured(1).toInt();
+            currentApplet = m.captured(2).toInt();
         }
-        else continue;
 
-        if (m_log) m_log->info("theme", "containment: " + contPaths.join(", "));
+        // Check if this line is our plugin
+        if (pluginRe.match(line).hasMatch() && currentApplet >= 0) {
+            appletId = currentApplet;
+            containmentId = currentContainment;
+            if (m_log) m_log->info("theme", "found applet: containment=" + QString::number(containmentId) + " applet=" + QString::number(appletId));
+            break;
+        }
+    }
 
-        for (const QString &contPath : contPaths) {
-            QDBusInterface contIface(QStringLiteral("org.kde.plasmashell"),
-                                      contPath,
-                                      QStringLiteral("org.kde.Plasma.Containment"));
-            if (!contIface.isValid()) continue;
+    if (appletId < 0) {
+        if (m_log) m_log->info("theme", "modernreclock widget not found in plasma config");
+        return {};
+    }
 
-            QDBusMessage appletsMsg = contIface.call(QStringLiteral("applets"));
-            if (appletsMsg.type() != QDBusMessage::ReplyMessage) continue;
+    // Find geometry line: ItemGeometries-<width>x<height>=Applet-N:x,y,w,h,...
+    QScreen *screen = QGuiApplication::primaryScreen();
+    int screenW = screen ? screen->size().width() : 1920;
+    int screenH = screen ? screen->size().height() : 1080;
 
-            for (const QVariant &av : appletsMsg.arguments()) {
-                QStringList appletPaths;
-                if (av.canConvert<QStringList>()) appletPaths = av.toStringList();
-                else if (av.canConvert<QList<QDBusObjectPath>>()) {
-                    for (auto &p : av.value<QList<QDBusObjectPath>>())
-                        appletPaths << p.path();
-                }
-                else continue;
+    QRegularExpression geoRe(QStringLiteral("ItemGeometries-(\\d+)x(\\d+)\\s*=\\s*(.*)"));
+    QString searchPrefix = QStringLiteral("Applet-%1:").arg(appletId);
 
-                for (const QString &appletPath : appletPaths) {
-                    QDBusInterface appletIface(QStringLiteral("org.kde.plasmashell"),
-                                                appletPath,
-                                                QStringLiteral("org.kde.plasma.Applet"));
-                    if (!appletIface.isValid()) continue;
+    for (const QString &line : lines) {
+        QRegularExpressionMatch gm = geoRe.match(line);
+        if (!gm.hasMatch()) continue;
+        int w = gm.captured(1).toInt();
+        int h = gm.captured(2).toInt();
 
-                    QDBusMessage pluginMsg = appletIface.call(QStringLiteral("pluginName"));
-                    if (pluginMsg.type() == QDBusMessage::ReplyMessage && !pluginMsg.arguments().isEmpty()) {
-                        QString pluginName = pluginMsg.arguments().first().toString();
-                        if (m_log) m_log->info("theme", "applet: " + appletPath + " plugin: " + pluginName);
-                        if (pluginName.contains("modernreclock", Qt::CaseInsensitive)) {
-                            QDBusMessage geoMsg = appletIface.call(QStringLiteral("geometry"));
-                            if (geoMsg.type() == QDBusMessage::ReplyMessage && !geoMsg.arguments().isEmpty()) {
-                                QVariant geoVar = geoMsg.arguments().first();
-                                if (geoVar.canConvert<QRect>()) {
-                                    QRect r = geoVar.toRect();
-                                    if (m_log) m_log->info("theme", "WIDGET FOUND: " + QString("%1,%2 %3x%4").arg(r.x()).arg(r.y()).arg(r.width()).arg(r.height()));
-                                    return r;
-                                }
-                            }
-                        }
-                    }
+        // Match closest resolution
+        if (qAbs(w - screenW) > 100 || qAbs(h - screenH) > 100) continue;
+
+        QString values = gm.captured(3);
+        // Parse: Applet-5:x,y,w,h,0;Applet-6:x,y,w,h,0;...
+        // Split by semicolons and find our applet
+        for (const QString &entry : values.split(QLatin1Char(';'), Qt::SkipEmptyParts)) {
+            if (entry.startsWith(searchPrefix)) {
+                QString coords = entry.mid(searchPrefix.length());
+                QStringList parts = coords.split(QLatin1Char(','));
+                if (parts.size() >= 4) {
+                    QRect r(parts[0].toInt(), parts[1].toInt(), parts[2].toInt(), parts[3].toInt());
+                    if (m_log) m_log->info("theme", "WIDGET GEOMETRY: " + QString("%1,%2 %3x%4").arg(r.x()).arg(r.y()).arg(r.width()).arg(r.height()));
+                    return r;
                 }
             }
         }
     }
 
-    if (m_log) m_log->info("theme", "widget not found in any containment");
+    if (m_log) m_log->info("theme", "geometry not found for applet " + QString::number(appletId));
     return {};
 }
 
