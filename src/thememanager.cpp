@@ -419,23 +419,21 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     QRect widgetRect = findWidgetGeometry();
     if (m_log) m_log->info("theme", QString("widget geomscreen: %1,%2 %3x%4").arg(widgetRect.x()).arg(widgetRect.y()).arg(widgetRect.width()).arg(widgetRect.height()));
 
-    // Position on wallpaper
-    int baseX = widgetRect.isValid() ? qRound(widgetRect.x() * scaleX) : 0;
-    int baseY = widgetRect.isValid() ? qRound(widgetRect.y() * scaleY) : 0;
-    int elemWidth = widgetRect.isValid() ? qRound(widgetRect.width() * scaleX) : canvas.width();
-    // Font scale: use geometric mean of scale factors
-    double fontScale = qMin(scaleX, scaleY);
+    // Position and size on wallpaper
+    int wpX = widgetRect.isValid() ? qRound(widgetRect.x() * scaleX) : 0;
+    int wpY = widgetRect.isValid() ? qRound(widgetRect.y() * scaleY) : 0;
+    int wpW = widgetRect.isValid() ? qRound(widgetRect.width() * scaleX) : canvas.width();
+    int wpH = widgetRect.isValid() ? qRound(widgetRect.height() * scaleY) : canvas.height();
 
-    // Parse order
+    // Parse element order
     QString orderStr = cfg.value(QStringLiteral("element_order"))
                           .toString(QStringLiteral("day,date,time,custom,timezone"));
     QStringList order = orderStr.split(',');
 
-    int spacing = qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5) * fontScale);
-
     struct ClockElement {
         bool visible;
-        int fontSize;
+        int configSize;
+        int letterSpacing;
         bool bold;
         QColor color;
         QString family;
@@ -448,11 +446,11 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         ClockElement e;
         e.visible = cfg.value(QStringLiteral("show_") + name).toBool(true);
         e.family = cfg.value(QStringLiteral("fontFamily") + fontKey).toString();
-        e.fontSize = qRound(cfg.value(name + QStringLiteral("_font_size")).toDouble(defaultSize) * fontScale);
+        e.configSize = qRound(cfg.value(name + QStringLiteral("_font_size")).toDouble(defaultSize));
+        e.letterSpacing = qRound(cfg.value(name + QStringLiteral("_letter_spacing")).toDouble(0));
         e.bold = cfg.value(name + QStringLiteral("_font_bold")).toBool(false);
         e.color = QColor(cfg.value(name + QStringLiteral("_font_color")).toString(QStringLiteral("#FFFFFF")));
         if (!e.color.isValid()) e.color = Qt::white;
-        // Apply uppercase setting if present
         bool upper = cfg.value(QStringLiteral("uppercase_") + name).toBool(false);
         e.sampleText = upper ? sample.toUpper() : sample;
         elements.insert(name, e);
@@ -465,31 +463,92 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
                cfg.value(QStringLiteral("custom_text")).toString(QStringLiteral("Custom Text")));
     addElement(QStringLiteral("timezone"), QStringLiteral("Timezone"), 14, QStringLiteral("UTC+8:00"));
 
-    // Paint
+    int configSpacing = qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
+
+    // Step 1: Measure natural text size (unscaled, like widget's metricsProvider)
+    QImage metricsImage(1, 1, QImage::Format_ARGB32);
+    QPainter metricsPainter(&metricsImage);
+    int naturalWidth = 0;
+    int naturalHeight = 0;
+    for (const QString &el : order) {
+        if (!elements.contains(el)) continue;
+        auto &e = elements[el];
+        if (!e.visible) continue;
+
+        QString resolvedFam = resolveFamily(e.family);
+        QFont mf;
+        if (!resolvedFam.isEmpty()) mf = QFont(resolvedFam, qMax(8, e.configSize));
+        else mf = QFont(QStringLiteral("sans-serif"), qMax(8, e.configSize));
+        mf.setPixelSize(qMax(8, e.configSize));
+        mf.setBold(e.bold);
+        if (e.letterSpacing != 0) mf.setLetterSpacing(QFont::AbsoluteSpacing, e.letterSpacing);
+        metricsPainter.setFont(mf);
+        QFontMetrics fm = metricsPainter.fontMetrics();
+        int tw = fm.horizontalAdvance(e.sampleText);
+        int th = fm.height();
+        if (tw > naturalWidth) naturalWidth = tw;
+        naturalHeight += th;
+    }
+    naturalHeight += configSpacing * qMax(0, order.count() - 1);
+    metricsPainter.end();
+
+    if (m_log) m_log->info("theme", QString("natural: %1x%2 widget: %3x%4").arg(naturalWidth).arg(naturalHeight).arg(widgetRect.width()).arg(widgetRect.height()));
+
+    // Step 2: Calculate widget's auto-scale (matches main.qml fontScale logic)
+    double widgetFontScale = 1.0;
+    if (naturalWidth > 0 && naturalHeight > 0 && widgetRect.isValid()) {
+        double sw = widgetRect.width() - 16;
+        double sh = widgetRect.height() - 16;
+        widgetFontScale = qMin(sw / naturalWidth, sh / naturalHeight);
+    }
+    if (m_log) m_log->info("theme", QString("widgetFontScale: %1").arg(widgetFontScale, 0, 'f', 3));
+
+    // Step 3: Render with scaled sizes, centered in widget area
     QPainter p(&canvas);
     p.setRenderHint(QPainter::TextAntialiasing);
     p.setRenderHint(QPainter::Antialiasing);
-    int y = baseY;
+
+    // Calculate total rendered height to center vertically
+    int totalRenderedHeight = 0;
+    for (const QString &el : order) {
+        if (!elements.contains(el)) continue;
+        auto &e = elements[el];
+        if (!e.visible) continue;
+        int scaledSize = qMax(8, qRound(e.configSize * widgetFontScale));
+        totalRenderedHeight += scaledSize;
+    }
+    totalRenderedHeight += qRound(configSpacing * widgetFontScale) * qMax(0, order.count() - 1);
+
+    int y = wpY + qMax(0, (wpH - totalRenderedHeight) / 2);
 
     for (const QString &el : order) {
         if (!elements.contains(el)) continue;
         auto &e = elements[el];
         if (!e.visible) continue;
 
+        int scaledSize = qMax(8, qRound(e.configSize * widgetFontScale));
+        int scaledSpacing = qRound(e.letterSpacing * widgetFontScale);
+        int scaledElemSpacing = qRound(configSpacing * widgetFontScale);
+
         QString resolvedFamily = resolveFamily(e.family);
         QFont f;
-        if (!resolvedFamily.isEmpty())
-            f = QFont(resolvedFamily, qMax(8, e.fontSize));
-        else
-            f = QFont(QStringLiteral("sans-serif"), qMax(8, e.fontSize));
-        f.setPixelSize(qMax(8, e.fontSize));
+        if (!resolvedFamily.isEmpty()) f = QFont(resolvedFamily, qMax(8, scaledSize));
+        else f = QFont(QStringLiteral("sans-serif"), qMax(8, scaledSize));
+        f.setPixelSize(qMax(8, scaledSize));
         f.setBold(e.bold);
-        if (m_log) m_log->info("theme", QString("paint %1 family: %2 → %3 size: %4 bold: %5").arg(el, e.family, resolvedFamily).arg(e.fontSize).arg(e.bold ? "yes" : "no"));
+        if (scaledSpacing != 0) f.setLetterSpacing(QFont::AbsoluteSpacing, scaledSpacing);
+
         p.setFont(f);
         p.setPen(e.color);
-        p.drawText(QRect(baseX, y, elemWidth, e.fontSize + 4),
-                   Qt::AlignLeft | Qt::AlignVCenter, e.sampleText);
-        y += e.fontSize + spacing;
+
+        // Center horizontally within widget area on wallpaper
+        QFontMetrics fm = p.fontMetrics();
+        int textWidth = fm.horizontalAdvance(e.sampleText);
+        int textX = wpX + qMax(0, (wpW - textWidth) / 2);
+
+        if (m_log) m_log->info("theme", QString("paint %1 size: %2 spacing: %3 text: '%4'").arg(el).arg(scaledSize).arg(scaledSpacing).arg(e.sampleText.left(15)));
+        p.drawText(QRect(textX, y, textWidth + 10, fm.height()), Qt::AlignLeft | Qt::AlignVCenter, e.sampleText);
+        y += scaledSize + scaledElemSpacing;
     }
 
     p.end();
