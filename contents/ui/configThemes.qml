@@ -422,12 +422,16 @@ KCM.SimpleKCM {
             var aid = -1;
             try {
                 if (typeof plasmoid !== 'undefined' && plasmoid) {
-                    var keys = [];
-                    for (var k in plasmoid) keys.push(k + "=" + typeof plasmoid[k]);
-                    log.info("export", "plasmoid props: " + keys.join(", "));
-                    if (plasmoid.appletId !== undefined && plasmoid.appletId !== null) aid = plasmoid.appletId;
-                } else {
-                    log.info("export", "plasmoid NOT available in KCM context");
+                    // Check containment for applet geometry
+                    if (plasmoid.containment) {
+                        var ckeys = [];
+                        for (var k in plasmoid.containment) ckeys.push(k);
+                        log.info("export", "containment props: " + ckeys.join(", "));
+                    }
+                    // Try pluginName for identification
+                    if (plasmoid.pluginName) log.info("export", "pluginName: " + plasmoid.pluginName);
+                    // Try id property
+                    log.info("export", "plasmoid.id type=" + typeof plasmoid.id + " val=" + plasmoid.id);
                 }
             } catch(e) { log.error("export", "plasmoid error: " + e.message); }
             log.info("export", "AppletId: " + aid);

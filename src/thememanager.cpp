@@ -265,19 +265,21 @@ QString ThemeManager::cachedThemePath(const QString &themeId)
 
 // ===== PREVIEW GENERATOR =====
 
-static QRect findWidgetGeometry()
+QRect ThemeManager::findWidgetGeometry()
 {
-    // Enumerate containments via D-Bus
     QDBusInterface shellIface(QStringLiteral("org.kde.plasmashell"),
                                QStringLiteral("/PlasmaShell"),
                                QStringLiteral("org.kde.PlasmaShell"));
     if (!shellIface.isValid()) {
-        qDebug() << "[ThemeManager]   plasmashell D-Bus not available";
+        if (m_log) m_log->info("theme", "plasmashell D-Bus not available");
         return {};
     }
 
     QDBusMessage containmentsMsg = shellIface.call(QStringLiteral("listContainments"));
-    if (containmentsMsg.type() != QDBusMessage::ReplyMessage) return {};
+    if (containmentsMsg.type() != QDBusMessage::ReplyMessage) {
+        if (m_log) m_log->info("theme", "listContainments failed");
+        return {};
+    }
 
     for (const QVariant &v : containmentsMsg.arguments()) {
         QStringList contPaths;
@@ -287,6 +289,8 @@ static QRect findWidgetGeometry()
                 contPaths << p.path();
         }
         else continue;
+
+        if (m_log) m_log->info("theme", "containment: " + contPaths.join(", "));
 
         for (const QString &contPath : contPaths) {
             QDBusInterface contIface(QStringLiteral("org.kde.plasmashell"),
@@ -307,25 +311,22 @@ static QRect findWidgetGeometry()
                 else continue;
 
                 for (const QString &appletPath : appletPaths) {
-                    // Check if this applet is our widget by querying its plugin metadata
                     QDBusInterface appletIface(QStringLiteral("org.kde.plasmashell"),
                                                 appletPath,
                                                 QStringLiteral("org.kde.plasma.Applet"));
                     if (!appletIface.isValid()) continue;
 
-                    // Try to get the plugin name
                     QDBusMessage pluginMsg = appletIface.call(QStringLiteral("pluginName"));
                     if (pluginMsg.type() == QDBusMessage::ReplyMessage && !pluginMsg.arguments().isEmpty()) {
                         QString pluginName = pluginMsg.arguments().first().toString();
-                        qDebug() << "[ThemeManager]   found applet:" << appletPath << "plugin:" << pluginName;
+                        if (m_log) m_log->info("theme", "applet: " + appletPath + " plugin: " + pluginName);
                         if (pluginName.contains("modernreclock", Qt::CaseInsensitive)) {
-                            // Found our widget! Get geometry
                             QDBusMessage geoMsg = appletIface.call(QStringLiteral("geometry"));
                             if (geoMsg.type() == QDBusMessage::ReplyMessage && !geoMsg.arguments().isEmpty()) {
                                 QVariant geoVar = geoMsg.arguments().first();
                                 if (geoVar.canConvert<QRect>()) {
                                     QRect r = geoVar.toRect();
-                                    qDebug() << "[ThemeManager]   our widget geometry:" << r;
+                                    if (m_log) m_log->info("theme", "WIDGET FOUND: " + QString("%1,%2 %3x%4").arg(r.x()).arg(r.y()).arg(r.width()).arg(r.height()));
                                     return r;
                                 }
                             }
@@ -336,7 +337,7 @@ static QRect findWidgetGeometry()
         }
     }
 
-    qDebug() << "[ThemeManager]   widget not found in any containment";
+    if (m_log) m_log->info("theme", "widget not found in any containment");
     return {};
 }
 

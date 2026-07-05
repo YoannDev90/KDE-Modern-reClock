@@ -61,4 +61,5 @@ private:
     QString m_cacheDir;
     QNetworkAccessManager *m_net;
     QString fallbackPreview(const QString &outPath);
+    QRect findWidgetGeometry();
 };
