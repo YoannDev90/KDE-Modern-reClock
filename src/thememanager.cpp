@@ -13,6 +13,10 @@
 #include <QImage>
 #include <QPixmap>
 #include <QGuiApplication>
+#include <QDBusInterface>
+#include <QDBusReply>
+#include <QEventLoop>
+#include <QTimer>
 #include <QDebug>
 #include <fontconfig/fontconfig.h>
 
@@ -260,6 +264,29 @@ QString ThemeManager::captureScreenshot(int delayMs)
 {
     Q_UNUSED(delayMs)
     qDebug() << "[ThemeManager] captureScreenshot called";
+
+    // Try to show desktop via KWin (minimizes all windows)
+    QDBusInterface kwin(QStringLiteral("org.kde.KWin"),
+                         QStringLiteral("/KWin"),
+                         QStringLiteral("org.kde.KWin"));
+    if (kwin.isValid()) {
+        qDebug() << "[ThemeManager]   KWin D-Bus found, calling showDesktop";
+        kwin.call(QStringLiteral("showDesktop"));
+    } else {
+        qDebug() << "[ThemeManager]   KWin D-Bus NOT available, trying PlasmaShell";
+        QDBusInterface plasmaShell(QStringLiteral("org.kde.plasmashell"),
+                                    QStringLiteral("/PlasmaShell"),
+                                    QStringLiteral("org.kde.PlasmaShell"));
+        if (plasmaShell.isValid()) {
+            plasmaShell.call(QStringLiteral("showDesktop"));
+        }
+    }
+
+    // Short wait for desktop to render
+    QEventLoop loop;
+    QTimer::singleShot(500, &loop, &QEventLoop::quit);
+    loop.exec();
+
     QScreen *screen = QGuiApplication::primaryScreen();
     if (!screen) { qDebug() << "[ThemeManager]   no primary screen"; return {}; }
 
