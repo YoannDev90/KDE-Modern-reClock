@@ -150,7 +150,7 @@ PlasmoidItem {
     function updateClock() {
         _invalidatePropsCache();
         currentDateTime = new Date();
-        log.debug("clock", "Clock updated → " + timeText());
+        log.debug("clock", "updateClock → " + timeText());
         scheduleNextClockTick();
     }
 
@@ -166,6 +166,7 @@ PlasmoidItem {
 
         clockTimer.interval = Math.max(50, delay);
         clockTimer.restart();
+        log.debug("clock", "next tick in " + clockTimer.interval + "ms");
     }
 
     function formatDateLocaleAware(date, format, fallbackFormat = "dd MMM yyyy") {
