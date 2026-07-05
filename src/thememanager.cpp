@@ -25,6 +25,7 @@ ThemeManager::ThemeManager(QObject *parent)
     QDir().mkpath(m_cacheDir);
     QDir().mkpath(m_cacheDir + QStringLiteral("/fonts"));
     QDir().mkpath(m_cacheDir + QStringLiteral("/themes"));
+    QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
 }
 
 ThemeManager::~ThemeManager() {}
@@ -35,10 +36,23 @@ QString ThemeManager::cacheDir() const { return m_cacheDir; }
 
 QString ThemeManager::exportTheme(const QString &filePath,
                                    const QString &jsonConfig,
-                                   const QStringList &embedFonts)
+                                   const QStringList &embedFonts,
+                                   const QString &wallpaperPath)
 {
     QList<MrtArchiveEntry> entries;
+    // First entry = mimetype (ODF convention) for MIME detection by file managers
+    entries.append({QStringLiteral("mimetype"), QStringLiteral("application/zip").toUtf8()});
     entries.append({QStringLiteral("theme.json"), jsonConfig.toUtf8()});
+
+    // Preview image (if captured)
+    QString previewPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
+    if (QFile::exists(previewPath)) {
+        QFile pf(previewPath);
+        if (pf.open(QIODevice::ReadOnly)) {
+            entries.append({QStringLiteral("preview.png"), pf.readAll()});
+            pf.close();
+        }
+    }
 
     for (const QString &fontPath : embedFonts) {
         QFile f(fontPath);
@@ -58,6 +72,17 @@ QString ThemeManager::exportTheme(const QString &filePath,
                 entries.append({QStringLiteral("fonts/") + name + QStringLiteral(".license"), lf.readAll()});
                 break;
             }
+        }
+    }
+
+    // Wallpaper image (if available and color_mode is wallpaper)
+    if (QFile::exists(wallpaperPath)) {
+        QFile wf(wallpaperPath);
+        if (wf.open(QIODevice::ReadOnly)) {
+            QString ext = QFileInfo(wallpaperPath).suffix();
+            if (ext.isEmpty()) ext = QStringLiteral("png");
+            entries.append({QStringLiteral("wallpaper.") + ext, wf.readAll()});
+            wf.close();
         }
     }
 

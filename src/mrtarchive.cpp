@@ -136,31 +136,47 @@ bool MrtArchive::write(const QString &filePath, const QList<MrtArchiveEntry> &en
         quint32 crc = crc32(entry.data);
 
         // ===== Local file header (30 + name) =====
-        QByteArray localHeader(30 + nameLen, 0);
+        // ZIP local header layout:
+        //   0-3: signature  |  4-5: version  |  6-7: flags  |  8-9: comp method
+        //  10-11: time  |  12-13: date  |  14-17: crc  |  18-21: csize  |  22-25: usize
+        //  26-27: nameLen  |  28-29: extraLen  |  30+: name
+        QByteArray localHeader(30 + nameLen, '\0');
         quint32 sig = LOCAL_HEADER_SIG;
         memcpy(localHeader.data() + 0,  &sig, 4);
         quint16 version = 20;
         memcpy(localHeader.data() + 4,  &version, 2);
+        // offset 6-7 flags = 0 (\0-init = STORED)
+        // offset 8-9 comp method = 0 (\0-init = STORED)
         memcpy(localHeader.data() + 10, &dosTime_, 2);
         memcpy(localHeader.data() + 12, &dosDate_, 2);
         memcpy(localHeader.data() + 14, &crc, 4);
         memcpy(localHeader.data() + 18, &size, 4);
         memcpy(localHeader.data() + 22, &size, 4);
         memcpy(localHeader.data() + 26, &nameLen, 2);
+        // offset 28-29 extraLen = 0 (\0-init)
         memcpy(localHeader.data() + 30, nameBytes.constData(), nameLen);
 
         fileData.append(localHeader);
         fileData.append(entry.data);
 
         // ===== Central directory entry (46 + name) =====
-        QByteArray centralEntry(46 + nameLen, 0);
+        // ZIP central dir layout:
+        //   0-3: signature  |  4-5: ver made  |  6-7: ver need  |  8-9: flags
+        //  10-11: comp method  |  12-13: time  |  14-15: date  |  16-19: crc
+        //  20-23: csize  |  24-27: usize  |  28-29: nameLen  |  30-31: extraLen
+        //  32-33: commentLen  |  34-35: disk  |  36-37: intAttr  |  38-41: extAttr
+        //  42-45: localOffset  |  46+: name
+        QByteArray centralEntry(46 + nameLen, '\0');
         sig = CENTRAL_HEADER_SIG;
         memcpy(centralEntry.data() + 0,  &sig, 4);
         version = 20;
-        memcpy(centralEntry.data() + 4,  &version, 2);
+        quint16 versionMadeBy = (3 << 8) | 20; // Unix host, ZIP 2.0
+        memcpy(centralEntry.data() + 4,  &versionMadeBy, 2);
         memcpy(centralEntry.data() + 6,  &version, 2);
-        memcpy(centralEntry.data() + 10, &dosTime_, 2);
-        memcpy(centralEntry.data() + 12, &dosDate_, 2);
+        // offset 8-9 flags = 0
+        // offset 10-11 comp method = 0 (\0-init = STORED)
+        memcpy(centralEntry.data() + 12, &dosTime_, 2);  // was bug: wrote to offset 10
+        memcpy(centralEntry.data() + 14, &dosDate_, 2);  // was bug: wrote to offset 12
         memcpy(centralEntry.data() + 16, &crc, 4);
         memcpy(centralEntry.data() + 20, &size, 4);
         memcpy(centralEntry.data() + 24, &size, 4);
@@ -173,7 +189,7 @@ bool MrtArchive::write(const QString &filePath, const QList<MrtArchiveEntry> &en
     }
 
     // ===== End of central directory (22) =====
-    QByteArray eocd(22, 0);
+    QByteArray eocd(22, '\0');
     quint32 eocdSig = EOCD_SIG;
     memcpy(eocd.data() + 0,  &eocdSig, 4);
     quint16 numEntries = static_cast<quint16>(entries.size());

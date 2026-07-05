@@ -64,6 +64,18 @@ if [ -f "translate/build.sh" ]; then
     ./translate/build.sh
 fi
 
+echo "--- Registering .mrt MIME type for ZIP detection ---"
+MIME_SRC="pkg/mime/modernreclock-theme.xml"
+if [ -f "$MIME_SRC" ]; then
+    MIME_DIR="${HOME}/.local/share/mime/packages"
+    mkdir -p "$MIME_DIR"
+    cp "$MIME_SRC" "$MIME_DIR/modernreclock-theme.xml"
+    if command -v update-mime-database &>/dev/null; then
+        update-mime-database "${HOME}/.local/share/mime" 2>/dev/null || true
+    fi
+    echo "  .mrt files will now be recognized as ZIP archives"
+fi
+
 echo "--- Installing the widget ---"
 # Try to update, if it fails (not installed yet), install it
 kpackagetool6 -t Plasma/Applet -u . || kpackagetool6 -t Plasma/Applet -i .

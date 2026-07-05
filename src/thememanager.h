@@ -18,7 +18,8 @@ public:
     // === EXPORT ===
     Q_INVOKABLE QString exportTheme(const QString &filePath,
                                      const QString &jsonConfig,
-                                     const QStringList &embedFonts);
+                                     const QStringList &embedFonts,
+                                     const QString &wallpaperPath = {});
 
     // === IMPORT ===
     Q_INVOKABLE QString parseTheme(const QString &filePath);
