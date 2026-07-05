@@ -69,11 +69,9 @@ KCM.SimpleKCM {
 
     // ===== Timezone element properties =====
     property alias cfg_show_timezone: showTimezone.checked
-    property alias cfg_timezone_id: _timezoneIdStorage.text
+    property string cfg_timezone_id: ""
     property alias cfg_timezone_label: timezoneLabel.text
-    property alias cfg_timezone_display_text: _timezoneDisplayStorage.text
-    // Timezone format is now automatically derived from main time format (no seconds)
-    // Kept as empty string; the real format is computed in main.qml timezoneFormat()
+    property string cfg_timezone_display_text: ""
     property alias cfg_timezone_format: _timezoneFmtStorage.text
     property alias cfg_timezone_font_size: timezoneFontSize.value
     property alias cfg_timezone_letter_spacing: timezoneLetterSpacing.value
@@ -391,8 +389,8 @@ KCM.SimpleKCM {
             timezoneFontCombo.currentIndex = Math.max(0, timezoneFontCombo.model.indexOf(d.font));
             timezoneFontSize.value = d.size;
             timezoneLetterSpacing.value = d.spacing;
-            _timezoneIdStorage.text = d.id || "";
-            _timezoneDisplayStorage.text = "";
+            appearancePage.cfg_timezone_id = d.id || "";
+            appearancePage.cfg_timezone_display_text = "";
             // Select matching preset in ComboBox or set custom text
             var tzVal = d.id || "";
             var found = false;
@@ -400,14 +398,14 @@ KCM.SimpleKCM {
                 if (timezoneIdField.model.get(j).value === tzVal) {
                     timezoneIdField.currentIndex = j;
                     timezoneIdField.editText = timezoneIdField.model.get(j).text;
-                    _timezoneDisplayStorage.text = timezoneIdField.model.get(j).text;
+                    appearancePage.cfg_timezone_display_text = timezoneIdField.model.get(j).text;
                     found = true;
                     break;
                 }
             }
             if (!found && tzVal.length > 0) {
                 timezoneIdField.editText = tzVal;
-                _timezoneDisplayStorage.text = tzVal;
+                appearancePage.cfg_timezone_display_text = tzVal;
             } else if (!found) {
                 timezoneIdField.currentIndex = 0;
             }
@@ -845,20 +843,6 @@ KCM.SimpleKCM {
             onTextChanged: appearancePage.savedThemesJson = text
         }
 
-        // Hidden field for timezone_id KCM alias (ComboBox writes here)
-        QQC2.TextField {
-            id: _timezoneIdStorage
-            visible: false
-            text: ""
-        }
-
-        // Hidden field for timezone display text (saved ComboBox display string)
-        QQC2.TextField {
-            id: _timezoneDisplayStorage
-            visible: false
-            text: ""
-        }
-
         // Hidden fields for fontFamily KCM aliases
         QQC2.TextField { id: _fontFamilyDayStorage; visible: false; text: "Anurati" }
         QQC2.TextField { id: _fontFamilyDateStorage; visible: false; text: "Poppins" }
@@ -1273,57 +1257,57 @@ KCM.SimpleKCM {
             valueRole: "value"
             onActivated: {
                 var v = model.get(currentIndex).value;
-                _timezoneIdStorage.text = v;
-                // Save display text so it restores on next open
-                _timezoneDisplayStorage.text = (currentIndex >= 0 && currentIndex < model.count)
+                appearancePage.cfg_timezone_id = v;
+                appearancePage.cfg_timezone_display_text = (currentIndex >= 0 && currentIndex < model.count)
                     ? model.get(currentIndex).text : "";
             }
             onEditTextChanged: {
-                if (editText !== undefined && editText.length > 0) {
+                if (editText !== undefined && editText.length > 0 && editText !== "—") {
                     var matched = false;
-                    // Match by text role first (display string from dropdown)
                     for (var i = 0; i < model.count; i++) {
                         if (model.get(i).text === editText) {
-                            _timezoneIdStorage.text = model.get(i).value;
-                            _timezoneDisplayStorage.text = editText;
+                            appearancePage.cfg_timezone_id = model.get(i).value;
+                            appearancePage.cfg_timezone_display_text = editText;
                             matched = true;
                             break;
                         }
                     }
                     if (!matched) {
-                        // Match by value role (user typed a known IANA ID)
                         for (var i = 0; i < model.count; i++) {
                             if (model.get(i).value === editText) {
-                                _timezoneIdStorage.text = editText;
+                                appearancePage.cfg_timezone_id = editText;
                                 matched = true;
                                 break;
                             }
                         }
                     }
                     if (!matched) {
-                        // Custom IANA ID typed by user
-                        _timezoneIdStorage.text = editText;
+                        appearancePage.cfg_timezone_id = editText;
                     }
                 }
             }
             Component.onCompleted: {
-                // Restore saved display text directly from config
-                var savedDisplay = appearancePage.cfg_timezone_display_text || "";
-                if (savedDisplay.length > 0) {
-                    editText = savedDisplay;
-                } else {
-                    // Fallback: match IANA ID against model
-                    var currentVal = appearancePage.cfg_timezone_id || "";
-                    for (var i = 0; i < model.count; i++) {
-                        if (model.get(i).value === currentVal) {
-                            currentIndex = i;
-                            return;
+                Qt.callLater(function() {
+                    var d = appearancePage.cfg_timezone_display_text || "";
+                    if (d.length > 0) {
+                        for (var i = 0; i < timezoneIdField.model.count; i++) {
+                            if (timezoneIdField.model.get(i).text === d) {
+                                timezoneIdField.currentIndex = i;
+                                return;
+                            }
                         }
                     }
-                    if (currentVal.length > 0) {
-                        editText = currentVal;
+                    var id = appearancePage.cfg_timezone_id || "";
+                    if (id.length > 0) {
+                        for (var i = 0; i < timezoneIdField.model.count; i++) {
+                            if (timezoneIdField.model.get(i).value === id) {
+                                timezoneIdField.currentIndex = i;
+                                return;
+                            }
+                        }
+                        timezoneIdField.editText = id;
                     }
-                }
+                });
             }
             QQC2.ToolTip.text: i18n("Select a timezone or type a custom IANA ID")
             QQC2.ToolTip.visible: hovered
