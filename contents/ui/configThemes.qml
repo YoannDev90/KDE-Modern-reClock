@@ -272,7 +272,7 @@ KCM.SimpleKCM {
         standardButtons: QQC2.Dialog.Cancel | QQC2.Dialog.Apply
         implicitWidth: Kirigami.Units.gridUnit * 28
 
-        onApplyClicked: {
+        onAccepted: {
             var d = themesPage.previewThemeData;
             if (d.mrt_url) {
                 themeManager.downloadTheme(d.id, d.mrt_url);
