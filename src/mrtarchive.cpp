@@ -37,17 +37,20 @@ QList<MrtArchiveEntry> MrtArchive::read(const QString &filePath)
     QList<MrtArchiveEntry> entries;
 
     QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly))
+    if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "[MRT] READ FAILED: cannot open" << filePath;
         return entries;
+    }
 
     QByteArray fullData = file.readAll();
     file.close();
+    qDebug() << "[MRT] read:" << filePath << "size:" << fullData.size();
 
-    // Find End of Central Directory record
-    if (fullData.size() < 22)
+    if (fullData.size() < 22) {
+        qDebug() << "[MRT] file too small (< 22 bytes), not a ZIP";
         return entries;
+    }
 
-    // Search backwards for EOCD signature
     int eocdPos = -1;
     for (int i = fullData.size() - 22; i >= 0; i--) {
         if (fullData[i]   == 0x50 && fullData[i+1] == 0x4b &&
@@ -56,12 +59,14 @@ QList<MrtArchiveEntry> MrtArchive::read(const QString &filePath)
             break;
         }
     }
-    if (eocdPos < 0)
+    if (eocdPos < 0) {
+        qDebug() << "[MRT] EOCD not found, not a valid ZIP";
         return entries;
+    }
 
-    // Parse EOCD
     quint32 centralDirOffset;
     memcpy(&centralDirOffset, fullData.constData() + eocdPos + 16, 4);
+    qDebug() << "[MRT] EOCD at" << eocdPos << "centralDirOffset:" << centralDirOffset;
 
     // Walk central directory
     int pos = static_cast<int>(centralDirOffset);
@@ -98,10 +103,12 @@ QList<MrtArchiveEntry> MrtArchive::read(const QString &filePath)
 
         QByteArray data = fullData.mid(dataOffset, static_cast<int>(compSize));
         entries.append({name, data});
+        qDebug() << "[MRT]   entry:" << name << "size:" << compSize;
 
         pos += 46 + nameLen + extraLen + commentLen;
     }
 
+    qDebug() << "[MRT] read OK:" << entries.size() << "entries";
     return entries;
 }
 
@@ -120,8 +127,10 @@ QByteArray MrtArchive::readSingle(const QString &filePath, const QString &entryN
 bool MrtArchive::write(const QString &filePath, const QList<MrtArchiveEntry> &entries)
 {
     QFile file(filePath);
-    if (!file.open(QIODevice::WriteOnly))
+    if (!file.open(QIODevice::WriteOnly)) {
+        qDebug() << "[MRT] WRITE FAILED: cannot open" << filePath;
         return false;
+    }
 
     QByteArray centralDir;
     quint32 offset = 0;

@@ -240,6 +240,7 @@ KCM.SimpleKCM {
 
 
     function updatePreview() {
+        log.debug("config", "updatePreview: day=" + cfg_day_format + " date=" + cfg_date_format + " time=" + cfg_time_format + " color=" + cfg_color_mode);
         let dayFmt = cfg_day_format && cfg_day_format.trim().length > 0 ? cfg_day_format.trim() : "dddd";
         let day = previewFormatDate(dayFmt);
         previewDayText = cfg_uppercase_day ? day.toUpperCase() : day;

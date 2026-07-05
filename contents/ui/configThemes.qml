@@ -223,15 +223,14 @@ KCM.SimpleKCM {
         var families = themesPage.detectFontFamilies();
         var paths = [];
         var seen = {};
-        // Try fontconfig for each family
         for (var i = 0; i < families.length; i++) {
             var p = themeManager.resolveFontPath(families[i]);
             if (p && !seen[p]) { seen[p] = true; paths.push(p); }
+            log.debug("themes", "resolveFont '" + families[i] + "' → " + (p || "NOT FOUND"));
         }
-        // Always include bundled fonts (they're not in fontconfig)
         for (var i = 0; i < themesPage.bundledFonts.length; i++) {
             var f = themesPage.bundledFonts[i];
-            if (f && !seen[f]) { seen[f] = true; paths.push(f); }
+            if (f && !seen[f]) { seen[f] = true; paths.push(f); log.debug("themes", "bundled font: " + f); }
         }
         return paths;
     }
@@ -262,6 +261,7 @@ KCM.SimpleKCM {
                 xhr.send();
             } else {
                 themesPage.indexError = i18n("Failed to fetch theme index");
+                log.error("gallery", "Index fetch failed");
             }
         }
 
@@ -306,6 +306,7 @@ KCM.SimpleKCM {
         nameFilters: [i18n("Font files (*.ttf *.otf)")]
         onAccepted: {
             var path = fontFileDialog.selectedFile.toString().replace("file://", "");
+            log.debug("themes", "Font added: " + path);
             var paths = themesPage.embedFontPaths.slice();
             paths.push(path);
             themesPage.embedFontPaths = paths;
@@ -324,6 +325,7 @@ KCM.SimpleKCM {
         onAccepted: {
             var d = themesPage.previewThemeData;
             if (d.mrt_url) {
+                log.info("gallery", "Download theme: " + d.id + " from " + d.mrt_url);
                 themeManager.downloadTheme(d.id, d.mrt_url);
             }
             previewDialog.close();
