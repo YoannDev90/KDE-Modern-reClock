@@ -415,8 +415,8 @@ KCM.SimpleKCM {
             themesPage.exportThemeName = "";
             themesPage.exportThemeDesc = "";
             themesPage.exportThemeAuthor = "";
-            // Capture preview in background (will be ready by file dialog time)
-            previewCapture.capture(function(p) {});
+            // Capture screenshot for preview
+            themeManager.captureScreenshot(500);
         }
 
         onAccepted: {
@@ -539,109 +539,6 @@ KCM.SimpleKCM {
                 log.info("themes", "Theme exported to: " + result);
             else
                 log.error("themes", "Theme export failed");
-        }
-    }
-
-    // ===== Preview capture (off-screen, grabToImage target) =====
-    Item {
-        id: previewCapture
-        x: -10000
-        y: -10000
-        width: 400
-        height: 225
-        visible: true
-
-        // Background color derived from wallpaper or theme
-        readonly property color bgColor: {
-            var mode = themesPage.cfg_color_mode || "custom";
-            if (mode === "wallpaper") {
-                var wp = ModernRecClock.Wallpaper;
-                if (wp) {
-                    var path = wp.wallpaperPath();
-                    if (path) {
-                        var b = wp.wallpaperBrightness(path);
-                        return b === "light" ? "#e0e0e0" : "#1a1a1a";
-                    }
-                }
-                return "#1a1a1a";
-            }
-            return Kirigami.Theme.backgroundColor;
-        }
-
-        readonly property color textColor: {
-            var mode = themesPage.cfg_color_mode || "custom";
-            if (mode === "theme") return Kirigami.Theme.textColor;
-            if (mode === "wallpaper") {
-                var wp = ModernRecClock.Wallpaper;
-                if (wp) {
-                    var path = wp.wallpaperPath();
-                    if (path) {
-                        var b = wp.wallpaperBrightness(path);
-                        return b === "light" ? "#000000" : "#FFFFFF";
-                    }
-                }
-                return "#FFFFFF";
-            }
-            return "#FFFFFF";
-        }
-
-        Rectangle {
-            anchors.fill: parent
-            color: previewCapture.bgColor
-            radius: 8
-
-            Column {
-                anchors.centerIn: parent
-                spacing: 4
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Wednesday"
-                    font.family: themesPage.cfg_fontFamilyDay || "Anurati"
-                    font.pixelSize: 18
-                    font.bold: themesPage.cfg_day_font_bold
-                    color: themesPage.cfg_day_font_color || previewCapture.textColor
-                    visible: themesPage.cfg_show_day
-                    horizontalAlignment: Text.AlignHCenter
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "15 Jan 2026"
-                    font.family: themesPage.cfg_fontFamilyDate || "Poppins"
-                    font.pixelSize: 14
-                    font.bold: themesPage.cfg_date_font_bold
-                    color: themesPage.cfg_date_font_color || previewCapture.textColor
-                    visible: themesPage.cfg_show_date
-                    horizontalAlignment: Text.AlignHCenter
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "14:30"
-                    font.family: themesPage.cfg_fontFamilyTime || "Poppins"
-                    font.pixelSize: 28
-                    font.bold: themesPage.cfg_time_font_bold
-                    color: themesPage.cfg_time_font_color || previewCapture.textColor
-                    visible: themesPage.cfg_show_time
-                    horizontalAlignment: Text.AlignHCenter
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: themesPage.cfg_custom_text || "Custom Text"
-                    font.family: themesPage.cfg_fontFamilyCustom || "Poppins"
-                    font.pixelSize: 14
-                    font.bold: themesPage.cfg_custom_font_bold
-                    color: themesPage.cfg_custom_font_color || previewCapture.textColor
-                    visible: themesPage.cfg_show_custom
-                    horizontalAlignment: Text.AlignHCenter
-                }
-            }
-        }
-
-        function capture(callback) {
-            var tmpFile = themeManager.cacheDir + "/previews/export_preview.png";
-            previewCapture.grabToImage(function(result) {
-                result.saveToFile(tmpFile);
-                if (callback) callback(tmpFile);
-            });
         }
     }
 

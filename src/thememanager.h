@@ -42,6 +42,9 @@ public:
     Q_INVOKABLE void persistActiveFonts(const QStringList &fontPaths);
     Q_INVOKABLE void restorePersistedFonts();
 
+    // === SCREENSHOT ===
+    Q_INVOKABLE QString captureScreenshot(int delayMs = 500);
+
 signals:
     void indexFetchComplete(bool success);
     void themeDownloaded(const QString &themeId, bool success);

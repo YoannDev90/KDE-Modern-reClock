@@ -9,6 +9,10 @@
 #include <QUrl>
 #include <QEventLoop>
 #include <QFontDatabase>
+#include <QScreen>
+#include <QImage>
+#include <QPixmap>
+#include <QGuiApplication>
 #include <fontconfig/fontconfig.h>
 
 static const QString FONTS_CACHE_SUBDIR = QStringLiteral("modernreclock-fonts");
@@ -235,6 +239,24 @@ QString ThemeManager::cachedPreviewPath(const QString &themeId)
 QString ThemeManager::cachedThemePath(const QString &themeId)
 {
     return m_cacheDir + "/themes/" + themeId + ".mrt";
+}
+
+// ===== SCREENSHOT =====
+
+QString ThemeManager::captureScreenshot(int delayMs)
+{
+    Q_UNUSED(delayMs)
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (!screen) return {};
+
+    QPixmap full = screen->grabWindow(0);
+    QImage thumb = full.toImage().scaled(400, 225, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+    QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
+    QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
+    thumb.save(outPath, "PNG");
+
+    return outPath;
 }
 
 // ===== FONT PERSISTENCE =====
