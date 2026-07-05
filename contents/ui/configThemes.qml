@@ -178,6 +178,14 @@ KCM.SimpleKCM {
     property string indexError: ""
     property var embedFontPaths: []
 
+    // Preview dialog state
+    property var previewThemeData: ({})
+
+    // Export dialog state
+    property string exportThemeName: ""
+    property string exportThemeDesc: ""
+    property string exportThemeAuthor: ""
+
     Component.onCompleted: {
         log.info("themes", "Themes page opened");
         themeManager.restorePersistedFonts();
@@ -225,23 +233,6 @@ KCM.SimpleKCM {
 
     // ===== File dialogs =====
     Dialogs.FileDialog {
-        id: exportFileDialog
-        title: i18n("Save Theme As")
-        fileMode: Dialogs.FileDialog.SaveFile
-        nameFilters: [i18n("Modern reClock Theme (*.mrt)")]
-        defaultSuffix: "mrt"
-        onAccepted: {
-            var configJson = themesPage.getFullConfig();
-            var filePath = exportFileDialog.selectedFile.toString().replace("file://", "");
-            var result = themeManager.exportTheme(filePath, configJson, themesPage.embedFontPaths);
-            if (result)
-                log.info("themes", "Theme exported to: " + result);
-            else
-                log.error("themes", "Theme export failed");
-        }
-    }
-
-    Dialogs.FileDialog {
         id: importFileDialog
         title: i18n("Import Theme")
         fileMode: Dialogs.FileDialog.OpenFile
@@ -271,6 +262,231 @@ KCM.SimpleKCM {
         }
     }
 
+    // ===== Preview Dialog =====
+    Dialog {
+        id: previewDialog
+        title: themesPage.previewThemeData.name || i18n("Theme Preview")
+        modal: true
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        standardButtons: Dialog.Cancel | Dialog.Apply
+        implicitWidth: Kirigami.Units.gridUnit * 28
+
+        onApplyClicked: {
+            var d = themesPage.previewThemeData;
+            if (d.mrt_url) {
+                themeManager.downloadTheme(d.id, d.mrt_url);
+            }
+            previewDialog.close();
+        }
+
+        contentItem: ColumnLayout {
+            spacing: Kirigami.Units.largeSpacing
+
+            Image {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Kirigami.Units.gridUnit * 12
+                fillMode: Image.PreserveAspectFit
+                source: themesPage.previewThemeData.preview_url || ""
+                asynchronous: true
+                clip: true
+
+                QQC2.BusyIndicator {
+                    anchors.centerIn: parent
+                    running: parent.status === Image.Loading
+                }
+            }
+
+            Kirigami.Heading {
+                text: themesPage.previewThemeData.name || ""
+                level: 3
+                Layout.fillWidth: true
+            }
+
+            QQC2.Label {
+                text: (themesPage.previewThemeData.author || "") +
+                      (themesPage.previewThemeData.version ? " v" + themesPage.previewThemeData.version : "")
+                opacity: 0.6
+                Layout.fillWidth: true
+            }
+
+            QQC2.Label {
+                text: themesPage.previewThemeData.description || ""
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            // Fonts info
+            Repeater {
+                model: {
+                    var d = themesPage.previewThemeData;
+                    if (!d.fonts_required || d.fonts_required.length === 0) return [];
+                    var result = [];
+                    for (var i = 0; i < d.fonts_required.length; i++) {
+                        var family = d.fonts_required[i];
+                        var families = Qt.fontFamilies();
+                        var available = families.indexOf(family) !== -1;
+                        result.push({family: family, available: available});
+                    }
+                    return result;
+                }
+                RowLayout {
+                    spacing: Kirigami.Units.smallSpacing
+                    QQC2.Label {
+                        text: modelData.available ? "✓" : "⚠"
+                        color: modelData.available ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor
+                        font.bold: true
+                    }
+                    QQC2.Label {
+                        text: modelData.family
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    }
+                    QQC2.Label {
+                        text: modelData.available ? i18n("installed") : i18n("not found")
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        opacity: 0.5
+                    }
+                }
+            }
+        }
+    }
+
+    // ===== Export Dialog =====
+    Dialog {
+        id: exportDialog
+        title: i18n("Export Theme")
+        modal: true
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        standardButtons: Dialog.Cancel | Dialog.Save
+        implicitWidth: Kirigami.Units.gridUnit * 28
+
+        onOpened: {
+            themesPage.exportThemeName = "";
+            themesPage.exportThemeDesc = "";
+            themesPage.exportThemeAuthor = "";
+        }
+
+        onAccepted: {
+            var configJson = themesPage.getFullConfig();
+            // Wrap config in theme.json format
+            var themeJson = JSON.stringify({
+                mrt_version: 1,
+                name: themesPage.exportThemeName || "My Theme",
+                author: themesPage.exportThemeAuthor || "",
+                version: "1.0",
+                description: themesPage.exportThemeDesc || "",
+                config: JSON.parse(configJson),
+                fonts: { required: {}, optional: {} }
+            }, null, 4);
+
+            // Open save file dialog
+            exportSaveFileDialog._themeJson = themeJson;
+            exportSaveFileDialog.open();
+        }
+
+        contentItem: ColumnLayout {
+            spacing: Kirigami.Units.largeSpacing
+
+            QKC2.Label {
+                text: i18n("Give your theme a name and description before exporting.")
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            QQC2.TextField {
+                id: exportNameField
+                Kirigami.FormData.label: i18n("Name:")
+                Layout.fillWidth: true
+                placeholderText: i18n("My Theme")
+                onTextChanged: themesPage.exportThemeName = text
+            }
+
+            QQC2.TextField {
+                id: exportDescField
+                Kirigami.FormData.label: i18n("Description:")
+                Layout.fillWidth: true
+                placeholderText: i18n("Optional description")
+                onTextChanged: themesPage.exportThemeDesc = text
+            }
+
+            QQC2.TextField {
+                id: exportAuthorField
+                Kirigami.FormData.label: i18n("Author:")
+                Layout.fillWidth: true
+                placeholderText: i18n("Your name")
+                onTextChanged: themesPage.exportThemeAuthor = text
+            }
+
+            // Embedded fonts
+            Kirigami.Separator {
+                Layout.fillWidth: true
+                Kirigami.FormData.label: i18n("Embedded Fonts")
+            }
+
+            Repeater {
+                model: themesPage.embedFontPaths
+                RowLayout {
+                    Layout.fillWidth: true
+                    QQC2.Label {
+                        text: modelData.split("/").pop()
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                    }
+                    QQC2.ToolButton {
+                        icon.name: "list-remove"
+                        onClicked: {
+                            var paths = themesPage.embedFontPaths.slice();
+                            paths.splice(index, 1);
+                            themesPage.embedFontPaths = paths;
+                        }
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                QQC2.Button {
+                    text: i18n("Add Font...")
+                    icon.name: "list-add"
+                    onClicked: fontFileDialog.open()
+                }
+            }
+
+            QQC2.Label {
+                text: i18n("Fonts will be resolved from your system via fontconfig.")
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                opacity: 0.5
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+        }
+    }
+
+    // Save file dialog (opened from export dialog accept)
+    Dialogs.FileDialog {
+        id: exportSaveFileDialog
+        title: i18n("Save Theme As")
+        fileMode: Dialogs.FileDialog.SaveFile
+        nameFilters: [i18n("Modern reClock Theme (*.mrt)")]
+        defaultSuffix: "mrt"
+        property string _themeJson: ""
+        onAccepted: {
+            var filePath = exportSaveFileDialog.selectedFile.toString().replace("file://", "");
+            // Resolve font paths via fontconfig
+            var resolvedFonts = [];
+            for (var i = 0; i < themesPage.embedFontPaths.length; i++) {
+                var path = themeManager.resolveFontPath(themesPage.embedFontPaths[i].split("/").pop().replace(/\.(ttf|otf)$/i, ""));
+                if (path) resolvedFonts.push(path);
+            }
+            var result = themeManager.exportTheme(filePath, exportSaveFileDialog._themeJson, resolvedFonts);
+            if (result)
+                log.info("themes", "Theme exported to: " + result);
+            else
+                log.error("themes", "Theme export failed");
+        }
+    }
+
     // ===== UI =====
     Kirigami.FormLayout {
         anchors.fill: parent
@@ -288,7 +504,7 @@ KCM.SimpleKCM {
             QQC2.Button {
                 text: i18n("Export .mrt...")
                 icon.name: "document-save"
-                onClicked: exportFileDialog.open()
+                onClicked: exportDialog.open()
             }
             QQC2.Button {
                 text: i18n("Import .mrt...")
@@ -411,10 +627,13 @@ KCM.SimpleKCM {
                                 }
 
                                 QQC2.Button {
-                                    text: i18n("Apply")
-                                    icon.name: "dialog-ok-apply"
+                                    text: i18n("Preview")
+                                    icon.name: "document-preview"
                                     Layout.fillWidth: true
-                                    onClicked: themeManager.downloadTheme(modelData.id, modelData.mrt_url)
+                                    onClicked: {
+                                        themesPage.previewThemeData = modelData;
+                                        previewDialog.open();
+                                    }
                                 }
                             }
                         }
