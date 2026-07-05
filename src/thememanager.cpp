@@ -301,10 +301,28 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
 
     // Load fonts before rendering
+    QStringList loadedFamilies;
     for (const QString &fp : fontPaths) {
         int id = QFontDatabase::addApplicationFont(fp);
-        qDebug() << "[ThemeManager]   load font:" << fp << "id:" << id;
+        QStringList families = QFontDatabase::applicationFontFamilies(id);
+        qDebug() << "[ThemeManager]   font:" << fp << "id:" << id << "families:" << families;
+        loadedFamilies.append(families);
     }
+    qDebug() << "[ThemeManager]   all loaded families:" << loadedFamilies;
+
+    // Build a lookup from config family name to actual loaded family name
+    auto resolveFamily = [&](const QString &configName) -> QString {
+        if (configName.isEmpty()) return {};
+        // Exact match
+        if (loadedFamilies.contains(configName)) return configName;
+        // Case-insensitive or partial match
+        QString lower = configName.toLower();
+        for (const QString &f : loadedFamilies) {
+            if (f.toLower() == lower || f.toLower().contains(lower) || lower.contains(f.toLower()))
+                return f;
+        }
+        return configName; // fallback to config name
+    };
 
     QJsonDocument doc = QJsonDocument::fromJson(jsonConfig.toUtf8());
     if (doc.isNull() || !doc.isObject()) {
@@ -385,6 +403,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     // Paint
     QPainter p(&canvas);
     p.setRenderHint(QPainter::TextAntialiasing);
+    p.setRenderHint(QPainter::Antialiasing);
     int y = baseY;
 
     for (const QString &el : order) {
@@ -392,13 +411,15 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         auto &e = elements[el];
         if (!e.visible) continue;
 
+        QString resolvedFamily = resolveFamily(e.family);
         QFont f;
-        if (!e.family.isEmpty())
-            f = QFont(e.family, qMax(8, e.fontSize));
+        if (!resolvedFamily.isEmpty())
+            f = QFont(resolvedFamily, qMax(8, e.fontSize));
         else
             f = QFont(QStringLiteral("sans-serif"), qMax(8, e.fontSize));
         f.setPixelSize(qMax(8, e.fontSize));
         f.setBold(e.bold);
+        qDebug() << "[ThemeManager]   paint" << el << "family:" << e.family << "→" << resolvedFamily << "size:" << e.fontSize << "bold:" << e.bold;
         p.setFont(f);
         p.setPen(e.color);
         p.drawText(QRect(baseX, y, elemWidth, e.fontSize + 4),

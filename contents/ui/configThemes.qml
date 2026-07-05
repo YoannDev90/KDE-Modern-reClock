@@ -416,11 +416,15 @@ KCM.SimpleKCM {
             log.info("export", "Export dialog opened, generating preview");
             var cfgJson = themesPage.getExportConfig();
             var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
-            var aid = typeof plasmoid !== 'undefined' && plasmoid ? (plasmoid.appletId || -1) : -1;
+            var aid = -1;
+            try {
+                if (plasmoid && plasmoid.appletId !== undefined) aid = plasmoid.appletId;
+            } catch(e) {}
+            log.info("export", "AppletId: " + aid);
             var fonts = themesPage.resolveFontPathsFromConfig();
-            log.info("export", "AppletId: " + aid + " fonts: " + JSON.stringify(fonts));
+            log.info("export", "Fonts: " + JSON.stringify(fonts));
             var result = themeManager.generatePreview(cfgJson, wpPath, aid, fonts);
-            log.info("export", "Preview generated: " + result);
+            log.info("export", "Preview: " + result);
         }
 
         onAccepted: {
