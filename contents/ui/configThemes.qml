@@ -263,13 +263,13 @@ KCM.SimpleKCM {
     }
 
     // ===== Preview Dialog =====
-    Dialog {
+    QQC2.Dialog {
         id: previewDialog
         title: themesPage.previewThemeData.name || i18n("Theme Preview")
         modal: true
         parent: Overlay.overlay
         anchors.centerIn: parent
-        standardButtons: Dialog.Cancel | Dialog.Apply
+        standardButtons: QQC2.Dialog.Cancel | QQC2.Dialog.Apply
         implicitWidth: Kirigami.Units.gridUnit * 28
 
         onApplyClicked: {
@@ -352,13 +352,13 @@ KCM.SimpleKCM {
     }
 
     // ===== Export Dialog =====
-    Dialog {
+    QQC2.Dialog {
         id: exportDialog
         title: i18n("Export Theme")
         modal: true
         parent: Overlay.overlay
         anchors.centerIn: parent
-        standardButtons: Dialog.Cancel | Dialog.Save
+        standardButtons: QQC2.Dialog.Cancel | QQC2.Dialog.Save
         implicitWidth: Kirigami.Units.gridUnit * 28
 
         onOpened: {
