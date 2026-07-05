@@ -1,0 +1,194 @@
+#include "mrtarchive.h"
+
+#include <QDataStream>
+#include <QDateTime>
+#include <zlib.h>
+
+// ===== CRC32 via zlib (Qt links zlib internally) =====
+
+quint32 MrtArchive::crc32(const QByteArray &data)
+{
+    return ::crc32(0L,
+        reinterpret_cast<const Bytef *>(data.constData()),
+        static_cast<uInt>(data.size()));
+}
+
+quint16 MrtArchive::dosTime()
+{
+    QDateTime now = QDateTime::currentDateTime();
+    return static_cast<quint16>((now.time().hour() << 11) |
+                                 (now.time().minute() << 5) |
+                                 (now.time().second() >> 1));
+}
+
+quint16 MrtArchive::dosDate()
+{
+    QDateTime now = QDateTime::currentDateTime();
+    return static_cast<quint16>(((now.date().year() - 1980) << 9) |
+                                 (now.date().month() << 5) |
+                                 now.date().day());
+}
+
+// ===== READ =====
+
+QList<MrtArchiveEntry> MrtArchive::read(const QString &filePath)
+{
+    QList<MrtArchiveEntry> entries;
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly))
+        return entries;
+
+    QByteArray fullData = file.readAll();
+    file.close();
+
+    // Find End of Central Directory record
+    if (fullData.size() < 22)
+        return entries;
+
+    // Search backwards for EOCD signature
+    int eocdPos = -1;
+    for (int i = fullData.size() - 22; i >= 0; i--) {
+        if (fullData[i]   == 0x50 && fullData[i+1] == 0x4b &&
+            fullData[i+2] == 0x05 && fullData[i+3] == 0x06) {
+            eocdPos = i;
+            break;
+        }
+    }
+    if (eocdPos < 0)
+        return entries;
+
+    // Parse EOCD
+    quint32 centralDirOffset;
+    memcpy(&centralDirOffset, fullData.constData() + eocdPos + 16, 4);
+
+    // Walk central directory
+    int pos = static_cast<int>(centralDirOffset);
+    while (pos + 46 <= fullData.size()) {
+        quint32 sig;
+        memcpy(&sig, fullData.constData() + pos, 4);
+        if (sig != CENTRAL_HEADER_SIG)
+            break;
+
+        quint16 nameLen, extraLen, commentLen;
+        memcpy(&nameLen,   fullData.constData() + pos + 28, 2);
+        memcpy(&extraLen,  fullData.constData() + pos + 30, 2);
+        memcpy(&commentLen, fullData.constData() + pos + 32, 2);
+
+        quint32 localOffset;
+        memcpy(&localOffset, fullData.constData() + pos + 42, 4);
+
+        QString name = QString::fromUtf8(
+            fullData.constData() + pos + 46, nameLen);
+
+        // Read local header to get data size
+        if (localOffset + 30 > static_cast<quint32>(fullData.size()))
+            break;
+
+        quint16 lNameLen, lExtraLen;
+        quint32 compSize;
+        memcpy(&lNameLen,  fullData.constData() + localOffset + 26, 2);
+        memcpy(&lExtraLen, fullData.constData() + localOffset + 28, 2);
+        memcpy(&compSize,  fullData.constData() + localOffset + 18, 4);
+
+        int dataOffset = static_cast<int>(localOffset + 30 + lNameLen + lExtraLen);
+        if (dataOffset + static_cast<int>(compSize) > fullData.size())
+            break;
+
+        QByteArray data = fullData.mid(dataOffset, static_cast<int>(compSize));
+        entries.append({name, data});
+
+        pos += 46 + nameLen + extraLen + commentLen;
+    }
+
+    return entries;
+}
+
+QByteArray MrtArchive::readSingle(const QString &filePath, const QString &entryName)
+{
+    QList<MrtArchiveEntry> entries = read(filePath);
+    for (const auto &e : entries) {
+        if (e.name == entryName)
+            return e.data;
+    }
+    return {};
+}
+
+// ===== WRITE =====
+
+bool MrtArchive::write(const QString &filePath, const QList<MrtArchiveEntry> &entries)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly))
+        return false;
+
+    QByteArray centralDir;
+    quint32 offset = 0;
+    quint16 dosDate_ = dosDate();
+    quint16 dosTime_ = dosTime();
+
+    QByteArray fileData;
+
+    for (const auto &entry : entries) {
+        QByteArray nameBytes = entry.name.toUtf8();
+        quint16 nameLen = static_cast<quint16>(nameBytes.size());
+        quint32 size = static_cast<quint32>(entry.data.size());
+        quint32 crc = crc32(entry.data);
+
+        // ===== Local file header (30 + name) =====
+        QByteArray localHeader(30 + nameLen, 0);
+        quint32 sig = LOCAL_HEADER_SIG;
+        memcpy(localHeader.data() + 0,  &sig, 4);
+        quint16 version = 20;
+        memcpy(localHeader.data() + 4,  &version, 2);
+        memcpy(localHeader.data() + 10, &dosTime_, 2);
+        memcpy(localHeader.data() + 12, &dosDate_, 2);
+        memcpy(localHeader.data() + 14, &crc, 4);
+        memcpy(localHeader.data() + 18, &size, 4);
+        memcpy(localHeader.data() + 22, &size, 4);
+        memcpy(localHeader.data() + 26, &nameLen, 2);
+        memcpy(localHeader.data() + 30, nameBytes.constData(), nameLen);
+
+        fileData.append(localHeader);
+        fileData.append(entry.data);
+
+        // ===== Central directory entry (46 + name) =====
+        QByteArray centralEntry(46 + nameLen, 0);
+        sig = CENTRAL_HEADER_SIG;
+        memcpy(centralEntry.data() + 0,  &sig, 4);
+        version = 20;
+        memcpy(centralEntry.data() + 4,  &version, 2);
+        memcpy(centralEntry.data() + 6,  &version, 2);
+        memcpy(centralEntry.data() + 10, &dosTime_, 2);
+        memcpy(centralEntry.data() + 12, &dosDate_, 2);
+        memcpy(centralEntry.data() + 16, &crc, 4);
+        memcpy(centralEntry.data() + 20, &size, 4);
+        memcpy(centralEntry.data() + 24, &size, 4);
+        memcpy(centralEntry.data() + 28, &nameLen, 2);
+        memcpy(centralEntry.data() + 42, &offset, 4);
+        memcpy(centralEntry.data() + 46, nameBytes.constData(), nameLen);
+
+        centralDir.append(centralEntry);
+        offset += static_cast<quint32>(localHeader.size() + entry.data.size());
+    }
+
+    // ===== End of central directory (22) =====
+    QByteArray eocd(22, 0);
+    quint32 eocdSig = EOCD_SIG;
+    memcpy(eocd.data() + 0,  &eocdSig, 4);
+    quint16 numEntries = static_cast<quint16>(entries.size());
+    memcpy(eocd.data() + 8,  &numEntries, 2);
+    memcpy(eocd.data() + 10, &numEntries, 2);
+    quint32 cdSize = static_cast<quint32>(centralDir.size());
+    quint32 cdOffset = offset;
+    memcpy(eocd.data() + 12, &cdSize, 4);
+    memcpy(eocd.data() + 16, &cdOffset, 4);
+
+    // Write everything
+    file.write(fileData);
+    file.write(centralDir);
+    file.write(eocd);
+    file.close();
+
+    return true;
+}
