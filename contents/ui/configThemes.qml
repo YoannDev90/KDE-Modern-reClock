@@ -587,11 +587,16 @@ KCM.SimpleKCM {
                     width: communityGrid.cellWidth
                     height: communityGrid.cellHeight
 
-                    QQC2.Card {
+                    Rectangle {
                         anchors.fill: parent
                         anchors.margins: Kirigami.Units.smallSpacing
+                        radius: Kirigami.Units.cornerRadius
+                        color: Kirigami.Theme.backgroundColor
+                        border.color: Kirigami.Theme.separatorColor
+                        border.width: 1
 
-                        contentItem: ColumnLayout {
+                        ColumnLayout {
+                            anchors.fill: parent
                             spacing: 0
 
                             Image {
@@ -637,6 +642,7 @@ KCM.SimpleKCM {
                                 }
                             }
                         }
+                    }
                     }
                 }
             }
