@@ -46,7 +46,14 @@ KCM.SimpleKCM {
 
     function getExportConfig() {
         let cfg = {};
-        configKeys.forEach(function(k) { cfg[k] = debugPage["cfg_" + k]; });
+        // Read from plasmoid.configuration directly (available in KCM context)
+        var plasCfg = (typeof plasmoid !== 'undefined' && plasmoid) ? plasmoid.configuration : null;
+        configKeys.forEach(function(k) {
+            // Try plasmoid.configuration first, then debugPage cfg_ properties
+            var val = plasCfg ? plasCfg[k] : undefined;
+            if (val === undefined || val === null) val = debugPage["cfg_" + k];
+            if (val !== undefined && val !== null) cfg[k] = val;
+        });
         return JSON.stringify(cfg, null, 4);
     }
 
