@@ -478,7 +478,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
 
     int configSpacing = qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
 
-    // Step 1: Measure natural text size using QTextLayout (matches QML Text implicitWidth)
+    // Step 1: Measure natural text size using QFontMetrics
     QImage metricsImage(1, 1, QImage::Format_ARGB32);
     QPainter metricsPainter(&metricsImage);
     int naturalWidth = 0;
@@ -495,14 +495,9 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         mf.setPixelSize(qMax(8, e.configSize));
         mf.setBold(e.bold);
         if (e.letterSpacing != 0) mf.setLetterSpacing(QFont::AbsoluteSpacing, e.letterSpacing);
-
-        QTextLayout layout(e.sampleText, mf);
-        layout.beginLayout();
-        QTextLine line = layout.createLine();
-        int tw = qCeil(line.naturalTextWidth());
-        layout.endLayout();
-
-        QFontMetrics fm(mf);
+        metricsPainter.setFont(mf);
+        QFontMetrics fm = metricsPainter.fontMetrics();
+        int tw = fm.horizontalAdvance(e.sampleText);
         int th = fm.height();
         if (tw > naturalWidth) naturalWidth = tw;
         naturalHeight += th;
@@ -514,7 +509,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
 
     if (m_log) m_log->info("theme", QString("natural: %1x%2 widget: %3x%4").arg(naturalWidth).arg(naturalHeight).arg(widgetRect.width()).arg(widgetRect.height()));
 
-    // Step 2: Calculate widget's auto-scale (matches main.qml fontScale logic)
+    // Step 2: Calculate widget's auto-scale
     double widgetFontScale = 1.0;
     if (naturalWidth > 0 && naturalHeight > 0 && widgetRect.isValid()) {
         double sw = widgetRect.width() - 16;
@@ -523,14 +518,29 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     }
     if (m_log) m_log->info("theme", QString("widgetFontScale: %1").arg(widgetFontScale, 0, 'f', 3));
 
-    // Final scale = widget auto-scale × wallpaper/screen scale
-    double finalScale = widgetFontScale * scaleX;
-    if (m_log) m_log->info("theme", QString("finalScale: %1 (widget %2 × screen %3)").arg(finalScale, 0, 'f', 3).arg(widgetFontScale, 0, 'f', 3).arg(scaleX, 0, 'f', 2));
+    // Per-element scale multipliers to match actual widget rendering
+    // Day text uses the base auto-scale
+    // Date/time text needs extra scaling because config sizes are much smaller than day
+    double baseScale = widgetFontScale * scaleX;
+    if (m_log) m_log->info("theme", QString("baseScale: %1").arg(baseScale, 0, 'f', 3));
 
-    // Step 3: Render with scaled sizes, centered in widget area
+    // Step 3: Render with per-element scaling
     QPainter p(&canvas);
     p.setRenderHint(QPainter::TextAntialiasing);
     p.setRenderHint(QPainter::Antialiasing);
+
+    // Calculate per-element scale
+    // Day gets auto-scale × wallpaper scale
+    // Date/time get extra boost because config sizes are much smaller than day
+    auto elementScale = [&](const QString &name) -> double {
+        if (name == QStringLiteral("day")) return baseScale;
+        // Date/time/custom/timezone: boost by ratio of day_size/element_size
+        // to match actual widget appearance where smaller fonts appear larger
+        int daySize = 72;
+        int elemSize = elements.contains(name) ? elements[name].configSize : 19;
+        double boost = qMin(4.0, (double)daySize / elemSize);
+        return baseScale * boost;
+    };
 
     // Calculate total rendered height to center vertically
     int totalRenderedHeight = 0;
@@ -538,10 +548,11 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         if (!elements.contains(el)) continue;
         auto &e = elements[el];
         if (!e.visible) continue;
-        int scaledSize = qMax(8, qRound(e.configSize * finalScale));
+        double elScale = elementScale(el);
+        int scaledSize = qMax(8, qRound(e.configSize * elScale));
         totalRenderedHeight += scaledSize;
     }
-    totalRenderedHeight += qRound(configSpacing * finalScale) * qMax(0, order.count() - 1);
+    totalRenderedHeight += qRound(configSpacing * baseScale) * qMax(0, order.count() - 1);
 
     int y = wpY + qMax(0, (wpH - totalRenderedHeight) / 2);
 
@@ -550,9 +561,10 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         auto &e = elements[el];
         if (!e.visible) continue;
 
-        int scaledSize = qMax(8, qRound(e.configSize * finalScale));
-        int scaledSpacing = qRound(e.letterSpacing * finalScale);
-        int scaledElemSpacing = qRound(configSpacing * finalScale);
+        double elScale = elementScale(el);
+        int scaledSize = qMax(8, qRound(e.configSize * elScale));
+        int scaledSpacing = qRound(e.letterSpacing * elScale);
+        int scaledElemSpacing = qRound(configSpacing * baseScale);
 
         QString resolvedFamily = resolveFamily(e.family);
         QFont f;
