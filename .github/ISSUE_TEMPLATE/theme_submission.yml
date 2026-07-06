@@ -1,0 +1,40 @@
+name: Theme Submission
+description: Submit a theme for the community gallery
+title: '[Theme] '
+labels: ['💤 - Waiting theme']
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for submitting a theme! Once approved, your theme will appear in the community gallery.
+  - type: input
+    id: theme-name
+    attributes:
+      label: Theme name
+      placeholder: "e.g. Ocean Blue"
+    validations:
+      required: true
+  - type: input
+    id: author
+    attributes:
+      label: Author name
+      placeholder: "Your name or GitHub username"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Brief description of your theme
+      placeholder: Tell us about your theme...
+    validations:
+      required: false
+  - type: upload
+    id: mrt-file
+    attributes:
+      label: Theme file (.mrt)
+      description: Upload your compiled .mrt theme file
+    validations:
+      required: true
+
