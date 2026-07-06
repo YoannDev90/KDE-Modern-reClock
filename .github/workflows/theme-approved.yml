@@ -1,0 +1,211 @@
+name: Theme Approved
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  package:
+    if: github.event.label.name == '✅ - Approved theme'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find .mrt URL in issue body
+        id: find-mrt
+        env:
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          MRT_URL=$(echo "$BODY" | grep -oE "https://github.com/user-attachments/files/[0-9]+/[^\" )]+\.mrt" | head -1)
+          echo "mrt_url=$MRT_URL"
+          echo "mrt_url=$MRT_URL" >> "$GITHUB_OUTPUT"
+
+      - name: No .mrt found – skip
+        if: steps.find-mrt.outputs.mrt_url == ''
+        run: echo "No .mrt attachment; skipping."
+
+      - name: Download .mrt
+        if: steps.find-mrt.outputs.mrt_url != ''
+        run: |
+          mkdir -p /tmp/theme-work
+          curl -sL -o /tmp/theme-work/theme.mrt "${{ steps.find-mrt.outputs.mrt_url }}"
+
+      - name: Extract theme info
+        if: steps.find-mrt.outputs.mrt_url != ''
+        id: extract
+        run: |
+          python3 .github/scripts/extract_theme_info.py \
+            --mrt /tmp/theme-work/theme.mrt \
+            --outdir /tmp/theme-work/out > /tmp/theme-work/info.json
+          cat /tmp/theme-work/info.json
+
+      - name: Set theme paths
+        if: steps.find-mrt.outputs.mrt_url != ''
+        id: paths
+        run: |
+          INFO_JSON=$(cat /tmp/theme-work/info.json)
+          THEME_ID=$(echo "$INFO_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+          THEME_NAME=$(echo "$INFO_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['name'])")
+          THEME_AUTHOR=$(echo "$INFO_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['author'])")
+          THEME_VERSION=$(echo "$INFO_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])")
+          THEME_DESC=$(echo "$INFO_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('description',''))")
+
+          echo "id=$THEME_ID" >> "$GITHUB_OUTPUT"
+          echo "name=$THEME_NAME" >> "$GITHUB_OUTPUT"
+          echo "author=$THEME_AUTHOR" >> "$GITHUB_OUTPUT"
+          echo "version=$THEME_VERSION" >> "$GITHUB_OUTPUT"
+          echo "description=$THEME_DESC" >> "$GITHUB_OUTPUT"
+          echo "branch=community-theme/$THEME_ID" >> "$GITHUB_OUTPUT"
+          echo "preview_path=community_themes/previews/${THEME_ID}.png" >> "$GITHUB_OUTPUT"
+          echo "mrt_path=community_themes/themes/${THEME_ID}.mrt" >> "$GITHUB_OUTPUT"
+
+      - name: Install theme files
+        if: steps.find-mrt.outputs.mrt_url != ''
+        run: |
+          mkdir -p community_themes/themes community_themes/previews
+          cp /tmp/theme-work/theme.mrt "${{ steps.paths.outputs.mrt_path }}"
+          if [ -f /tmp/theme-work/out/preview.png ]; then
+            cp /tmp/theme-work/out/preview.png "${{ steps.paths.outputs.preview_path }}"
+          fi
+
+      - name: Update themes.json
+        if: steps.find-mrt.outputs.mrt_url != ''
+        env:
+          THEME_ID: ${{ steps.paths.outputs.id }}
+          THEME_NAME: ${{ steps.paths.outputs.name }}
+          THEME_AUTHOR: ${{ steps.paths.outputs.author }}
+          THEME_VERSION: ${{ steps.paths.outputs.version }}
+          THEME_DESC: ${{ steps.paths.outputs.description }}
+        run: |
+          python3 << 'PYEOF'
+          import json, os
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          tid = os.environ["THEME_ID"]
+
+          entry = {
+              "id": tid,
+              "name": os.environ["THEME_NAME"],
+              "author": os.environ["THEME_AUTHOR"],
+              "version": os.environ["THEME_VERSION"],
+              "description": os.environ.get("THEME_DESC", ""),
+              "preview_url": f"https://raw.githubusercontent.com/{repo}/main/community_themes/previews/{tid}.png",
+              "mrt_url": f"https://raw.githubusercontent.com/{repo}/main/community_themes/themes/{tid}.mrt",
+          }
+
+          index_path = "community_themes/themes.json"
+          if os.path.exists(index_path):
+              with open(index_path) as f:
+                  themes = json.load(f)
+          else:
+              themes = []
+
+          for i, t in enumerate(themes):
+              if t.get("id") == entry["id"]:
+                  themes[i] = entry
+                  break
+          else:
+              themes.append(entry)
+
+          with open(index_path, "w") as f:
+              json.dump(themes, f, indent=2)
+              f.write("\n")
+
+          print(f"Updated {index_path}: {len(themes)} theme(s)")
+          PYEOF
+
+      - name: Update README community themes table
+        if: steps.find-mrt.outputs.mrt_url != ''
+        run: |
+          python3 << 'PYEOF'
+          import json, re, os
+
+          index_path = "community_themes/themes.json"
+          readme_path = "README.md"
+
+          if not os.path.exists(index_path):
+              print("No themes.json, skipping README update")
+              exit(0)
+
+          with open(index_path) as f:
+              themes = json.load(f)
+
+          if not themes:
+              print("No themes, skipping README update")
+              exit(0)
+
+          rows = []
+          for i in range(0, len(themes), 2):
+              t1 = themes[i]
+              img1 = f'<a href="{t1["mrt_url"]}"><img src="{t1["preview_url"]}" width="300" alt="{t1["name"]}"></a>'
+              if i + 1 < len(themes):
+                  t2 = themes[i + 1]
+                  img2 = f'<a href="{t2["mrt_url"]}"><img src="{t2["preview_url"]}" width="300" alt="{t2["name"]}"></a>'
+                  rows.append(f"{img1} | {img2}")
+              else:
+                  rows.append(img1)
+
+          table = "\n\n<p align=\"center\">\n" + "\n<br>\n".join(rows) + "\n</p>\n"
+
+          with open(readme_path) as f:
+              readme = f.read()
+
+          new_readme = re.sub(
+              r"<!-- COMMUNITY_THEMES_START -->.*?<!-- COMMUNITY_THEMES_END -->",
+              f"<!-- COMMUNITY_THEMES_START -->{table}<!-- COMMUNITY_THEMES_END -->",
+              readme,
+              flags=re.DOTALL,
+          )
+
+          with open(readme_path, "w") as f:
+              f.write(new_readme)
+
+          print(f"README updated with {len(themes)} theme(s)")
+          PYEOF
+
+      - name: Commit changes
+        if: steps.find-mrt.outputs.mrt_url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="${{ steps.paths.outputs.branch }}"
+          git checkout -b "$BRANCH"
+          git add community_themes/ README.md
+          git commit -m "feat: add community theme ${{ steps.paths.outputs.name }} by ${{ steps.paths.outputs.author }}"
+
+      - name: Push branch
+        if: steps.find-mrt.outputs.mrt_url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git push origin "${{ steps.paths.outputs.branch }}"
+
+      - name: Create PR
+        if: steps.find-mrt.outputs.mrt_url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUM=${{ github.event.issue.number }}
+
+          cat > /tmp/pr-body.md << BODYEOF
+          Closes #${ISSUE_NUM}
+
+          **Theme:** ${{ steps.paths.outputs.name }}
+          **Author:** ${{ steps.paths.outputs.author }}
+          **Version:** ${{ steps.paths.outputs.version }}
+
+          This PR was automatically generated after the theme was approved.
+          BODYEOF
+
+          gh pr create \
+            --base main \
+            --head "${{ steps.paths.outputs.branch }}" \
+            --title "Add community theme: ${{ steps.paths.outputs.name }}" \
+            --body-file /tmp/pr-body.md

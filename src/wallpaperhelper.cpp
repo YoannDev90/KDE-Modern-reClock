@@ -35,12 +35,14 @@ void WallpaperHelper::setupWatcher(const QString& path) {
 }
 
 QString WallpaperHelper::wallpaperPath() const {
-    if (!m_cachedPath.isEmpty())
+    if (!m_cachedPath.isEmpty()) {
+        qDebug() << "[Wallpaper] wallpaperPath (cached):" << m_cachedPath;
         return m_cachedPath;
+    }
 
     m_cachedPath = WallpaperConfig::readWallpaperPath();
+    qDebug() << "[Wallpaper] wallpaperPath (resolved):" << m_cachedPath;
 
-    // Set up file watcher on the resolved path
     if (!m_cachedPath.isEmpty())
         const_cast<WallpaperHelper*>(this)->setupWatcher(m_cachedPath);
     return m_cachedPath;
@@ -94,7 +96,9 @@ QString WallpaperHelper::wallpaperBrightness(const QString& path) const {
 }
 
 bool WallpaperHelper::isDarkColorScheme() const {
-    return WallpaperConfig::isDarkColorScheme();
+    bool dark = WallpaperConfig::isDarkColorScheme();
+    qDebug() << "[Wallpaper] isDarkColorScheme:" << dark;
+    return dark;
 }
 
 QString WallpaperHelper::wallpaperDataUrl() const {

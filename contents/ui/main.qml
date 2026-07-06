@@ -28,7 +28,17 @@ PlasmoidItem {
         source: Qt.resolvedUrl("../fonts/Poppins.ttf")
     }
 
-    property date currentDateTime: new Date()
+    property date currentDateTime: {
+        var custom = plasmoid.configuration.custom_preview_date;
+        if (custom && custom.length > 0) {
+            var d = new Date(custom);
+            if (!isNaN(d.getTime())) {
+                log.debug("clock", "Using custom preview date: " + custom);
+                return d;
+            }
+        }
+        return new Date();
+    }
 
     property bool use24HourFormat: plasmoid.configuration.use_24_hour_format
     property string timeCharacter: plasmoid.configuration.time_character
@@ -63,6 +73,33 @@ PlasmoidItem {
         if (cfg.show_custom && base.indexOf("custom") === -1) base.push("custom");
         if (cfg.show_timezone && base.indexOf("timezone") === -1) base.push("timezone");
         return base.length > 0 ? base : validElements.slice();
+    }
+
+    // ===== ALIGNMENT =====
+    readonly property string alignMode: plasmoid.configuration.alignMode || "none"
+
+    function applyAlignment() {
+        if (alignMode === "none") return;
+        var containment = plasmoid.containment;
+        if (!containment) return;
+        var screenGeom = containment.screenGeometry;
+        if (!screenGeom || screenGeom.width <= 0) return;
+        var geom = plasmoid.geometry;
+        if (!geom || geom.width <= 0) return;
+        var newX = geom.x;
+        var newY = geom.y;
+        if (alignMode === "center") {
+            newX = Math.round((screenGeom.width - geom.width) / 2);
+            newY = Math.round((screenGeom.height - geom.height) / 2);
+        } else if (alignMode === "centerH") {
+            newX = Math.round((screenGeom.width - geom.width) / 2);
+        } else if (alignMode === "centerV") {
+            newY = Math.round((screenGeom.height - geom.height) / 2);
+        }
+        if (newX !== geom.x || newY !== geom.y) {
+            plasmoid.geometry = Qt.rect(newX, newY, geom.width, geom.height);
+            log.info("config", "Aligned widget to " + alignMode + " → (" + newX + "," + newY + ")");
+        }
     }
 
     // ===== FONT FAMILIES =====
@@ -113,14 +150,14 @@ PlasmoidItem {
         if (colorMode === "wallpaper") _loadWallpaper();
     }
 
-    onLocaleNameChanged: updateClock()
-    onDateFormatChanged: updateClock()
-    onTimeFormatChanged: updateClock()
-    onDayFormatChanged: updateClock()
-    onUse24HourFormatChanged: updateClock()
-    onTimeCharacterChanged: updateClock()
-    onUppercaseDayChanged: updateClock()
-    onUppercaseDateChanged: updateClock()
+    onLocaleNameChanged: { log.debug("clock", "localeName → " + localeName); updateClock(); }
+    onDateFormatChanged: { log.debug("clock", "dateFormat → " + dateFormat); updateClock(); }
+    onTimeFormatChanged: { log.debug("clock", "timeFormat → " + timeFormat); updateClock(); }
+    onDayFormatChanged: { log.debug("clock", "dayFormat → " + dayFormat); updateClock(); }
+    onUse24HourFormatChanged: { log.debug("clock", "use24HourFormat → " + use24HourFormat); updateClock(); }
+    onTimeCharacterChanged: { log.debug("clock", "timeCharacter → " + timeCharacter); updateClock(); }
+    onUppercaseDayChanged: { log.debug("clock", "uppercaseDay → " + uppercaseDay); updateClock(); }
+    onUppercaseDateChanged: { log.debug("clock", "uppercaseDate → " + uppercaseDate); updateClock(); }
 
     readonly property string default24HourFormat: "HH:mm"
     readonly property string default12HourFormat: "hh:mm AP"
@@ -150,7 +187,7 @@ PlasmoidItem {
     function updateClock() {
         _invalidatePropsCache();
         currentDateTime = new Date();
-        log.debug("clock", "Clock updated → " + timeText());
+        log.debug("clock", "updateClock → " + timeText());
         scheduleNextClockTick();
     }
 
@@ -166,6 +203,7 @@ PlasmoidItem {
 
         clockTimer.interval = Math.max(50, delay);
         clockTimer.restart();
+        log.debug("clock", "next tick in " + clockTimer.interval + "ms");
     }
 
     function formatDateLocaleAware(date, format, fallbackFormat = "dd MMM yyyy") {
@@ -174,7 +212,7 @@ PlasmoidItem {
         try {
             return date.toLocaleDateString(effectiveLocale(), fmt);
         } catch (e) {
-            console.warn("Modern reClock: date format failed for", fmt, "-", e.message);
+            log.warn("clock", "date format failed for '" + fmt + "': " + e.message);
             return Qt.formatDate(date, fallbackFormat);
         }
     }
@@ -188,14 +226,14 @@ PlasmoidItem {
                 return formatted;
             }
         } catch (e) {
-            console.warn("Modern reClock: time format failed for", format, "-", e.message);
+            log.warn("clock", "time format failed for '" + format + "': " + e.message);
         }
 
         const fallbackFormat = use24HourFormat ? default24HourFormat : default12HourFormat;
         try {
             return date.toLocaleTimeString(effectiveLocale(), fallbackFormat);
         } catch (e) {
-            console.warn("Modern reClock: fallback time format failed -", e.message);
+            log.error("clock", "fallback time format also failed: " + e.message);
             return Qt.formatTime(date, fallbackFormat);
         }
     }
@@ -225,28 +263,29 @@ PlasmoidItem {
     function customText() {
         var text = plasmoid.configuration.custom_text || "";
         if (text.length === 0) return "";
-        if (!plasmoid.configuration.custom_format) return text;
+        var isFormat = plasmoid.configuration.custom_format;
+        log.debug("clock", "customText: text='" + text + "' format=" + isFormat);
+        if (!isFormat) return text;
         try {
             var result = Qt.formatDateTime(currentDateTime, text);
+            log.debug("clock", "customText formatted: '" + result + "'");
             return result && result.length > 0 ? result : text;
         } catch (e) {
-            console.warn("Modern reClock: custom format failed for", text, "-", e.message);
+            log.warn("clock", "custom format failed for '" + text + "': " + e.message);
             return text;
         }
     }
 
     // Derive timezone format from main time format, stripping seconds
     function timezoneFormat() {
-        var base = currentTimeFormat(); // e.g. "HH:mm:ss" or "hh:mm AP"
-        // Strip seconds tokens (ss, s) and millisecond tokens (z, zzz)
+        var base = currentTimeFormat();
         base = base.replace(/s{1,3}/g, '');
         base = base.replace(/z{1,3}/g, '');
-        // Clean up trailing separators (e.g. "HH:mm:" → "HH:mm")
         base = base.replace(/[:\s.]+$/, '');
-        // If nothing left, fall back
         if (!base || base.trim().length === 0) {
             base = use24HourFormat ? "HH:mm" : "hh:mm";
         }
+        log.debug("timezone", "timezoneFormat: " + base);
         return base;
     }
 
@@ -285,13 +324,14 @@ PlasmoidItem {
 
     function _elementProps(type) {
         var cfg = plasmoid.configuration;
-
-        if (type === "day") return { show: cfg.show_day, text: dayText(), font: fontFamilyDay, size: cfg.day_font_size, spacing: cfg.day_letter_spacing, bold: cfg.day_font_bold, color: _resolvedColor(cfg.day_font_color) };
-        if (type === "date") return { show: cfg.show_date, text: dateText(), font: fontFamilyDate, size: cfg.date_font_size, spacing: cfg.date_letter_spacing, bold: cfg.date_font_bold, color: _resolvedColor(cfg.date_font_color) };
-        if (type === "time") return { show: cfg.show_time, text: timeText(), font: fontFamilyTime, size: cfg.time_font_size, spacing: cfg.time_letter_spacing, bold: cfg.time_font_bold, color: _resolvedColor(cfg.time_font_color) };
-        if (type === "custom") return { show: cfg.show_custom, text: customText(), font: fontFamilyCustom, size: cfg.custom_font_size, spacing: cfg.custom_letter_spacing, bold: cfg.custom_font_bold, color: _resolvedColor(cfg.custom_font_color) };
-        if (type === "timezone") return { show: cfg.show_timezone, text: timezoneText(), font: fontFamilyTimezone, size: cfg.timezone_font_size, spacing: cfg.timezone_letter_spacing, bold: cfg.timezone_font_bold, color: _resolvedColor(cfg.timezone_font_color) };
-        return null;
+        var p = null;
+        if (type === "day") p = { show: cfg.show_day, text: dayText(), font: fontFamilyDay, size: cfg.day_font_size, spacing: cfg.day_letter_spacing, bold: cfg.day_font_bold, color: _resolvedColor(cfg.day_font_color) };
+        else if (type === "date") p = { show: cfg.show_date, text: dateText(), font: fontFamilyDate, size: cfg.date_font_size, spacing: cfg.date_letter_spacing, bold: cfg.date_font_bold, color: _resolvedColor(cfg.date_font_color) };
+        else if (type === "time") p = { show: cfg.show_time, text: timeText(), font: fontFamilyTime, size: cfg.time_font_size, spacing: cfg.time_letter_spacing, bold: cfg.time_font_bold, color: _resolvedColor(cfg.time_font_color) };
+        else if (type === "custom") p = { show: cfg.show_custom, text: customText(), font: fontFamilyCustom, size: cfg.custom_font_size, spacing: cfg.custom_letter_spacing, bold: cfg.custom_font_bold, color: _resolvedColor(cfg.custom_font_color) };
+        else if (type === "timezone") p = { show: cfg.show_timezone, text: timezoneText(), font: fontFamilyTimezone, size: cfg.timezone_font_size, spacing: cfg.timezone_letter_spacing, bold: cfg.timezone_font_bold, color: _resolvedColor(cfg.timezone_font_color) };
+        if (p) log.debug("clock", "elementProps " + type + ": show=" + p.show + " font=" + p.font + " size=" + p.size + " color=" + p.color);
+        return p;
     }
 
     // Cache element props to avoid 7 redundant _elementProps() calls per element per tick
@@ -313,7 +353,7 @@ PlasmoidItem {
         onTriggered: root.updateClock()
     }
 
-    onResolvedTimeFormatChanged: updateClock()
+    onResolvedTimeFormatChanged: { log.debug("clock", "resolvedTimeFormat → " + resolvedTimeFormat); updateClock(); }
 
     Component.onCompleted: {
         log.info("clock", "═══ Modern reClock started ═══");
@@ -344,6 +384,18 @@ PlasmoidItem {
 
         updateClock();
         if (colorMode === "wallpaper") _loadWallpaper();
+
+        // Alignment: apply on load and connect to screen geometry changes
+        applyAlignment();
+        try {
+            var cont = plasmoid.containment;
+            if (cont) {
+                cont.screenGeometryChanged.connect(applyAlignment);
+                log.info("config", "Alignment mode: " + alignMode + " (connected to screenGeometryChanged)");
+            }
+        } catch (e) {
+            log.warn("config", "Could not connect screenGeometryChanged: " + e.message);
+        }
     }
 
     fullRepresentation: Item {

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: modernreclock\n"
 "Report-Msgid-Bugs-To: https://github.com/YoannDev90/KDE-Modern-reClock/issues\n"
-"POT-Creation-Date: 2026-06-11 17:46+0200\n"
+"POT-Creation-Date: 2026-07-06 22:53+0200\n"
 "PO-Revision-Date: 2026-05-04 17:50+0200\n"
 "Last-Translator:  <martin.jcb@proton.me>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -21,37 +21,85 @@ msgstr ""
 msgid "Appearance"
 msgstr "Apparence"
 
-#: contents/ui/configAppearance.qml
+#: contents/config/config.qml contents/ui/configAppearance.qml
+msgid "Themes"
+msgstr "Thèmes"
+
+#: contents/config/config.qml
+msgid "Debug"
+msgstr "Débogage"
+
+#: contents/ui/configAppearance.qml contents/ui/configThemes.qml
 msgid "Preview"
 msgstr "Aperçu"
 
 #: contents/ui/configAppearance.qml
+msgid "Adjust settings to generate preview"
+msgstr "Ajuster les paramètres pour générer l'aperçu"
+
+#: contents/ui/configAppearance.qml
 msgid "Global"
-msgstr ""
+msgstr "Général"
 
 #: contents/ui/configAppearance.qml
 msgid "Auto-scale (fitting widget size)"
 msgstr "Mise à l'échelle automatique (ajustement à la taille du widget)"
 
 #: contents/ui/configAppearance.qml
-msgid "Adapt colors to system theme"
-msgstr "Adapter les couleurs au thème du système"
+msgid "Alignment:"
+msgstr "Alignement :"
 
 #: contents/ui/configAppearance.qml
-msgid "Override element colors with the system theme text color for better contrast"
-msgstr "Remplacer les couleurs des éléments par la couleur du texte du thème système pour un meilleur contraste"
+msgid "None"
+msgstr "Aucun"
+
+#: contents/ui/configAppearance.qml
+msgid "Center"
+msgstr "Centre"
+
+#: contents/ui/configAppearance.qml
+msgid "Center H"
+msgstr "Centre H"
+
+#: contents/ui/configAppearance.qml
+msgid "Center V"
+msgstr "Centre V"
+
+#: contents/ui/configAppearance.qml
+msgid "Color mode:"
+msgstr "Mode de couleur :"
+
+#: contents/ui/configAppearance.qml contents/ui/OrderSection.qml
+msgid "Custom"
+msgstr "Personnalisé"
+
+#: contents/ui/configAppearance.qml
+msgid "Follow system theme"
+msgstr "Suivre le thème système"
+
+#: contents/ui/configAppearance.qml
+msgid "Inverse system theme"
+msgstr "Inverser le thème système"
+
+#: contents/ui/configAppearance.qml
+msgid "Wallpaper-derived"
+msgstr "Basé sur le fond d'écran"
+
+#: contents/ui/configAppearance.qml
+msgid "Custom: each element has its own color.\\nFollow system theme: text color adapts to desktop theme.\\nInverse: inverted system colors for contrast.\\nWallpaper: text color derived from wallpaper brightness."
+msgstr "Personnalisé : chaque élément a sa propre couleur.\\nSuivre le thème système : la couleur du texte s'adapte au thème du bureau.\\nInverser : couleurs système inversées pour le contraste.\\nFond d'écran : couleur du texte dérivée de la luminosité du fond d'écran."
 
 #: contents/ui/configAppearance.qml
 msgid "Element spacing:"
 msgstr "Espacement des éléments :"
 
 #: contents/ui/configAppearance.qml
-msgid "Language Preset:"
+msgid "Locale Preset:"
 msgstr "Préréglage de langue :"
 
 #: contents/ui/configAppearance.qml
 msgid "System Default"
-msgstr ""
+msgstr "Par défaut"
 
 #: contents/ui/configAppearance.qml
 msgid "French"
@@ -97,21 +145,37 @@ msgstr "Russe"
 msgid "Japanese"
 msgstr "Japonais"
 
-#: contents/ui/configAppearance.qml contents/ui/OrderSection.qml
-msgid "Custom"
-msgstr ""
+#: contents/ui/configAppearance.qml
+msgid "Language:"
+msgstr "Langue :"
+
+#: contents/ui/configAppearance.qml
+msgid "Date/Time Format:"
+msgstr "Format date/heure :"
 
 #: contents/ui/configAppearance.qml
 msgid "Custom Locale:"
-msgstr ""
+msgstr "Paramètres régionaux :"
 
 #: contents/ui/configAppearance.qml
 msgid "e.g. fr_BE, en_GB, nl_BE"
 msgstr "ex. fr_BE, en_GB, nl_BE"
 
 #: contents/ui/configAppearance.qml
-msgid "Locale used for weekday and month names. Leave empty to use the system locale."
-msgstr "Paramètres régionaux utilisés pour les noms des jours et des mois. Laisser vide pour utiliser les paramètres régionaux du système."
+msgid "Date Format:"
+msgstr "Format de la date :"
+
+#: contents/ui/configAppearance.qml
+msgid "dd MMMM yyyy"
+msgstr "dd MMMM yyyy"
+
+#: contents/ui/configAppearance.qml
+msgid "Time Format:"
+msgstr "Format de l'heure :"
+
+#: contents/ui/configAppearance.qml
+msgid "HH:mm:ss"
+msgstr "HH:mm:ss"
 
 #: contents/ui/configAppearance.qml
 msgid "Reset Global Settings"
@@ -139,7 +203,7 @@ msgstr "Afficher le jour"
 
 #: contents/ui/configAppearance.qml
 msgid "Font:"
-msgstr ""
+msgstr "Police :"
 
 #: contents/ui/configAppearance.qml
 msgid "Font size:"
@@ -207,7 +271,7 @@ msgstr "Afficher l'heure"
 
 #: contents/ui/configAppearance.qml
 msgid "hh:mm"
-msgstr ""
+msgstr "hh:mm"
 
 #: contents/ui/configAppearance.qml
 msgid "Use Qt time formats like hh:mm, hh:mm:ss, or hh:mm AP. Leave empty to use the 12/24-hour setting."
@@ -306,14 +370,10 @@ msgid "Restore timezone settings to defaults"
 msgstr "Restaurer les paramètres du fuseau horaire par défaut"
 
 #: contents/ui/configAppearance.qml
-msgid "Themes"
-msgstr "Thèmes"
-
-#: contents/ui/configAppearance.qml
 msgid "Save Current Theme"
 msgstr "Enregistrer le thème actuel"
 
-#: contents/ui/configAppearance.qml
+#: contents/ui/configAppearance.qml contents/ui/configThemes.qml
 msgid "Untitled"
 msgstr "Sans titre"
 
@@ -333,7 +393,7 @@ msgstr "Supprimer ce thème"
 msgid "No saved themes yet."
 msgstr "Aucun thème enregistré pour le moment."
 
-#: contents/ui/configAppearance.qml contents/ui/ThemeSheets.qml
+#: contents/ui/configAppearance.qml contents/ui/configThemes.qml contents/ui/ThemeSheets.qml
 msgid "Import Theme"
 msgstr "Importer un thème"
 
@@ -341,49 +401,205 @@ msgstr "Importer un thème"
 msgid "Advanced: Raw JSON"
 msgstr "Avancé : JSON brut"
 
+#: contents/ui/configDebug.qml
+msgid "Copy Debug Info"
+msgstr "Copier les infos de débogage"
+
+#: contents/ui/configDebug.qml
+msgid "Copy Log Only"
+msgstr "Copier le journal seulement"
+
+#: contents/ui/configDebug.qml contents/ui/configThemes.qml
+msgid "Refresh"
+msgstr "Actualiser"
+
+#: contents/ui/configDebug.qml
+msgid "%1 entries"
+msgstr "%1 entrées"
+
+#: contents/ui/configDebug.qml
+msgid "Clear log"
+msgstr "Effacer le journal"
+
+#: contents/ui/configDebug.qml
+msgid "Export logs to file"
+msgstr "Exporter le journal vers un fichier"
+
+#: contents/ui/configDebug.qml
+msgid "Plasma Shell Logs"
+msgstr "Journaux du Shell Plasma"
+
+#: contents/ui/configDebug.qml
+msgid "Fetch Logs"
+msgstr "Charger les journaux"
+
+#: contents/ui/configDebug.qml
+msgid "Loading..."
+msgstr "Chargement..."
+
+#: contents/ui/configDebug.qml
+msgid "Copy"
+msgstr "Copier"
+
+#: contents/ui/configDebug.qml
+msgid "Click 'Fetch Logs' to load Plasma Shell journal logs."
+msgstr "Cliquez sur « Charger les journaux » pour charger les journaux du Shell Plasma."
+
+#: contents/ui/configThemes.qml
+msgid "Failed to fetch theme index"
+msgstr "Échec du chargement de l'index des thèmes"
+
+#: contents/ui/configThemes.qml
+msgid "Failed to download theme. Check your connection."
+msgstr "Échec du téléchargement du thème. Vérifiez votre connexion."
+
+#: contents/ui/configThemes.qml
+msgid "Modern reClock Theme (*.mrt)"
+msgstr "Thème Modern reClock (*.mrt)"
+
+#: contents/ui/configThemes.qml
+msgid "Failed to parse theme file. It may be corrupted."
+msgstr "Échec de l'analyse du fichier de thème. Il est peut-être corrompu."
+
+#: contents/ui/configThemes.qml
+msgid "Select Font File"
+msgstr "Sélectionner un fichier de police"
+
+#: contents/ui/configThemes.qml
+msgid "Font files (*.ttf *.otf)"
+msgstr "Fichiers de police (*.ttf *.otf)"
+
+#: contents/ui/configThemes.qml
+msgid "Theme Preview"
+msgstr "Aperçu du thème"
+
+#: contents/ui/configThemes.qml
+msgid "installed"
+msgstr "installée"
+
+#: contents/ui/configThemes.qml
+msgid "not found"
+msgstr "introuvable"
+
+#: contents/ui/configThemes.qml contents/ui/ThemeSheets.qml
+msgid "Export Theme"
+msgstr "Exporter le thème"
+
+#: contents/ui/configThemes.qml
+msgid "Preview generation failed. The .mrt will still be created."
+msgstr "Échec de la génération de l'aperçu. Le .mrt sera tout de même créé."
+
+#: contents/ui/configThemes.qml
+msgid "Give your theme a name and description before exporting."
+msgstr "Donnez un nom et une description à votre thème avant de l'exporter."
+
+#: contents/ui/configThemes.qml contents/ui/ThemeSheets.qml
+msgid "Name:"
+msgstr "Nom :"
+
+#: contents/ui/configThemes.qml contents/ui/ThemeSheets.qml
+msgid "My Theme"
+msgstr "Mon thème"
+
+#: contents/ui/configThemes.qml contents/ui/ThemeSheets.qml
+msgid "Description:"
+msgstr "Description :"
+
+#: contents/ui/configThemes.qml contents/ui/ThemeSheets.qml
+msgid "Optional description"
+msgstr "Description optionnelle"
+
+#: contents/ui/configThemes.qml
+msgid "Author:"
+msgstr "Auteur :"
+
+#: contents/ui/configThemes.qml
+msgid "Your name"
+msgstr "Votre nom"
+
+#: contents/ui/configThemes.qml
+msgid "Embedded Fonts"
+msgstr "Polices intégrées"
+
+#: contents/ui/configThemes.qml
+msgid "Add Font..."
+msgstr "Ajouter une police..."
+
+#: contents/ui/configThemes.qml
+msgid "Fonts will be resolved from your system via fontconfig."
+msgstr "Les polices seront résolues depuis votre système via fontconfig."
+
+#: contents/ui/configThemes.qml
+msgid "Save Theme As"
+msgstr "Enregistrer le thème sous"
+
+#: contents/ui/configThemes.qml
+msgid "Theme Files"
+msgstr "Fichiers de thème"
+
+#: contents/ui/configThemes.qml
+msgid "File:"
+msgstr "Fichier :"
+
+#: contents/ui/configThemes.qml
+msgid "Export .mrt..."
+msgstr "Exporter .mrt..."
+
+#: contents/ui/configThemes.qml
+msgid "Import .mrt..."
+msgstr "Importer .mrt..."
+
+#: contents/ui/configThemes.qml
+msgid "Fonts:"
+msgstr "Polices :"
+
+#: contents/ui/configThemes.qml
+msgid "Community Themes"
+msgstr "Thèmes communautaires"
+
+#: contents/ui/configThemes.qml
+msgid "Online:"
+msgstr "En ligne :"
+
+#: contents/ui/configThemes.qml
+msgid "Load Themes"
+msgstr "Charger les thèmes"
+
+#: contents/ui/configThemes.qml
+msgid "No themes available yet"
+msgstr "Aucun thème disponible pour le moment"
+
+#: contents/ui/configThemes.qml
+msgid "Local Themes"
+msgstr "Thèmes locaux"
+
+#: contents/ui/configThemes.qml
+msgid "Your saved themes are in the Appearance tab. Export them as .mrt to share with others."
+msgstr "Vos thèmes enregistrés se trouvent dans l'onglet Apparence. Exportez-les en .mrt pour les partager."
+
 #: contents/ui/OrderSection.qml
 msgid "Timezone"
-msgstr ""
+msgstr "Fuseau horaire"
 
 #: contents/ui/OrderSection.qml
 msgid "Move up"
-msgstr ""
+msgstr "Monter"
 
 #: contents/ui/OrderSection.qml
 msgid "Move down"
-msgstr ""
+msgstr "Descendre"
 
 #: contents/ui/ThemeSheets.qml
 msgid "Save Theme"
 msgstr "Enregistrer le thème"
 
 #: contents/ui/ThemeSheets.qml
-msgid "Name:"
-msgstr "Nom :"
-
-#: contents/ui/ThemeSheets.qml
-msgid "My Theme"
-msgstr "Mon thème"
-
-#: contents/ui/ThemeSheets.qml
-msgid "Description:"
-msgstr "Description :"
-
-#: contents/ui/ThemeSheets.qml
-msgid "Optional description"
-msgstr "Description optionnelle"
-
-#: contents/ui/ThemeSheets.qml
 msgid "Save"
-msgstr ""
+msgstr "Enregistrer"
 
 #: contents/ui/ThemeSheets.qml
 msgid "Cancel"
-msgstr ""
-
-#: contents/ui/ThemeSheets.qml
-msgid "Export Theme"
-msgstr "Exporter le thème"
+msgstr "Annuler"
 
 #: contents/ui/ThemeSheets.qml
 msgid "Copy this JSON to share or back up your theme."
@@ -391,7 +607,7 @@ msgstr "Copiez ce JSON pour partager ou sauvegarder votre thème."
 
 #: contents/ui/ThemeSheets.qml
 msgid "Close"
-msgstr ""
+msgstr "Fermer"
 
 #: contents/ui/ThemeSheets.qml
 msgid "Paste a theme JSON below. It will be added to your saved themes."
@@ -403,7 +619,7 @@ msgstr "Collez le JSON du thème ici..."
 
 #: contents/ui/ThemeSheets.qml
 msgid "Import"
-msgstr ""
+msgstr "Importer"
 
 #: contents/ui/ThemeSheets.qml
 msgid "Invalid JSON: %1"
@@ -424,6 +640,18 @@ msgstr "Appliquer la configuration collée"
 #: contents/ui/ThemeSheets.qml
 msgid "Reset to current"
 msgstr "Réinitialiser à l'actuel"
+
+#~ msgid "Language Preset:"
+#~ msgstr "Préréglage de langue :"
+
+#~ msgid "Locale used for weekday and month names. Leave empty to use the system locale."
+#~ msgstr "Paramètres régionaux utilisés pour les noms des jours et des mois. Laisser vide pour utiliser les paramètres régionaux du système."
+
+#~ msgid "Adapt colors to system theme"
+#~ msgstr "Adapter les couleurs au thème du système"
+
+#~ msgid "Override element colors with the system theme text color for better contrast"
+#~ msgstr "Remplacer les couleurs des éléments par la couleur du texte du thème système pour un meilleur contraste"
 
 #~ msgid "General"
 #~ msgstr "Général"

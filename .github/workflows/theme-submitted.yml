@@ -1,0 +1,82 @@
+name: Theme Submitted
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find .mrt URL in issue body
+        id: find-mrt
+        env:
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          MRT_URL=$(echo "$BODY" | grep -oE "https://github.com/user-attachments/files/[0-9]+/[^\" )]+\.mrt" | head -1)
+          echo "mrt_url=$MRT_URL"
+          echo "mrt_url=$MRT_URL" >> "$GITHUB_OUTPUT"
+
+      - name: No .mrt found – skip
+        if: steps.find-mrt.outputs.mrt_url == ''
+        run: echo "No .mrt attachment; not a theme submission."
+
+      - name: Add label and assign
+        if: steps.find-mrt.outputs.mrt_url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue edit ${{ github.event.issue.number }} \
+            --add-label "💤 - Waiting theme" \
+            --add-assignee "YoannDev90"
+
+      - name: Download .mrt file
+        if: steps.find-mrt.outputs.mrt_url != ''
+        run: |
+          mkdir -p /tmp/theme-work
+          curl -sL -o /tmp/theme-work/submission.mrt "${{ steps.find-mrt.outputs.mrt_url }}"
+
+      - name: Extract theme info
+        if: steps.find-mrt.outputs.mrt_url != ''
+        run: |
+          python3 .github/scripts/extract_theme_info.py \
+            --mrt /tmp/theme-work/submission.mrt \
+            --outdir /tmp/theme-work/out > /tmp/theme-work/info.json
+          cat /tmp/theme-work/info.json
+
+      - name: Post info comment
+        if: steps.find-mrt.outputs.mrt_url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          INFO_JSON=$(cat /tmp/theme-work/info.json)
+          THEME_NAME=$(echo "$INFO_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('name','Unknown'))")
+          THEME_AUTHOR=$(echo "$INFO_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('author','Unknown'))")
+          THEME_VERSION=$(echo "$INFO_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('version','?'))")
+          HAS_PREVIEW=$(echo "$INFO_JSON" | python3 -c "import sys,json; print('✅' if json.load(sys.stdin).get('has_preview') else '❌')")
+          FONT_COUNT=$(echo "$INFO_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('font_count',0))")
+          FONTS_REQ=$(echo "$INFO_JSON" | python3 -c "import sys,json; print(', '.join(json.load(sys.stdin).get('fonts_required',[])) or 'none')")
+
+          cat > /tmp/comment.md << BODYEOF
+          ## Theme Submission Received 🎨
+
+          **Theme:** $THEME_NAME
+          **Author:** $THEME_AUTHOR
+          **Version:** $THEME_VERSION
+
+          | Check | Status |
+          |---|---|
+          | .mrt valid | ✅ |
+          | Preview image | $HAS_PREVIEW |
+          | Embedded fonts | $FONT_COUNT |
+          | Fonts required | $FONTS_REQ |
+
+          The theme has been assigned for review. @YoannDev90 please review when available.
+          BODYEOF
+
+          gh issue comment ${{ github.event.issue.number }} --body-file /tmp/comment.md

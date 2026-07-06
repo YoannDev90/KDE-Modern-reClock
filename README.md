@@ -187,6 +187,11 @@ If you want to help translate this widget:
 
 </details>
 
+## Community Themes
+
+<!-- COMMUNITY_THEMES_START -->
+<!-- COMMUNITY_THEMES_END -->
+
 ## License
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
