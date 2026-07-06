@@ -362,7 +362,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
                                        const QString &customDayName)
 {
     Q_UNUSED(appletId)
-    if (m_log) m_log->info("theme", "generatePreview called");
+    if (m_log) m_log->info("theme", "=== generatePreview START ===");
     QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
     QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
 
@@ -371,68 +371,79 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     for (const QString &fp : fontPaths) {
         int id = QFontDatabase::addApplicationFont(fp);
         QStringList families = QFontDatabase::applicationFontFamilies(id);
-        if (m_log) m_log->info("theme", QString("font: %1 id: %2 families: %3").arg(fp).arg(id).arg(families.join(", ")));
+        if (m_log) m_log->info("theme", QString("font load: %1 id:%2 families:[%3]").arg(fp).arg(id).arg(families.join(", ")));
         loadedFamilies.append(families);
     }
     if (m_log) m_log->info("theme", QString("all loaded families: [%1]").arg(loadedFamilies.join(", ")));
 
-    // Build a lookup from config family name to actual loaded family name
     auto resolveFamily = [&](const QString &configName) -> QString {
         if (configName.isEmpty()) return {};
-        // Exact match
         if (loadedFamilies.contains(configName)) return configName;
-        // Case-insensitive or partial match
         QString lower = configName.toLower();
         for (const QString &f : loadedFamilies) {
             if (f.toLower() == lower || f.toLower().contains(lower) || lower.contains(f.toLower()))
                 return f;
         }
-        return configName; // fallback to config name
+        return configName;
     };
 
     QJsonDocument doc = QJsonDocument::fromJson(jsonConfig.toUtf8());
     if (doc.isNull() || !doc.isObject()) {
-        if (m_log) m_log->info("theme", "invalid config JSON");
+        if (m_log) m_log->info("theme", "ERROR: invalid config JSON");
         return fallbackPreview(outPath);
     }
     QJsonObject cfg = doc.object();
+
+    // Log ALL config values
+    if (m_log) {
+        for (const QString &key : cfg.keys()) {
+            m_log->info("theme", QString("cfg[%1] = %2").arg(key).arg(cfg[key].toVariant().toString().left(50)));
+        }
+    }
 
     // Load wallpaper full resolution
     QImage canvas;
     if (QFile::exists(wallpaperPath)) {
         canvas = QImage(wallpaperPath);
-        if (m_log) m_log->info("theme", QString("wallpaper: %1x%2").arg(canvas.width()).arg(canvas.height()));
+        if (m_log) m_log->info("theme", QString("wallpaper: %1x%2 bytes=%3").arg(canvas.width()).arg(canvas.height()).arg(canvas.sizeInBytes()));
     }
     if (canvas.isNull()) {
         canvas = QImage(1920, 1080, QImage::Format_ARGB32);
         canvas.fill(QColor(42, 42, 50));
+        if (m_log) m_log->info("theme", "wallpaper: FALLBACK 1920x1080");
     }
 
-    // Scale factor from screen to wallpaper
+    // Scale factor
     QScreen *screen = QGuiApplication::primaryScreen();
     double scaleX = 1.0, scaleY = 1.0;
     if (screen && !canvas.isNull()) {
         QSize screenSize = screen->size();
         scaleX = (double)canvas.width() / screenSize.width();
         scaleY = (double)canvas.height() / screenSize.height();
-        if (m_log) m_log->info("theme", QString("screen: %1 scale: %2x%3").arg(screenSize.width()).arg(scaleX, 0, 'f', 2).arg(scaleY, 0, 'f', 2));
+        if (m_log) m_log->info("theme", QString("screen: %1x%2 dpr=%3 scale: %4x%5").arg(screenSize.width()).arg(screenSize.height()).arg(screen->devicePixelRatio()).arg(scaleX, 0, 'f', 4).arg(scaleY, 0, 'f', 4));
     }
 
-    // Widget geometry on screen
+    // Widget geometry
     QRect widgetRect = findWidgetGeometry();
-    if (m_log) m_log->info("theme", QString("widget geomscreen: %1,%2 %3x%4").arg(widgetRect.x()).arg(widgetRect.y()).arg(widgetRect.width()).arg(widgetRect.height()));
+    if (m_log) m_log->info("theme", QString("widget screen: x=%1 y=%2 w=%3 h=%4 valid=%5").arg(widgetRect.x()).arg(widgetRect.y()).arg(widgetRect.width()).arg(widgetRect.height()).arg(widgetRect.isValid()));
 
-    // Position and size on wallpaper
+    // Widget on wallpaper
     int wpX = widgetRect.isValid() ? qRound(widgetRect.x() * scaleX) : 0;
     int wpY = widgetRect.isValid() ? qRound(widgetRect.y() * scaleY) : 0;
     int wpW = widgetRect.isValid() ? qRound(widgetRect.width() * scaleX) : canvas.width();
     int wpH = widgetRect.isValid() ? qRound(widgetRect.height() * scaleY) : canvas.height();
+    if (m_log) m_log->info("theme", QString("widget wallpaper: x=%1 y=%2 w=%3 h=%4").arg(wpX).arg(wpY).arg(wpW).arg(wpH));
 
-    // Parse element order
-    QString orderStr = cfg.value(QStringLiteral("element_order"))
-                          .toString(QStringLiteral("day,date,time,custom,timezone"));
+    // Element order
+    QString orderStr = cfg.value(QStringLiteral("element_order")).toString(QStringLiteral("day,date,time,custom,timezone"));
     QStringList order = orderStr.split(',');
+    if (m_log) m_log->info("theme", QString("element_order: %1").arg(orderStr));
 
+    // Config spacing
+    int configSpacing = qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
+    if (m_log) m_log->info("theme", QString("widget_spacing: %1").arg(configSpacing));
+
+    // Parse elements
     struct ClockElement {
         bool visible;
         int configSize;
@@ -444,8 +455,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     };
     QMap<QString, ClockElement> elements;
 
-    auto addElement = [&](const QString &name, const QString &fontKey, int defaultSize,
-                          const QString &sample) {
+    auto addElement = [&](const QString &name, const QString &fontKey, int defaultSize, const QString &sample) {
         ClockElement e;
         e.visible = cfg.value(QStringLiteral("show_") + name).toBool(true);
         e.family = cfg.value(QStringLiteral("fontFamily") + fontKey).toString();
@@ -454,36 +464,33 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         e.bold = cfg.value(name + QStringLiteral("_font_bold")).toBool(false);
         e.color = QColor(cfg.value(name + QStringLiteral("_font_color")).toString(QStringLiteral("#FFFFFF")));
         if (!e.color.isValid()) e.color = Qt::white;
-        bool upper = true; // Always uppercase — fonts only support uppercase glyphs
-        e.sampleText = upper ? sample.toUpper() : sample;
+        e.sampleText = sample.toUpper(); // Always uppercase
         elements.insert(name, e);
+        if (m_log) m_log->info("theme", QString("element %1: show=%2 family=%3 size=%4 ls=%5 bold=%6 color=%7 text='%8'")
+            .arg(name).arg(e.visible).arg(e.family).arg(e.configSize).arg(e.letterSpacing)
+            .arg(e.bold).arg(e.color.name()).arg(e.sampleText.left(20)));
     };
 
-    addElement(QStringLiteral("day"), QStringLiteral("Day"), 72,
-               customDayName.isEmpty() ? QStringLiteral("Wednesday") : customDayName);
-    // Use custom date if provided, otherwise current date
+    // Date/time generation
     QDateTime now = customDate.isEmpty() ? QDateTime::currentDateTime()
                                           : QDateTime::fromString(customDate, Qt::ISODate);
     if (!now.isValid()) now = QDateTime::currentDateTime();
-    QString dateFormat = cfg.value(QStringLiteral("date_format")).toString(QStringLiteral("dd MMMM yy"));
     QLocale locale(cfg.value(QStringLiteral("locale")).toString(QStringLiteral("en_US")));
-    QString dateSample = locale.toString(now.date(), dateFormat);
-    if (dateSample.isEmpty()) dateSample = QStringLiteral("15 January 26");
-    addElement(QStringLiteral("date"), QStringLiteral("Date"), 19, dateSample);
-
+    QString dateFormat = cfg.value(QStringLiteral("date_format")).toString(QStringLiteral("dd MMMM yy"));
     QString timeChar = cfg.value(QStringLiteral("time_character")).toString();
+
+    addElement(QStringLiteral("day"), QStringLiteral("Day"), 72,
+               customDayName.isEmpty() ? QStringLiteral("Wednesday") : customDayName);
+    addElement(QStringLiteral("date"), QStringLiteral("Date"), 19, locale.toString(now.date(), dateFormat));
     QString timeSample = locale.toString(now.time(), QStringLiteral("HH:mm:ss"));
-    if (timeSample.isEmpty()) timeSample = QStringLiteral("14:30:00");
     if (!timeChar.trimmed().isEmpty()) timeSample = timeChar + QStringLiteral(" ") + timeSample + QStringLiteral(" ") + timeChar;
     addElement(QStringLiteral("time"), QStringLiteral("Time"), 19, timeSample);
-
-    addElement(QStringLiteral("custom"),QStringLiteral("Custom"), 19,
+    addElement(QStringLiteral("custom"), QStringLiteral("Custom"), 19,
                cfg.value(QStringLiteral("custom_text")).toString(QStringLiteral("Custom Text")));
     addElement(QStringLiteral("timezone"), QStringLiteral("Timezone"), 14, QStringLiteral("UTC+8:00"));
 
-    int configSpacing = qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
-
-    // Step 1: Measure natural text size using QTextLayout (same engine as QML Text)
+    // Measure natural text
+    if (m_log) m_log->info("theme", "--- measuring natural text ---");
     int naturalWidth = 0;
     int naturalHeight = 0;
     for (const QString &el : order) {
@@ -499,7 +506,6 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         mf.setBold(e.bold);
         if (e.letterSpacing != 0) mf.setLetterSpacing(QFont::AbsoluteSpacing, e.letterSpacing);
 
-        // QTextLayout gives same results as QML Text implicitWidth
         QTextLayout layout(e.sampleText, mf);
         layout.beginLayout();
         QTextLine line = layout.createLine();
@@ -509,43 +515,40 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         int th = fm.height();
         if (tw > naturalWidth) naturalWidth = tw;
         naturalHeight += th;
-        if (m_log) m_log->info("theme", QString("  measure %1: text='%2' tw=%3 th=%4").arg(el, e.sampleText.left(20)).arg(tw).arg(th));
+        if (m_log) m_log->info("theme", QString("  %1: text='%2' tw=%3 th=%4 fam=%5 px=%6 bold=%7 ls=%8")
+            .arg(el, e.sampleText.left(25)).arg(tw).arg(th)
+            .arg(resolvedFam).arg(e.configSize).arg(e.bold).arg(e.letterSpacing));
     }
-    int totalSpacing = configSpacing * qMax(0, order.count() - 1);
-    naturalHeight += totalSpacing;
+    naturalHeight += configSpacing * qMax(0, order.count() - 1);
+    if (m_log) m_log->info("theme", QString("natural TOTAL: %1x%2 (spacing=%3 x %4)").arg(naturalWidth).arg(naturalHeight).arg(configSpacing).arg(order.count() - 1));
 
-    if (m_log) m_log->info("theme", QString("natural: %1x%2 widget: %3x%4").arg(naturalWidth).arg(naturalHeight).arg(widgetRect.width()).arg(widgetRect.height()));
-
-    // Step 2: Auto-scale = widget fits text proportionally
+    // Auto-scale
     double widgetFontScale = 1.0;
     if (naturalWidth > 0 && naturalHeight > 0 && widgetRect.isValid()) {
         double sw = widgetRect.width() - 16;
         double sh = widgetRect.height() - 16;
         widgetFontScale = qMin(sw / naturalWidth, sh / naturalHeight);
+        if (m_log) m_log->info("theme", QString("autoscale: sw=%1 sh=%2 natW=%3 natH=%4 → %5").arg(sw).arg(sh).arg(naturalWidth).arg(naturalHeight).arg(widgetFontScale, 0, 'f', 4));
     }
-    if (m_log) m_log->info("theme", QString("widgetFontScale: %1").arg(widgetFontScale, 0, 'f', 3));
-
-    // Final scale = auto-scale × wallpaper/screen ratio
     double finalScale = widgetFontScale * scaleX;
-    if (m_log) m_log->info("theme", QString("finalScale: %1").arg(finalScale, 0, 'f', 3));
+    if (m_log) m_log->info("theme", QString("finalScale: %1 * %2 = %3").arg(widgetFontScale, 0, 'f', 4).arg(scaleX, 0, 'f', 4).arg(finalScale, 0, 'f', 4));
 
-    // Step 3: Render with uniform scale (same as widget)
+    // Render
+    if (m_log) m_log->info("theme", "--- rendering ---");
     QPainter p(&canvas);
     p.setRenderHint(QPainter::TextAntialiasing);
     p.setRenderHint(QPainter::Antialiasing);
 
-    // Calculate total rendered height to center vertically
     int totalRenderedHeight = 0;
     for (const QString &el : order) {
         if (!elements.contains(el)) continue;
         auto &e = elements[el];
         if (!e.visible) continue;
-        int scaledSize = qMax(8, qRound(e.configSize * finalScale));
-        totalRenderedHeight += scaledSize;
+        totalRenderedHeight += qMax(8, qRound(e.configSize * finalScale));
     }
     totalRenderedHeight += qRound(configSpacing * finalScale) * qMax(0, order.count() - 1);
-
     int y = wpY + qMax(0, (wpH - totalRenderedHeight) / 2);
+    if (m_log) m_log->info("theme", QString("totalH=%1 centerY=%2 startY=%3").arg(totalRenderedHeight).arg(wpH / 2).arg(y));
 
     for (const QString &el : order) {
         if (!elements.contains(el)) continue;
@@ -566,21 +569,22 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
 
         p.setFont(f);
         p.setPen(e.color);
-
-        // Center horizontally within widget area on wallpaper
         QFontMetrics fm = p.fontMetrics();
         int textWidth = fm.horizontalAdvance(e.sampleText);
         int textX = wpX + qMax(0, (wpW - textWidth) / 2);
+        int textH = fm.height();
 
-        if (m_log) m_log->info("theme", QString("paint %1 size: %2 spacing: %3 text: '%4'").arg(el).arg(scaledSize).arg(scaledSpacing).arg(e.sampleText.left(15)));
-        p.drawText(QRect(textX, y, textWidth + 10, fm.height()), Qt::AlignLeft | Qt::AlignVCenter, e.sampleText);
+        if (m_log) m_log->info("theme", QString("  DRAW %1: x=%2 y=%3 w=%4 h=%5 size=%6 ls=%7 text='%8'")
+            .arg(el).arg(textX).arg(y).arg(textWidth).arg(textH)
+            .arg(scaledSize).arg(scaledSpacing).arg(e.sampleText.left(15)));
+        p.drawText(QRect(textX, y, textWidth + 10, textH), Qt::AlignLeft | Qt::AlignVCenter, e.sampleText);
         y += scaledSize + scaledElemSpacing;
     }
 
     p.end();
     canvas.save(outPath, "PNG");
     qint64 size = QFileInfo(outPath).size();
-    if (m_log) m_log->info("theme", QString("saved: %1 size: %2").arg(outPath).arg(size));
+    if (m_log) m_log->info("theme", QString("=== saved: %1 bytes=%2 ===").arg(outPath).arg(size));
     return outPath;
 }
 
