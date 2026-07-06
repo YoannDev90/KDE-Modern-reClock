@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: modernreclock\n"
 "Report-Msgid-Bugs-To: https://github.com/YoannDev90/KDE-Modern-reClock/issues\n"
-"POT-Creation-Date: 2026-07-05 20:26+0200\n"
+"POT-Creation-Date: 2026-07-06 22:53+0200\n"
 "PO-Revision-Date: 2026-06-10 12:00+0200\n"
 "Last-Translator: yoanndev@outlook.fr\n"
 "Language-Team: German <traduc@traduc.org>\n"
@@ -33,12 +33,36 @@ msgid "Preview"
 msgstr "Vorschau"
 
 #: contents/ui/configAppearance.qml
+msgid "Adjust settings to generate preview"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
 msgid "Global"
 msgstr ""
 
 #: contents/ui/configAppearance.qml
 msgid "Auto-scale (fitting widget size)"
 msgstr "Automatische Skalierung (an Widget-Größe anpassen)"
+
+#: contents/ui/configAppearance.qml
+msgid "Alignment:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "None"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Center"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Center H"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Center V"
+msgstr ""
 
 #: contents/ui/configAppearance.qml
 msgid "Color mode:"
@@ -69,8 +93,8 @@ msgid "Element spacing:"
 msgstr "Elementabstand:"
 
 #: contents/ui/configAppearance.qml
-msgid "Language Preset:"
-msgstr "Sprachvorwahl:"
+msgid "Locale Preset:"
+msgstr ""
 
 #: contents/ui/configAppearance.qml
 msgid "System Default"
@@ -121,6 +145,14 @@ msgid "Japanese"
 msgstr "Japanisch"
 
 #: contents/ui/configAppearance.qml
+msgid "Language:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Date/Time Format:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
 msgid "Custom Locale:"
 msgstr ""
 
@@ -129,8 +161,20 @@ msgid "e.g. fr_BE, en_GB, nl_BE"
 msgstr "z.B. de_DE, en_GB, fr_BE"
 
 #: contents/ui/configAppearance.qml
-msgid "Locale used for weekday and month names. Leave empty to use the system locale."
-msgstr "Spracheinstellung für Wochentags- und Monatsnamen. Leer lassen für die System-Sprache."
+msgid "Date Format:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "dd MMMM yyyy"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Time Format:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "HH:mm:ss"
+msgstr ""
 
 #: contents/ui/configAppearance.qml
 msgid "Reset Global Settings"
@@ -369,27 +413,11 @@ msgid "Refresh"
 msgstr ""
 
 #: contents/ui/configDebug.qml
-msgid "Diagnostic"
-msgstr ""
-
-#: contents/ui/configDebug.qml
-msgid "Live Log"
-msgstr ""
-
-#: contents/ui/configDebug.qml
 msgid "%1 entries"
 msgstr ""
 
 #: contents/ui/configDebug.qml
 msgid "Clear log"
-msgstr ""
-
-#: contents/ui/configDebug.qml
-msgid "Exported to %1"
-msgstr ""
-
-#: contents/ui/configDebug.qml
-msgid "Export failed!"
 msgstr ""
 
 #: contents/ui/configDebug.qml
@@ -421,7 +449,15 @@ msgid "Failed to fetch theme index"
 msgstr ""
 
 #: contents/ui/configThemes.qml
+msgid "Failed to download theme. Check your connection."
+msgstr ""
+
+#: contents/ui/configThemes.qml
 msgid "Modern reClock Theme (*.mrt)"
+msgstr ""
+
+#: contents/ui/configThemes.qml
+msgid "Failed to parse theme file. It may be corrupted."
 msgstr ""
 
 #: contents/ui/configThemes.qml
@@ -447,6 +483,10 @@ msgstr ""
 #: contents/ui/configThemes.qml contents/ui/ThemeSheets.qml
 msgid "Export Theme"
 msgstr "Thema exportieren"
+
+#: contents/ui/configThemes.qml
+msgid "Preview generation failed. The .mrt will still be created."
+msgstr ""
 
 #: contents/ui/configThemes.qml
 msgid "Give your theme a name and description before exporting."
@@ -599,6 +639,12 @@ msgstr "Eingefügte Konfiguration anwenden"
 #: contents/ui/ThemeSheets.qml
 msgid "Reset to current"
 msgstr "Auf aktuellen Wert zurücksetzen"
+
+#~ msgid "Language Preset:"
+#~ msgstr "Sprachvorwahl:"
+
+#~ msgid "Locale used for weekday and month names. Leave empty to use the system locale."
+#~ msgstr "Spracheinstellung für Wochentags- und Monatsnamen. Leer lassen für die System-Sprache."
 
 #~ msgid "Adapt colors to system theme"
 #~ msgstr "Farben an das Systemthema anpassen"

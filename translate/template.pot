@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: modernreclock\n"
 "Report-Msgid-Bugs-To: https://github.com/YoannDev90/KDE-Modern-reClock/issues\n"
-"POT-Creation-Date: 2026-07-05 20:26+0200\n"
+"POT-Creation-Date: 2026-07-06 22:53+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -34,11 +34,35 @@ msgid "Preview"
 msgstr ""
 
 #: contents/ui/configAppearance.qml
+msgid "Adjust settings to generate preview"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
 msgid "Global"
 msgstr ""
 
 #: contents/ui/configAppearance.qml
 msgid "Auto-scale (fitting widget size)"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Alignment:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "None"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Center"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Center H"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Center V"
 msgstr ""
 
 #: contents/ui/configAppearance.qml
@@ -70,7 +94,7 @@ msgid "Element spacing:"
 msgstr ""
 
 #: contents/ui/configAppearance.qml
-msgid "Language Preset:"
+msgid "Locale Preset:"
 msgstr ""
 
 #: contents/ui/configAppearance.qml
@@ -122,6 +146,14 @@ msgid "Japanese"
 msgstr ""
 
 #: contents/ui/configAppearance.qml
+msgid "Language:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Date/Time Format:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
 msgid "Custom Locale:"
 msgstr ""
 
@@ -130,7 +162,19 @@ msgid "e.g. fr_BE, en_GB, nl_BE"
 msgstr ""
 
 #: contents/ui/configAppearance.qml
-msgid "Locale used for weekday and month names. Leave empty to use the system locale."
+msgid "Date Format:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "dd MMMM yyyy"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "Time Format:"
+msgstr ""
+
+#: contents/ui/configAppearance.qml
+msgid "HH:mm:ss"
 msgstr ""
 
 #: contents/ui/configAppearance.qml
@@ -370,27 +414,11 @@ msgid "Refresh"
 msgstr ""
 
 #: contents/ui/configDebug.qml
-msgid "Diagnostic"
-msgstr ""
-
-#: contents/ui/configDebug.qml
-msgid "Live Log"
-msgstr ""
-
-#: contents/ui/configDebug.qml
 msgid "%1 entries"
 msgstr ""
 
 #: contents/ui/configDebug.qml
 msgid "Clear log"
-msgstr ""
-
-#: contents/ui/configDebug.qml
-msgid "Exported to %1"
-msgstr ""
-
-#: contents/ui/configDebug.qml
-msgid "Export failed!"
 msgstr ""
 
 #: contents/ui/configDebug.qml
@@ -422,7 +450,15 @@ msgid "Failed to fetch theme index"
 msgstr ""
 
 #: contents/ui/configThemes.qml
+msgid "Failed to download theme. Check your connection."
+msgstr ""
+
+#: contents/ui/configThemes.qml
 msgid "Modern reClock Theme (*.mrt)"
+msgstr ""
+
+#: contents/ui/configThemes.qml
+msgid "Failed to parse theme file. It may be corrupted."
 msgstr ""
 
 #: contents/ui/configThemes.qml
@@ -447,6 +483,10 @@ msgstr ""
 
 #: contents/ui/configThemes.qml contents/ui/ThemeSheets.qml
 msgid "Export Theme"
+msgstr ""
+
+#: contents/ui/configThemes.qml
+msgid "Preview generation failed. The .mrt will still be created."
 msgstr ""
 
 #: contents/ui/configThemes.qml
