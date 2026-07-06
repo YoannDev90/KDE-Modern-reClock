@@ -828,6 +828,45 @@ KCM.SimpleKCM {
             QQC2.ToolTip.delay: 800
         }
 
+        property bool _isCustomLocale: languageCombo.model && languageCombo.currentIndex >= 0
+                                       && languageCombo.model[languageCombo.currentIndex].locale === "custom"
+
+        QQC2.TextField {
+            Kirigami.FormData.label: i18n("Day Format:")
+            Layout.fillWidth: true
+            visible: appearancePage._isCustomLocale
+            text: appearancePage.cfg_day_format
+            onTextChanged: appearancePage.cfg_day_format = text
+            placeholderText: i18n("dddd")
+            QQC2.ToolTip.text: i18n("Qt format for day name. dddd = full weekday")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        QQC2.TextField {
+            Kirigami.FormData.label: i18n("Date Format:")
+            Layout.fillWidth: true
+            visible: appearancePage._isCustomLocale
+            text: appearancePage.cfg_date_format
+            onTextChanged: appearancePage.cfg_date_format = text
+            placeholderText: i18n("dd MMMM yyyy")
+            QQC2.ToolTip.text: i18n("Qt date format. e.g. dddd d MMMM yyyy")
+            QQC2.ToolTip.visible: hovered
+            QKC2.ToolTip.delay: 800
+        }
+
+        QQC2.TextField {
+            Kirigami.FormData.label: i18n("Time Format:")
+            Layout.fillWidth: true
+            visible: appearancePage._isCustomLocale
+            text: appearancePage.cfg_time_format
+            onTextChanged: appearancePage.cfg_time_format = text
+            placeholderText: i18n("HH:mm:ss")
+            QKC2.ToolTip.text: i18n("Qt time format. e.g. hh:mm AP")
+            QKC2.ToolTip.visible: hovered
+            QKC2.ToolTip.delay: 800
+        }
+
         QQC2.Button {
             text: i18n("Reset Global Settings")
             icon.name: "edit-undo"
