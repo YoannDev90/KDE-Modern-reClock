@@ -190,6 +190,10 @@ If you want to help translate this widget:
 ## Community Themes
 
 <!-- COMMUNITY_THEMES_START -->
+
+<p align="center">
+<a href="https://raw.githubusercontent.com/YoannDev90/KDE-Modern-reClock/main/community_themes/themes/theme.zip"><img src="https://raw.githubusercontent.com/YoannDev90/KDE-Modern-reClock/main/community_themes/previews/theme.png" width="300" alt="Theme"></a>
+</p>
 <!-- COMMUNITY_THEMES_END -->
 
 ## License
