@@ -102,7 +102,7 @@ KCM.SimpleKCM {
         return lines.join(nl);
     }
 
-    Component.onCompleted: {
+    function initDebugInfo() {
         log.info("system", "═══ Debug panel opened ═══");
         log.info("system", "Qt " + (typeof Qt.version !== 'undefined' ? Qt.version : "N/A") + " • " + (Qt.platform && Qt.platform.os ? Qt.platform.os : "N/A"));
         log.info("system", "Locale: " + Qt.locale().name + "  Screen: " + Screen.width + "x" + Screen.height + " @ " + Screen.devicePixelRatio + "x DPR");
@@ -124,6 +124,8 @@ KCM.SimpleKCM {
 
         log.info("system", "═══ Debug ready ═══");
     }
+
+    Component.onCompleted: initDebugInfo()
 
     ColumnLayout {
         anchors.fill: parent
@@ -157,7 +159,7 @@ KCM.SimpleKCM {
             QQC2.Button {
                 text: i18n("Refresh")
                 icon.name: "view-refresh"
-                onClicked: { log.clear(); debugPage.Component.onCompleted(); }
+                onClicked: { log.clear(); debugPage.initDebugInfo(); }
             }
             Item { Layout.fillWidth: true }
         }

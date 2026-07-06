@@ -617,34 +617,25 @@ KCM.SimpleKCM {
         }
 
         // Alignment mode
-        property string _alignMode: appearancePage.cfg_alignMode || "none"
         QQC2.Label {
-            text: i18n("Alignment:")
             Kirigami.FormData.label: i18n("Alignment:")
         }
         RowLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
 
-            QQC2.RadioButton {
-                text: i18n("None")
-                checked: appearancePage._alignMode === "none"
-                onCheckedChanged: if (checked) appearancePage.cfg_alignMode = "none"
-            }
-            QQC2.RadioButton {
-                text: i18n("Center")
-                checked: appearancePage._alignMode === "center"
-                onCheckedChanged: if (checked) appearancePage.cfg_alignMode = "center"
-            }
-            QQC2.RadioButton {
-                text: i18n("Center H")
-                checked: appearancePage._alignMode === "centerH"
-                onCheckedChanged: if (checked) appearancePage.cfg_alignMode = "centerH"
-            }
-            QQC2.RadioButton {
-                text: i18n("Center V")
-                checked: appearancePage._alignMode === "centerV"
-                onCheckedChanged: if (checked) appearancePage.cfg_alignMode = "centerV"
+            Repeater {
+                model: [
+                    { label: i18n("None"), value: "none" },
+                    { label: i18n("Center"), value: "center" },
+                    { label: i18n("Center H"), value: "centerH" },
+                    { label: i18n("Center V"), value: "centerV" }
+                ]
+                QQC2.RadioButton {
+                    text: modelData.label
+                    checked: appearancePage.cfg_alignMode === modelData.value
+                    onToggled: if (checked) appearancePage.cfg_alignMode = modelData.value
+                }
             }
         }
 
