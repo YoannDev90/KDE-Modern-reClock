@@ -20,7 +20,7 @@ jobs:
         env:
           BODY: ${{ github.event.issue.body }}
         run: |
-          MRT_URL=$(echo "$BODY" | grep -oE "https://github.com/user-attachments/files/[0-9]+/[^\" )]+\.mrt" | head -1)
+          MRT_URL=$(echo "$BODY" | grep -oE "https://github.com/user-attachments/files/[0-9]+/[^\" )]+\.(mrt|zip)" | head -1)
           echo "mrt_url=$MRT_URL"
           echo "mrt_url=$MRT_URL" >> "$GITHUB_OUTPUT"
 

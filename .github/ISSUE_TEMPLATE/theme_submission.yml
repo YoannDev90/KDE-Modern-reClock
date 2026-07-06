@@ -33,8 +33,10 @@ body:
   - type: upload
     id: mrt-file
     attributes:
-      label: Theme file (.mrt)
-      description: Upload your compiled .mrt theme file
+      label: Theme file (.mrt → rename to .zip for upload)
+      description: |
+        GitHub blocks unknown extensions. Rename your .mrt file to .zip before uploading
+        (the file is a ZIP archive internally, renaming is safe).
     validations:
       required: true
 
