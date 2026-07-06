@@ -284,7 +284,7 @@ KCM.SimpleKCM {
         id: importFileDialog
         title: i18n("Import Theme")
         fileMode: Dialogs.FileDialog.OpenFile
-        nameFilters: [i18n("Modern reClock Theme (*.mrt)")]
+        nameFilters: [i18n("Modern reClock Theme (*.zip *.mrt)")]
         onAccepted: {
             var filePath = importFileDialog.selectedFile.toString().replace("file://", "");
             var jsonStr = themeManager.parseTheme(filePath);
@@ -293,7 +293,7 @@ KCM.SimpleKCM {
                 log.info("themes", "Theme imported from: " + filePath);
             } else {
                 themesPage.importError = i18n("Failed to parse theme file. It may be corrupted.");
-                log.error("themes", "Failed to parse .mrt file");
+                log.error("themes", "Failed to parse theme file");
             }
         }
     }
@@ -441,7 +441,7 @@ KCM.SimpleKCM {
             var result = themeManager.generatePreview(cfgJson, wpPath, aid, fonts);
             themesPage.previewGenerating = false;
             if (!result || result.length === 0) {
-                themesPage.exportError = i18n("Preview generation failed. The .mrt will still be created.");
+                themesPage.exportError = i18n("Preview generation failed. The .zip will still be created.");
             }
             log.info("export", "Preview: " + (result || "(failed)"));
         }
@@ -562,8 +562,8 @@ KCM.SimpleKCM {
         id: exportSaveFileDialog
         title: i18n("Save Theme As")
         fileMode: Dialogs.FileDialog.SaveFile
-        nameFilters: [i18n("Modern reClock Theme (*.mrt)")]
-        defaultSuffix: "mrt"
+        nameFilters: [i18n("Modern reClock Theme (*.zip)")]
+        defaultSuffix: "zip"
         property string _themeJson: ""
         onAccepted: {
             var filePath = exportSaveFileDialog.selectedFile.toString().replace("file://", "");
@@ -609,12 +609,12 @@ KCM.SimpleKCM {
         RowLayout {
             Kirigami.FormData.label: i18n("File:")
             QQC2.Button {
-                text: i18n("Export .mrt...")
+                text: i18n("Export .zip...")
                 icon.name: "document-save"
                 onClicked: exportDialog.open()
             }
             QQC2.Button {
-                text: i18n("Import .mrt...")
+                text: i18n("Import .zip...")
                 icon.name: "document-import"
                 onClicked: { themesPage.importError = ""; importFileDialog.open(); }
             }
@@ -779,7 +779,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.Label {
-            text: i18n("Your saved themes are in the Appearance tab. Export them as .mrt to share with others.")
+            text: i18n("Your saved themes are in the Appearance tab. Export them as .zip to share with others.")
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
             Kirigami.Theme.colorSet: Kirigami.Theme.View

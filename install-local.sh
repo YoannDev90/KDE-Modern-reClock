@@ -86,15 +86,6 @@ if [ -f "translate/build.sh" ]; then
     ./translate/build.sh
 fi
 
-# ---- MIME ----
-echo "--- Registering .mrt MIME type ---"
-if [ -f "pkg/mime/modernreclock-theme.xml" ]; then
-    MIME_DIR="${HOME}/.local/share/mime/packages"
-    mkdir -p "$MIME_DIR"
-    cp pkg/mime/modernreclock-theme.xml "$MIME_DIR/"
-    command -v update-mime-database &>/dev/null && update-mime-database "${HOME}/.local/share/mime" 2>/dev/null || true
-    echo "  .mrt → ZIP"
-fi
 
 # ---- Widget ----
 echo "--- Installing the widget ---"

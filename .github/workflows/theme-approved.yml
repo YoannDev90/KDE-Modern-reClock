@@ -61,7 +61,7 @@ jobs:
           echo "description=$THEME_DESC" >> "$GITHUB_OUTPUT"
           echo "branch=community-theme/$THEME_ID" >> "$GITHUB_OUTPUT"
           echo "preview_path=community_themes/previews/${THEME_ID}.png" >> "$GITHUB_OUTPUT"
-          echo "mrt_path=community_themes/themes/${THEME_ID}.mrt" >> "$GITHUB_OUTPUT"
+          echo "mrt_path=community_themes/themes/${THEME_ID}.zip" >> "$GITHUB_OUTPUT"
 
       - name: Install theme files
         if: steps.find-mrt.outputs.mrt_url != ''
@@ -94,7 +94,7 @@ jobs:
               "version": os.environ["THEME_VERSION"],
               "description": os.environ.get("THEME_DESC", ""),
               "preview_url": f"https://raw.githubusercontent.com/{repo}/main/community_themes/previews/{tid}.png",
-              "mrt_url": f"https://raw.githubusercontent.com/{repo}/main/community_themes/themes/{tid}.mrt",
+              "mrt_url": f"https://raw.githubusercontent.com/{repo}/main/community_themes/themes/{tid}.zip",
           }
 
           index_path = "community_themes/themes.json"

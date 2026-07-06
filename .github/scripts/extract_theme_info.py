@@ -12,7 +12,7 @@ from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser(description="Extract .mrt theme info")
-    parser.add_argument("--mrt", required=True, help="Path to .mrt file")
+    parser.add_argument("--mrt", required=True, help="Path to theme file (.zip/.mrt)")
     parser.add_argument("--outdir", default=".", help="Output directory")
     args = parser.parse_args()
 

@@ -284,7 +284,7 @@ void ThemeManager::downloadTheme(const QString &themeId, const QString &url)
 {
     doFetch(QUrl(url),
         [this, themeId](const QByteArray &data) {
-            QFile file(m_cacheDir + "/themes/" + themeId + ".mrt");
+            QFile file(m_cacheDir + "/themes/" + themeId + ".zip");
             if (!file.open(QIODevice::WriteOnly)) {
                 emit themeDownloaded(themeId, false);
                 return;
@@ -316,7 +316,7 @@ QString ThemeManager::cachedPreviewPath(const QString &themeId)
 
 QString ThemeManager::cachedThemePath(const QString &themeId)
 {
-    return m_cacheDir + "/themes/" + themeId + ".mrt";
+    return m_cacheDir + "/themes/" + themeId + ".zip";
 }
 
 // ===== PREVIEW GENERATOR =====

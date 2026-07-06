@@ -5,7 +5,7 @@
 #include <QString>
 #include <QStringList>
 
-/// Minimal zip reader/writer for .mrt theme files.
+/// Minimal zip reader/writer for Modern reClock theme files (.zip).
 /// Zip format: local file headers + data + central directory + EOCD.
 /// Currently uses STORED (no compression). CRC32 via zlib.
 struct MrtArchiveEntry {
@@ -16,14 +16,14 @@ struct MrtArchiveEntry {
 class MrtArchive {
 public:
     // ===== READ =====
-    /// Read a .zip/.mrt file, extract all entries
+    /// Read a .zip theme file, extract all entries
     static QList<MrtArchiveEntry> read(const QString &filePath);
 
     /// Read a single file from the archive
     static QByteArray readSingle(const QString &filePath, const QString &entryName);
 
     // ===== WRITE =====
-    /// Write a .zip/.mrt file from entries (STORED, no compression)
+    /// Write a .zip theme file from entries (STORED, no compression)
     static bool write(const QString &filePath, const QList<MrtArchiveEntry> &entries);
 
 private:
