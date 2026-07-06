@@ -7,7 +7,7 @@
 
 /// Minimal zip reader/writer for .mrt theme files.
 /// Zip format: local file headers + data + central directory + EOCD.
-/// Supports STORED (no compression) and DEFLATED via zlib (Qt links it).
+/// Currently uses STORED (no compression). CRC32 via zlib.
 struct MrtArchiveEntry {
     QString name;
     QByteArray data;

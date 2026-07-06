@@ -5,7 +5,7 @@
 #include <QDebug>
 #include <zlib.h>
 
-// ===== CRC32 via zlib (Qt links zlib internally) =====
+// ===== CRC32 via zlib =====
 
 quint32 MrtArchive::crc32(const QByteArray &data)
 {

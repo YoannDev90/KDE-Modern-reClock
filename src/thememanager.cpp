@@ -8,8 +8,9 @@
 #include <QStandardPaths>
 #include <QNetworkRequest>
 #include <QUrl>
-#include <QEventLoop>
 #include <QFontDatabase>
+#include <functional>
+#include <QTimer>
 #include <QScreen>
 #include <QImage>
 #include <QPixmap>
@@ -49,6 +50,39 @@ ThemeManager::~ThemeManager() {}
 
 QString ThemeManager::cacheDir() const { return m_cacheDir; }
 
+QStringList ThemeManager::configKeys() const
+{
+    return {
+        QStringLiteral("show_day"), QStringLiteral("show_date"), QStringLiteral("show_time"),
+        QStringLiteral("show_custom"), QStringLiteral("show_timezone"),
+        QStringLiteral("day_font_size"), QStringLiteral("date_font_size"),
+        QStringLiteral("time_font_size"), QStringLiteral("custom_font_size"),
+        QStringLiteral("timezone_font_size"),
+        QStringLiteral("day_letter_spacing"), QStringLiteral("date_letter_spacing"),
+        QStringLiteral("time_letter_spacing"), QStringLiteral("custom_letter_spacing"),
+        QStringLiteral("timezone_letter_spacing"),
+        QStringLiteral("day_font_color"), QStringLiteral("date_font_color"),
+        QStringLiteral("time_font_color"), QStringLiteral("custom_font_color"),
+        QStringLiteral("timezone_font_color"),
+        QStringLiteral("day_font_bold"), QStringLiteral("date_font_bold"),
+        QStringLiteral("time_font_bold"), QStringLiteral("custom_font_bold"),
+        QStringLiteral("timezone_font_bold"),
+        QStringLiteral("day_format"), QStringLiteral("date_format"),
+        QStringLiteral("time_format"), QStringLiteral("timezone_format"),
+        QStringLiteral("time_character"),
+        QStringLiteral("use_24_hour_format"), QStringLiteral("uppercase_day"),
+        QStringLiteral("uppercase_date"), QStringLiteral("custom_format"),
+        QStringLiteral("custom_text"),
+        QStringLiteral("fontFamilyDay"), QStringLiteral("fontFamilyDate"),
+        QStringLiteral("fontFamilyTime"), QStringLiteral("fontFamilyCustom"),
+        QStringLiteral("fontFamilyTimezone"),
+        QStringLiteral("widget_spacing"), QStringLiteral("element_order"),
+        QStringLiteral("auto_scale"), QStringLiteral("color_mode"), QStringLiteral("locale"),
+        QStringLiteral("timezone_id"), QStringLiteral("timezone_label"),
+        QStringLiteral("timezone_display_text")
+    };
+}
+
 // ===== EXPORT =====
 
 QString ThemeManager::exportTheme(const QString &filePath,
@@ -82,7 +116,7 @@ QString ThemeManager::exportTheme(const QString &filePath,
     for (const QString &fontPath : embedFonts) {
         QFile f(fontPath);
         if (!f.exists()) continue;
-        f.open(QIODevice::ReadOnly);
+        if (!f.open(QIODevice::ReadOnly)) continue;
         QString name = QFileInfo(fontPath).fileName();
         entries.append({QStringLiteral("fonts/") + name, f.readAll()});
 
@@ -93,8 +127,8 @@ QString ThemeManager::exportTheme(const QString &filePath,
             QString lic = fontDir + "/" + sfx;
             if (QFile::exists(lic)) {
                 QFile lf(lic);
-                lf.open(QIODevice::ReadOnly);
-                entries.append({QStringLiteral("fonts/") + name + QStringLiteral(".license"), lf.readAll()});
+                if (lf.open(QIODevice::ReadOnly))
+                    entries.append({QStringLiteral("fonts/") + name + QStringLiteral(".license"), lf.readAll()});
                 break;
             }
         }
@@ -197,53 +231,72 @@ QString ThemeManager::resolveFontPath(const QString &familyName)
 
 // ===== GALLERY NETWORK =====
 
-void ThemeManager::fetchIndex()
+void ThemeManager::doFetch(const QUrl &url,
+                            const std::function<void(QByteArray)> &onSuccess,
+                            const std::function<void()> &onFailure,
+                            int timeoutMs)
 {
-    QNetworkRequest request{QUrl(INDEX_URL)};
+    QNetworkRequest request{url};
+    // Set a reasonable timeout for network requests
+    request.setTransferTimeout(timeoutMs);
     QNetworkReply *reply = m_net->get(request);
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+
+    QTimer *timer = new QTimer(reply);
+    timer->setSingleShot(true);
+    connect(timer, &QTimer::timeout, reply, [reply, timer, onFailure]() {
+        reply->abort();
+        reply->deleteLater();
+        if (onFailure) onFailure();
+    });
+    timer->start(timeoutMs + 1000); // Slightly longer than transfer timeout
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply, timer, onSuccess, onFailure]() {
+        timer->stop();
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError) {
-            emit indexFetchComplete(false);
+            if (m_log) m_log->warn("theme", "network error: " + reply->errorString());
+            if (onFailure) onFailure();
             return;
         }
         QByteArray data = reply->readAll();
-        QFile file(m_cacheDir + "/index.json");
-        if (file.open(QIODevice::WriteOnly)) {
-            file.write(data);
-            file.close();
-        }
-        emit indexFetchComplete(true);
+        if (onSuccess) onSuccess(data);
     });
 }
 
-bool ThemeManager::downloadTheme(const QString &themeId, const QString &url)
+void ThemeManager::fetchIndex()
 {
-    QNetworkRequest request{QUrl(url)};
-    QNetworkReply *reply = m_net->get(request);
-    QEventLoop loop;
-    connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
+    doFetch(QUrl(INDEX_URL),
+        [this](const QByteArray &data) {
+            QFile file(m_cacheDir + "/index.json");
+            if (file.open(QIODevice::WriteOnly)) {
+                file.write(data);
+                file.close();
+            }
+            emit indexFetchComplete(true);
+        },
+        [this]() {
+            emit indexFetchComplete(false);
+        }
+    );
+}
 
-    if (reply->error() != QNetworkReply::NoError) {
-        reply->deleteLater();
-        emit themeDownloaded(themeId, false);
-        return false;
-    }
-
-    QByteArray data = reply->readAll();
-    reply->deleteLater();
-
-    QFile file(m_cacheDir + "/themes/" + themeId + ".mrt");
-    if (!file.open(QIODevice::WriteOnly)) {
-        emit themeDownloaded(themeId, false);
-        return false;
-    }
-    file.write(data);
-    file.close();
-
-    emit themeDownloaded(themeId, true);
-    return true;
+void ThemeManager::downloadTheme(const QString &themeId, const QString &url)
+{
+    doFetch(QUrl(url),
+        [this, themeId](const QByteArray &data) {
+            QFile file(m_cacheDir + "/themes/" + themeId + ".mrt");
+            if (!file.open(QIODevice::WriteOnly)) {
+                emit themeDownloaded(themeId, false);
+                return;
+            }
+            file.write(data);
+            file.close();
+            emit themeDownloaded(themeId, true);
+        },
+        [this, themeId]() {
+            emit themeDownloaded(themeId, false);
+        }
+    );
 }
 
 void ThemeManager::clearCache()
@@ -616,79 +669,6 @@ QString ThemeManager::fallbackPreview(const QString &outPath)
     fb.toImage().save(outPath, "PNG");
     return outPath;
 }
-
-QString ThemeManager::compositePreview(const QString &jsonConfig,
-                                        const QString &wallpaperPath,
-                                        const QString &qmlClockPath,
-                                        const QString &customDayName)
-{
-    Q_UNUSED(jsonConfig)
-    Q_UNUSED(customDayName)
-    qDebug() << "[ThemeManager] compositePreview clock:" << qmlClockPath;
-    QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
-    QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
-
-    // Load wallpaper
-    QImage wallpaper;
-    if (QFile::exists(wallpaperPath)) {
-        wallpaper = QImage(wallpaperPath);
-        if (m_log) m_log->info("theme", QString("wallpaper: %1x%2").arg(wallpaper.width()).arg(wallpaper.height()));
-    }
-    if (wallpaper.isNull()) {
-        wallpaper = QImage(1920, 1080, QImage::Format_ARGB32);
-        wallpaper.fill(QColor(42, 42, 50));
-    }
-
-    // Load QML clock image
-    QImage clockImage;
-    if (QFile::exists(qmlClockPath)) {
-        clockImage = QImage(qmlClockPath);
-        if (m_log) m_log->info("theme", QString("clock image: %1x%2").arg(clockImage.width()).arg(clockImage.height()));
-    }
-    if (clockImage.isNull()) {
-        if (m_log) m_log->info("theme", "clock image not found, using fallback");
-        return fallbackPreview(outPath);
-    }
-
-    // Scale factor
-    QScreen *screen = QGuiApplication::primaryScreen();
-    double scaleX = 1.0, scaleY = 1.0;
-    if (screen && !wallpaper.isNull()) {
-        scaleX = (double)wallpaper.width() / screen->size().width();
-        scaleY = (double)wallpaper.height() / screen->size().height();
-    }
-
-    // Find widget geometry
-    QRect widgetRect = findWidgetGeometry();
-    if (m_log) m_log->info("theme", QString("widget: %1,%2 %3x%4").arg(widgetRect.x()).arg(widgetRect.y()).arg(widgetRect.width()).arg(widgetRect.height()));
-
-    // Calculate position on wallpaper
-    int wpX = widgetRect.isValid() ? qRound(widgetRect.x() * scaleX) : 0;
-    int wpY = widgetRect.isValid() ? qRound(widgetRect.y() * scaleY) : 0;
-    int wpW = widgetRect.isValid() ? qRound(widgetRect.width() * scaleX) : wallpaper.width();
-
-    // Scale clock image to fit widget width on wallpaper
-    int scaledW = wpW;
-    int scaledH = qRound((double)clockImage.height() * scaledW / clockImage.width());
-    QImage scaledClock = clockImage.scaled(scaledW, scaledH, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-    // Center vertically in widget area
-    int wpH = widgetRect.isValid() ? qRound(widgetRect.height() * scaleY) : wallpaper.height();
-    int y = wpY + qMax(0, (wpH - scaledH) / 2);
-
-    // Composite
-    QPainter p(&wallpaper);
-    p.setRenderHint(QPainter::SmoothPixmapTransform);
-    p.drawImage(wpX, y, scaledClock);
-    p.end();
-
-    wallpaper.save(outPath, "PNG");
-    qint64 size = QFileInfo(outPath).size();
-    if (m_log) m_log->info("theme", QString("composite saved: %1 size: %2").arg(outPath).arg(size));
-    return outPath;
-}
-
-
 
 // ===== FONT PERSISTENCE =====
 
