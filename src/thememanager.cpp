@@ -496,7 +496,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         if (e.letterSpacing != 0) mf.setLetterSpacing(QFont::AbsoluteSpacing, e.letterSpacing);
         metricsPainter.setFont(mf);
         QFontMetrics fm = metricsPainter.fontMetrics();
-        int tw = fm.horizontalAdvance(e.sampleText);
+        int tw = fm.boundingRect(e.sampleText).width();
         int th = fm.height();
         if (tw > naturalWidth) naturalWidth = tw;
         naturalHeight += th;
