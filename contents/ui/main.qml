@@ -75,6 +75,33 @@ PlasmoidItem {
         return base.length > 0 ? base : validElements.slice();
     }
 
+    // ===== ALIGNMENT =====
+    readonly property string alignMode: plasmoid.configuration.alignMode || "none"
+
+    function applyAlignment() {
+        if (alignMode === "none") return;
+        var containment = plasmoid.containment;
+        if (!containment) return;
+        var screenGeom = containment.screenGeometry;
+        if (!screenGeom || screenGeom.width <= 0) return;
+        var geom = plasmoid.geometry;
+        if (!geom || geom.width <= 0) return;
+        var newX = geom.x;
+        var newY = geom.y;
+        if (alignMode === "center") {
+            newX = Math.round((screenGeom.width - geom.width) / 2);
+            newY = Math.round((screenGeom.height - geom.height) / 2);
+        } else if (alignMode === "centerH") {
+            newX = Math.round((screenGeom.width - geom.width) / 2);
+        } else if (alignMode === "centerV") {
+            newY = Math.round((screenGeom.height - geom.height) / 2);
+        }
+        if (newX !== geom.x || newY !== geom.y) {
+            plasmoid.geometry = Qt.rect(newX, newY, geom.width, geom.height);
+            log.info("config", "Aligned widget to " + alignMode + " → (" + newX + "," + newY + ")");
+        }
+    }
+
     // ===== FONT FAMILIES =====
     property string fontFamilyDay: plasmoid.configuration.fontFamilyDay
     property string fontFamilyDate: plasmoid.configuration.fontFamilyDate
@@ -357,6 +384,18 @@ PlasmoidItem {
 
         updateClock();
         if (colorMode === "wallpaper") _loadWallpaper();
+
+        // Alignment: apply on load and connect to screen geometry changes
+        applyAlignment();
+        try {
+            var cont = plasmoid.containment;
+            if (cont) {
+                cont.screenGeometryChanged.connect(applyAlignment);
+                log.info("config", "Alignment mode: " + alignMode + " (connected to screenGeometryChanged)");
+            }
+        } catch (e) {
+            log.warn("config", "Could not connect screenGeometryChanged: " + e.message);
+        }
     }
 
     fullRepresentation: Item {

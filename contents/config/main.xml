@@ -174,5 +174,16 @@
         <entry name="adapt_to_theme" type="Bool">
             <default>false</default>
         </entry>
+
+        <!-- Alignment mode: none, center, centerH, centerV -->
+        <entry name="alignMode" type="String">
+            <label>Widget alignment on screen</label>
+            <default>none</default>
+        </entry>
+
+        <!-- Debug: custom preview date (YYYY-MM-DD) -->
+        <entry name="custom_preview_date" type="String">
+            <default></default>
+        </entry>
     </group>
 </kcfg>
