@@ -50,7 +50,8 @@ public:
                                          const QString &wallpaperPath,
                                          int appletId = -1,
                                          const QStringList &fontPaths = {},
-                                         const QString &customDate = {});
+                                         const QString &customDate = {},
+                                         const QString &customDayName = {});
 
 signals:
     void indexFetchComplete(bool success);

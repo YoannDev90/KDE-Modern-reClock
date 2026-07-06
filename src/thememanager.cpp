@@ -358,7 +358,8 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
                                        const QString &wallpaperPath,
                                        int appletId,
                                        const QStringList &fontPaths,
-                                       const QString &customDate)
+                                       const QString &customDate,
+                                       const QString &customDayName)
 {
     Q_UNUSED(appletId)
     if (m_log) m_log->info("theme", "generatePreview called");
@@ -458,7 +459,8 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         elements.insert(name, e);
     };
 
-    addElement(QStringLiteral("day"),    QStringLiteral("Day"),    72, QStringLiteral("Wednesday"));
+    addElement(QStringLiteral("day"), QStringLiteral("Day"), 72,
+               customDayName.isEmpty() ? QStringLiteral("Wednesday") : customDayName);
     // Use custom date if provided, otherwise current date
     QDateTime now = customDate.isEmpty() ? QDateTime::currentDateTime()
                                           : QDateTime::fromString(customDate, Qt::ISODate);
@@ -467,13 +469,13 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     QLocale locale(cfg.value(QStringLiteral("locale")).toString(QStringLiteral("en_US")));
     QString dateSample = locale.toString(now.date(), dateFormat);
     if (dateSample.isEmpty()) dateSample = QStringLiteral("15 January 26");
-    addElement(QStringLiteral("date"),  QStringLiteral("Date"),   19, dateSample);
+    addElement(QStringLiteral("date"), QStringLiteral("Date"), 19, dateSample);
 
     QString timeChar = cfg.value(QStringLiteral("time_character")).toString();
     QString timeSample = locale.toString(now.time(), QStringLiteral("HH:mm:ss"));
     if (timeSample.isEmpty()) timeSample = QStringLiteral("14:30:00");
     if (!timeChar.trimmed().isEmpty()) timeSample = timeChar + QStringLiteral(" ") + timeSample + QStringLiteral(" ") + timeChar;
-    addElement(QStringLiteral("time"),  QStringLiteral("Time"),   19, timeSample);
+    addElement(QStringLiteral("time"), QStringLiteral("Time"), 19, timeSample);
 
     addElement(QStringLiteral("custom"),QStringLiteral("Custom"), 19,
                cfg.value(QStringLiteral("custom_text")).toString(QStringLiteral("Custom Text")));

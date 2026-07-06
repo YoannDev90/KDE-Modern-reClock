@@ -191,13 +191,20 @@ KCM.SimpleKCM {
                     log.info("theme", "Manual preview generation started");
                     var cfgJson = debugPage.getExportConfig();
                     var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
-                    // Build custom date ISO string
+                    // Build custom date ISO string for selected day
                     var month = (monthCombo.currentIndex + 1).toString().padStart(2, '0');
-                    var customDate = yearSpin.value + "-" + month + "-01";
+                    var dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                    var targetDay = dayCombo.currentIndex; // 0=Monday
+                    // Find first matching day in the month
+                    var d = new Date(yearSpin.value, monthCombo.currentIndex, 1);
+                    while (d.getDay() !== (targetDay + 1) % 7) { // JS: 0=Sun,1=Mon...
+                        d.setDate(d.getDate() + 1);
+                    }
+                    var customDate = d.getFullYear() + "-" + month + "-" + d.getDate().toString().padStart(2, '0');
                     log.info("theme", "Preview date: " + customDate + " (" + dayCombo.currentText + ")");
                     // Set config so widget also uses this date
                     try { plasmoid.configuration.custom_preview_date = customDate; } catch (e) {}
-                    var result = themeManager.generatePreview(cfgJson, wpPath, -1, [], customDate);
+                    var result = themeManager.generatePreview(cfgJson, wpPath, -1, [], customDate, dayCombo.currentText);
                     if (result) {
                         previewImage.source = "file://" + result + "?t=" + Date.now();
                         log.info("theme", "Preview generated: " + result);
