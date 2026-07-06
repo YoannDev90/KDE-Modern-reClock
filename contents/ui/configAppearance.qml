@@ -617,11 +617,8 @@ KCM.SimpleKCM {
         }
 
         // Alignment mode
-        QQC2.Label {
-            Kirigami.FormData.label: i18n("Alignment:")
-        }
         RowLayout {
-            Layout.fillWidth: true
+            Kirigami.FormData.label: i18n("Alignment:")
             spacing: Kirigami.Units.smallSpacing
 
             Repeater {
