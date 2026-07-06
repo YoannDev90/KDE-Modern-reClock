@@ -672,199 +672,203 @@ KCM.SimpleKCM {
             to: 999
         }
 
+        // ===== LOCALE SECTION =====
         QQC2.ComboBox {
-            id: languageCombo
-            Kirigami.FormData.label: i18n("Language Preset:")
+            id: localePresetCombo
+            Kirigami.FormData.label: i18n("Locale Preset:")
             Layout.fillWidth: true
             model: [
-                {
-                    "text": i18n("System Default"),
-                    "locale": "",
-                    "day": "dddd",
-                    "date": "dd MMM yyyy",
-                    "time": "",
-                    "h24": true
-                },
-                {
-                    "text": i18n("French"),
-                    "locale": "fr_FR",
-                    "day": "dddd",
-                    "date": "d MMMM yyyy",
-                    "time": "HH'h'mm",
-                    "h24": true
-                },
-                {
-                    "text": i18n("English (US)"),
-                    "locale": "en_US",
-                    "day": "dddd",
-                    "date": "MMMM d, yyyy",
-                    "time": "h:mm AP",
-                    "h24": false
-                },
-                {
-                    "text": i18n("English (UK)"),
-                    "locale": "en_GB",
-                    "day": "dddd",
-                    "date": "d MMMM yyyy",
-                    "time": "HH:mm",
-                    "h24": true
-                },
-                {
-                    "text": i18n("German"),
-                    "locale": "de_DE",
-                    "day": "dddd",
-                    "date": "d. MMMM yyyy",
-                    "time": "HH:mm",
-                    "h24": true
-                },
-                {
-                    "text": i18n("Spanish"),
-                    "locale": "es_ES",
-                    "day": "dddd",
-                    "date": "d 'de' MMMM 'de' yyyy",
-                    "time": "HH:mm",
-                    "h24": true
-                },
-                {
-                    "text": i18n("Italian"),
-                    "locale": "it_IT",
-                    "day": "dddd",
-                    "date": "d MMMM yyyy",
-                    "time": "HH:mm",
-                    "h24": true
-                },
-                {
-                    "text": i18n("Dutch"),
-                    "locale": "nl_NL",
-                    "day": "dddd",
-                    "date": "d MMMM yyyy",
-                    "time": "HH:mm",
-                    "h24": true
-                },
-                {
-                    "text": i18n("Polish"),
-                    "locale": "pl_PL",
-                    "day": "dddd",
-                    "date": "d MMMM yyyy",
-                    "time": "HH:mm",
-                    "h24": true
-                },
-                {
-                    "text": i18n("Portuguese"),
-                    "locale": "pt_PT",
-                    "day": "dddd",
-                    "date": "d MMMM yyyy",
-                    "time": "HH:mm",
-                    "h24": true
-                },
-                {
-                    "text": i18n("Russian"),
-                    "locale": "ru_RU",
-                    "day": "dddd",
-                    "date": "d MMMM yyyy",
-                    "time": "HH:mm",
-                    "h24": true
-                },
-                {
-                    "text": i18n("Japanese"),
-                    "locale": "ja_JP",
-                    "day": "dddd",
-                    "date": "yyyy年M月d日",
-                    "time": "H:mm",
-                    "h24": true
-                },
-                {
-                    "text": i18n("Custom"),
-                    "locale": "custom"
-                }
+                { "text": i18n("System Default"), "locale": "", "day": "dddd", "date": "dd MMM yyyy", "time": "", "h24": true },
+                { "text": i18n("French"), "locale": "fr_FR", "day": "dddd", "date": "d MMMM yyyy", "time": "HH\'h\'mm", "h24": true },
+                { "text": i18n("English (US)"), "locale": "en_US", "day": "dddd", "date": "MMMM d, yyyy", "time": "h:mm AP", "h24": false },
+                { "text": i18n("English (UK)"), "locale": "en_GB", "day": "dddd", "date": "d MMMM yyyy", "time": "HH:mm", "h24": true },
+                { "text": i18n("German"), "locale": "de_DE", "day": "dddd", "date": "d. MMMM yyyy", "time": "HH:mm", "h24": true },
+                { "text": i18n("Spanish"), "locale": "es_ES", "day": "dddd", "date": "d \'de\' MMMM \'de\' yyyy", "time": "HH:mm", "h24": true },
+                { "text": i18n("Italian"), "locale": "it_IT", "day": "dddd", "date": "d MMMM yyyy", "time": "HH:mm", "h24": true },
+                { "text": i18n("Dutch"), "locale": "nl_NL", "day": "dddd", "date": "d MMMM yyyy", "time": "HH:mm", "h24": true },
+                { "text": i18n("Polish"), "locale": "pl_PL", "day": "dddd", "date": "d MMMM yyyy", "time": "HH:mm", "h24": true },
+                { "text": i18n("Portuguese"), "locale": "pt_PT", "day": "dddd", "date": "d MMMM yyyy", "time": "HH:mm", "h24": true },
+                { "text": i18n("Russian"), "locale": "ru_RU", "day": "dddd", "date": "d MMMM yyyy", "time": "HH:mm", "h24": true },
+                { "text": i18n("Japanese"), "locale": "ja_JP", "day": "dddd", "date": "yyyy\u5E74M\u6708d\u65E5", "time": "H:mm", "h24": true },
+                { "text": i18n("Custom"), "locale": "custom" }
             ]
             textRole: "text"
 
             Component.onCompleted: {
-                if (!appearancePage)
-                    return;
-                let currentLocale = appearancePage.cfg_locale;
-                let found = false;
+                if (!appearancePage) return;
+                let loc = appearancePage.cfg_locale;
+                currentIndex = 0;
                 for (let i = 0; i < model.length; i++) {
-                    if (model[i].locale === currentLocale) {
-                        currentIndex = i;
-                        found = true;
-                        break;
-                    }
+                    if (model[i].locale === loc) { currentIndex = i; break; }
                 }
-                if (!found && currentLocale !== "") {
-                    currentIndex = model.length - 1; // Custom
-                } else if (!found) {
-                    currentIndex = 0; // Default
-                }
+                if (currentIndex === 0 && loc !== "") currentIndex = model.length - 1;
             }
 
             onActivated: {
                 let item = model[currentIndex];
                 if (item.locale !== "custom") {
                     appearancePage.cfg_locale = item.locale;
-
-                    // Predefine formats based on language
-                    if (item.day !== undefined)
-                        appearancePage.cfg_day_format = item.day;
-                    if (item.date !== undefined)
-                        appearancePage.cfg_date_format = item.date;
-                    if (item.time !== undefined)
-                        appearancePage.cfg_time_format = item.time;
-                    if (item.h24 !== undefined)
-                        appearancePage.cfg_use_24_hour_format = item.h24;
+                    if (item.day !== undefined) appearancePage.cfg_day_format = item.day;
+                    if (item.date !== undefined) appearancePage.cfg_date_format = item.date;
+                    if (item.time !== undefined) appearancePage.cfg_time_format = item.time;
+                    if (item.h24 !== undefined) appearancePage.cfg_use_24_hour_format = item.h24;
                 }
             }
+        }
+
+        QQC2.ComboBox {
+            id: textLanguageCombo
+            Kirigami.FormData.label: i18n("Text Language:")
+            Layout.fillWidth: true
+            model: [
+                { "text": i18n("System Default"), "locale": "" },
+                { "text": i18n("French"), "locale": "fr_FR" },
+                { "text": i18n("English (US)"), "locale": "en_US" },
+                { "text": i18n("English (UK)"), "locale": "en_GB" },
+                { "text": i18n("German"), "locale": "de_DE" },
+                { "text": i18n("Spanish"), "locale": "es_ES" },
+                { "text": i18n("Italian"), "locale": "it_IT" },
+                { "text": i18n("Dutch"), "locale": "nl_NL" },
+                { "text": i18n("Polish"), "locale": "pl_PL" },
+                { "text": i18n("Portuguese"), "locale": "pt_PT" },
+                { "text": i18n("Russian"), "locale": "ru_RU" },
+                { "text": i18n("Japanese"), "locale": "ja_JP" }
+            ]
+            textRole: "text"
+
+            Component.onCompleted: {
+                if (!appearancePage) return;
+                let loc = appearancePage.cfg_locale;
+                currentIndex = 0;
+                for (let i = 0; i < model.length; i++) {
+                    if (model[i].locale === loc) { currentIndex = i; break; }
+                }
+            }
+
+            onActivated: {
+                let item = model[currentIndex];
+                appearancePage.cfg_locale = item.locale;
+                for (let i = 0; i < localePresetCombo.model.length; i++) {
+                    if (localePresetCombo.model[i].locale === "custom") {
+                        localePresetCombo.currentIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+
+        QQC2.ComboBox {
+            id: dateFormatCombo
+            Kirigami.FormData.label: i18n("Date Format:")
+            Layout.fillWidth: true
+            model: [
+                { "text": "dd MMM yyyy", "format": "dd MMM yyyy" },
+                { "text": "d MMMM yyyy", "format": "d MMMM yyyy" },
+                { "text": "dd/MM/yyyy", "format": "dd/MM/yyyy" },
+                { "text": "MM/dd/yyyy", "format": "MM/dd/yyyy" },
+                { "text": "yyyy-MM-dd", "format": "yyyy-MM-dd" },
+                { "text": "MMMM d, yyyy", "format": "MMMM d, yyyy" },
+                { "text": "d. MMMM yyyy", "format": "d. MMMM yyyy" },
+                { "text": "Custom", "format": "custom" }
+            ]
+            textRole: "text"
+
+            Component.onCompleted: {
+                if (!appearancePage) return;
+                let fmt = appearancePage.cfg_date_format;
+                currentIndex = 0;
+                for (let i = 0; i < model.length; i++) {
+                    if (model[i].format === fmt) { currentIndex = i; break; }
+                }
+                if (currentIndex === 0 && fmt !== model[0].format) currentIndex = model.length - 1;
+            }
+
+            onActivated: {
+                let item = model[currentIndex];
+                if (item.format !== "custom") {
+                    appearancePage.cfg_date_format = item.format;
+                    for (let i = 0; i < localePresetCombo.model.length; i++) {
+                        if (localePresetCombo.model[i].locale === "custom") {
+                            localePresetCombo.currentIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        QQC2.TextField {
+            visible: dateFormatCombo.currentIndex === dateFormatCombo.model.length - 1
+            Kirigami.FormData.label: i18n("Date Format:")
+            Layout.fillWidth: true
+            text: appearancePage.cfg_date_format
+            onTextChanged: appearancePage.cfg_date_format = text
+            placeholderText: i18n("dd MMMM yyyy")
+            QQC2.ToolTip.text: i18n("Qt date format. e.g. dddd d MMMM yyyy")
+            QKC2.ToolTip.visible: hovered
+            QKC2.ToolTip.delay: 800
+        }
+
+        QQC2.ComboBox {
+            id: timeFormatCombo
+            Kirigami.FormData.label: i18n("Time Format:")
+            Layout.fillWidth: true
+            model: [
+                { "text": "HH:mm", "format": "HH:mm" },
+                { "text": "HH:mm:ss", "format": "HH:mm:ss" },
+                { "text": "HH\'h\'mm", "format": "HH\'h\'mm" },
+                { "text": "h:mm AP", "format": "h:mm AP" },
+                { "text": "h:mm:ss AP", "format": "h:mm:ss AP" },
+                { "text": "H:mm", "format": "H:mm" },
+                { "text": "Custom", "format": "custom" }
+            ]
+            textRole: "text"
+
+            Component.onCompleted: {
+                if (!appearancePage) return;
+                let fmt = appearancePage.cfg_time_format;
+                currentIndex = 0;
+                for (let i = 0; i < model.length; i++) {
+                    if (model[i].format === fmt) { currentIndex = i; break; }
+                }
+                if (currentIndex === 0 && fmt !== model[0].format) currentIndex = model.length - 1;
+            }
+
+            onActivated: {
+                let item = model[currentIndex];
+                if (item.format !== "custom") {
+                    appearancePage.cfg_time_format = item.format;
+                    for (let i = 0; i < localePresetCombo.model.length; i++) {
+                        if (localePresetCombo.model[i].locale === "custom") {
+                            localePresetCombo.currentIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        QQC2.TextField {
+            visible: timeFormatCombo.currentIndex === timeFormatCombo.model.length - 1
+            Kirigami.FormData.label: i18n("Time Format:")
+            Layout.fillWidth: true
+            text: appearancePage.cfg_time_format
+            onTextChanged: appearancePage.cfg_time_format = text
+            placeholderText: i18n("HH:mm:ss")
+            QQC2.ToolTip.text: i18n("Qt time format. e.g. hh:mm AP")
+            QKC2.ToolTip.visible: hovered
+            QKC2.ToolTip.delay: 800
         }
 
         QQC2.TextField {
             id: localeField
             Kirigami.FormData.label: i18n("Custom Locale:")
             Layout.fillWidth: true
-            visible: languageCombo.model && languageCombo.model.length > 0 && (languageCombo.model[languageCombo.currentIndex].locale === "custom")
+            visible: localePresetCombo.currentIndex === localePresetCombo.model.length - 1
             placeholderText: i18n("e.g. fr_BE, en_GB, nl_BE")
             QQC2.ToolTip.text: i18n("Locale used for weekday and month names. Leave empty to use the system locale.")
-            QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.delay: 800
-        }
-
-        property bool _isCustomLocale: languageCombo.model && languageCombo.currentIndex >= 0
-                                       && languageCombo.model[languageCombo.currentIndex].locale === "custom"
-
-        QQC2.TextField {
-            Kirigami.FormData.label: i18n("Day Format:")
-            Layout.fillWidth: true
-            visible: appearancePage._isCustomLocale
-            text: appearancePage.cfg_day_format
-            onTextChanged: appearancePage.cfg_day_format = text
-            placeholderText: i18n("dddd")
-            QQC2.ToolTip.text: i18n("Qt format for day name. dddd = full weekday")
-            QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.delay: 800
-        }
-
-        QQC2.TextField {
-            Kirigami.FormData.label: i18n("Date Format:")
-            Layout.fillWidth: true
-            visible: appearancePage._isCustomLocale
-            text: appearancePage.cfg_date_format
-            onTextChanged: appearancePage.cfg_date_format = text
-            placeholderText: i18n("dd MMMM yyyy")
-            QQC2.ToolTip.text: i18n("Qt date format. e.g. dddd d MMMM yyyy")
-            QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.delay: 800
-        }
-
-        QQC2.TextField {
-            Kirigami.FormData.label: i18n("Time Format:")
-            Layout.fillWidth: true
-            visible: appearancePage._isCustomLocale
-            text: appearancePage.cfg_time_format
-            onTextChanged: appearancePage.cfg_time_format = text
-            placeholderText: i18n("HH:mm:ss")
-            QQC2.ToolTip.text: i18n("Qt time format. e.g. hh:mm AP")
-            QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.delay: 800
+            QKC2.ToolTip.visible: hovered
+            QKC2.ToolTip.delay: 800
         }
 
         QQC2.Button {
