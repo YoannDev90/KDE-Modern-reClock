@@ -22,12 +22,33 @@ KCM.SimpleKCM {
     property color  cfg_time_font_color: "#FFFFFF"
 
     readonly property var log: ModernRecClock.Log
+    readonly property var themeManager: ModernRecClock.ThemeManager
     readonly property bool _hasTheme: typeof PlasmaCore.Theme !== 'undefined' && PlasmaCore.Theme !== null
     readonly property color _themeText: _hasTheme && PlasmaCore.Theme.textColor ? PlasmaCore.Theme.textColor : "#FFFFFF"
 
     // Filter
     property string filterCategory: ""
     property string filterLevel: ""
+
+    // Config keys for preview generation
+    readonly property var configKeys: [
+        "show_day", "show_date", "show_time", "show_custom", "show_timezone",
+        "day_font_size", "date_font_size", "time_font_size", "custom_font_size", "timezone_font_size",
+        "day_letter_spacing", "date_letter_spacing", "time_letter_spacing", "custom_letter_spacing", "timezone_letter_spacing",
+        "day_font_color", "date_font_color", "time_font_color", "custom_font_color", "timezone_font_color",
+        "day_font_bold", "date_font_bold", "time_font_bold", "custom_font_bold", "timezone_font_bold",
+        "day_format", "date_format", "time_format", "timezone_format", "time_character",
+        "use_24_hour_format", "uppercase_day", "uppercase_date", "custom_format", "custom_text",
+        "fontFamilyDay", "fontFamilyDate", "fontFamilyTime", "fontFamilyCustom", "fontFamilyTimezone",
+        "widget_spacing", "element_order", "auto_scale", "color_mode", "locale",
+        "timezone_id", "timezone_label", "timezone_display_text"
+    ]
+
+    function getExportConfig() {
+        let cfg = {};
+        configKeys.forEach(function(k) { cfg[k] = debugPage["cfg_" + k]; });
+        return JSON.stringify(cfg, null, 4);
+    }
 
     function generateDebugDump() {
         var nl = "\n";
@@ -132,6 +153,64 @@ KCM.SimpleKCM {
                 onClicked: { log.clear(); debugPage.Component.onCompleted(); }
             }
             Item { Layout.fillWidth: true }
+        }
+
+        // ================= SECTION: PREVIEW GENERATOR =================
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Button {
+                text: i18n("Generate Preview")
+                icon.name: "image-generate"
+                onClicked: {
+                    log.info("theme", "Manual preview generation started");
+                    var cfgJson = debugPage.getExportConfig();
+                    var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
+                    var result = themeManager.generatePreview(cfgJson, wpPath);
+                    if (result) {
+                        previewImage.source = "file://" + result;
+                        log.info("theme", "Preview generated: " + result);
+                    } else {
+                        log.error("theme", "Preview generation failed");
+                    }
+                }
+            }
+            QQC2.Label {
+                text: i18n("Preview will appear below")
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                opacity: 0.5
+            }
+            Item { Layout.fillWidth: true }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 300
+            Layout.minimumHeight: 150
+            color: Qt.rgba(0, 0, 0, 0.4)
+            radius: Kirigami.Units.cornerRadius
+            clip: true
+
+            Image {
+                id: previewImage
+                anchors.fill: parent
+                anchors.margins: Kirigami.Units.smallSpacing
+                fillMode: Image.PreserveAspectFit
+                asynchronous: true
+
+                QQC2.BusyIndicator {
+                    anchors.centerIn: parent
+                    running: previewImage.status === Image.Loading
+                }
+
+                QQC2.Label {
+                    anchors.centerIn: parent
+                    text: i18n("Click 'Generate Preview' to render the clock on wallpaper")
+                    color: Kirigami.Theme.disabledTextColor
+                    visible: previewImage.status !== Image.Ready
+                }
+            }
         }
 
         // Log toolbar: filter + count + clear + export
