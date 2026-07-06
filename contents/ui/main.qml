@@ -28,7 +28,17 @@ PlasmoidItem {
         source: Qt.resolvedUrl("../fonts/Poppins.ttf")
     }
 
-    property date currentDateTime: new Date()
+    property date currentDateTime: {
+        var custom = plasmoid.configuration.custom_preview_date;
+        if (custom && custom.length > 0) {
+            var d = new Date(custom);
+            if (!isNaN(d.getTime())) {
+                log.debug("clock", "Using custom preview date: " + custom);
+                return d;
+            }
+        }
+        return new Date();
+    }
 
     property bool use24HourFormat: plasmoid.configuration.use_24_hour_format
     property string timeCharacter: plasmoid.configuration.time_character

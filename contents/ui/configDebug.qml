@@ -191,10 +191,12 @@ KCM.SimpleKCM {
                     log.info("theme", "Manual preview generation started");
                     var cfgJson = debugPage.getExportConfig();
                     var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
-                    // Build custom date ISO string: 2026-07-06
+                    // Build custom date ISO string
                     var month = (monthCombo.currentIndex + 1).toString().padStart(2, '0');
                     var customDate = yearSpin.value + "-" + month + "-01";
                     log.info("theme", "Preview date: " + customDate + " (" + dayCombo.currentText + ")");
+                    // Set config so widget also uses this date
+                    try { plasmoid.configuration.custom_preview_date = customDate; } catch (e) {}
                     var result = themeManager.generatePreview(cfgJson, wpPath, -1, [], customDate);
                     if (result) {
                         previewImage.source = "file://" + result + "?t=" + Date.now();

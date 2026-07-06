@@ -72,6 +72,7 @@ KCM.SimpleKCM {
     property string cfg_timezone_id: ""
     property alias cfg_timezone_label: timezoneLabel.text
     property string cfg_timezone_display_text: ""
+    property string cfg_custom_preview_date: ""
     property alias cfg_timezone_format: _timezoneFmtStorage.text
     property alias cfg_timezone_font_size: timezoneFontSize.value
     property alias cfg_timezone_letter_spacing: timezoneLetterSpacing.value
