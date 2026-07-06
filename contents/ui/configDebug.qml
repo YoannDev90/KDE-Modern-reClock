@@ -167,6 +167,23 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
 
+            QQC2.Label { text: i18n("Day:"); font.bold: true }
+            QQC2.ComboBox {
+                id: dayCombo
+                model: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+                currentIndex: 2 // Wednesday
+            }
+            QQC2.Label { text: i18n("Month:"); font.bold: true }
+            QQC2.ComboBox {
+                id: monthCombo
+                model: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                currentIndex: 6 // July
+            }
+            QQC2.SpinBox {
+                id: yearSpin
+                from: 2024; to: 2030; value: 2026
+            }
+            Item { Layout.fillWidth: true }
             QQC2.Button {
                 text: i18n("Generate Preview")
                 icon.name: "image-generate"
@@ -174,9 +191,13 @@ KCM.SimpleKCM {
                     log.info("theme", "Manual preview generation started");
                     var cfgJson = debugPage.getExportConfig();
                     var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
-                    var result = themeManager.generatePreview(cfgJson, wpPath);
+                    // Build custom date ISO string: 2026-07-06
+                    var month = (monthCombo.currentIndex + 1).toString().padStart(2, '0');
+                    var customDate = yearSpin.value + "-" + month + "-01";
+                    log.info("theme", "Preview date: " + customDate + " (" + dayCombo.currentText + ")");
+                    var result = themeManager.generatePreview(cfgJson, wpPath, -1, [], customDate);
                     if (result) {
-                        previewImage.source = "file://" + result;
+                        previewImage.source = "file://" + result + "?t=" + Date.now();
                         log.info("theme", "Preview generated: " + result);
                     } else {
                         log.error("theme", "Preview generation failed");
