@@ -852,7 +852,7 @@ KCM.SimpleKCM {
             placeholderText: i18n("dd MMMM yyyy")
             QQC2.ToolTip.text: i18n("Qt date format. e.g. dddd d MMMM yyyy")
             QQC2.ToolTip.visible: hovered
-            QKC2.ToolTip.delay: 800
+            QQC2.ToolTip.delay: 800
         }
 
         QQC2.TextField {
@@ -862,9 +862,9 @@ KCM.SimpleKCM {
             text: appearancePage.cfg_time_format
             onTextChanged: appearancePage.cfg_time_format = text
             placeholderText: i18n("HH:mm:ss")
-            QKC2.ToolTip.text: i18n("Qt time format. e.g. hh:mm AP")
-            QKC2.ToolTip.visible: hovered
-            QKC2.ToolTip.delay: 800
+            QQC2.ToolTip.text: i18n("Qt time format. e.g. hh:mm AP")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
         }
 
         QQC2.Button {
