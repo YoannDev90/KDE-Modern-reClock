@@ -24,6 +24,7 @@
 #include <QDBusObjectPath>
 #include <QRegularExpression>
 #include <QGuiApplication>
+#include <QRandomGenerator>
 #include <QDebug>
 #include <fontconfig/fontconfig.h>
 
@@ -471,23 +472,38 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
             .arg(e.bold).arg(e.color.name()).arg(e.sampleText.left(20)));
     };
 
-    // Date/time generation
-    QDateTime now = customDate.isEmpty() ? QDateTime::currentDateTime()
-                                          : QDateTime::fromString(customDate, Qt::ISODate);
-    if (!now.isValid()) now = QDateTime::currentDateTime();
+    // Generate random date/time (no user timing info)
+    QDateTime now;
+    if (!customDate.isEmpty()) {
+        now = QDateTime::fromString(customDate, Qt::ISODate);
+    }
+    if (!now.isValid()) {
+        QRandomGenerator *rng = QRandomGenerator::global();
+        int year = 2024 + rng->bounded(5);
+        int month = 1 + rng->bounded(12);
+        int day = 1 + rng->bounded(28);
+        int hour = rng->bounded(24);
+        int min = rng->bounded(60);
+        int sec = rng->bounded(60);
+        now = QDateTime(QDate(year, month, day), QTime(hour, min, sec));
+    }
     QLocale locale(cfg.value(QStringLiteral("locale")).toString(QStringLiteral("en_US")));
-    QString dateFormat = cfg.value(QStringLiteral("date_format")).toString(QStringLiteral("dd MMMM yy"));
+    QString dateFormat = cfg.value(QStringLiteral("date_format")).toString(QStringLiteral("dd MMM yyyy"));
+    QString timeFormat = cfg.value(QStringLiteral("time_format")).toString(QStringLiteral("HH:mm:ss"));
     QString timeChar = cfg.value(QStringLiteral("time_character")).toString();
 
     addElement(QStringLiteral("day"), QStringLiteral("Day"), 72,
-               customDayName.isEmpty() ? QStringLiteral("Wednesday") : customDayName);
+               customDayName.isEmpty() ? locale.toString(now.date(), QStringLiteral("dddd")) : customDayName);
     addElement(QStringLiteral("date"), QStringLiteral("Date"), 19, locale.toString(now.date(), dateFormat));
-    QString timeSample = locale.toString(now.time(), QStringLiteral("HH:mm:ss"));
+    QString timeSample = locale.toString(now.time(), timeFormat);
     if (!timeChar.trimmed().isEmpty()) timeSample = timeChar + QStringLiteral(" ") + timeSample + QStringLiteral(" ") + timeChar;
     addElement(QStringLiteral("time"), QStringLiteral("Time"), 19, timeSample);
     addElement(QStringLiteral("custom"), QStringLiteral("Custom"), 19,
                cfg.value(QStringLiteral("custom_text")).toString(QStringLiteral("Custom Text")));
-    addElement(QStringLiteral("timezone"), QStringLiteral("Timezone"), 14, QStringLiteral("UTC+8:00"));
+    QString tzText = cfg.value(QStringLiteral("timezone_display_text")).toString();
+    if (tzText.isEmpty()) tzText = cfg.value(QStringLiteral("timezone_label")).toString();
+    if (tzText.isEmpty()) tzText = QStringLiteral("UTC+8:00");
+    addElement(QStringLiteral("timezone"), QStringLiteral("Timezone"), 14, tzText);
 
     // Measure natural text
     if (m_log) m_log->info("theme", "--- measuring natural text ---");

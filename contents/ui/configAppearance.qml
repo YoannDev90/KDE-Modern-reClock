@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
-import QtQuick.Window
 
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
@@ -114,51 +113,59 @@ KCM.SimpleKCM {
         return Qt.rgba(r, g, b, 1.0);
     }
 
-    function _previewResolvedColor(cfgColor) {
-        var mode = appearancePage.cfg_color_mode || "custom";
-        if (mode === "theme") return appearancePage.systemTextColor;
-        if (mode === "theme_inverse") return appearancePage.systemBgColor;
-        if (mode === "wallpaper") {
-            try {
-                var path = ModernRecClock.Wallpaper.wallpaperPath();
-                if (path && path.length > 0) {
-                    var brightness = ModernRecClock.Wallpaper.wallpaperBrightness(path);
-                    log.debug("wallpaper", "Preview wallpaper brightness: " + brightness + " for " + path);
-                    return brightness === "light" ? "#000000" : "#FFFFFF";
-                }
-            } catch (e) {
-                log.warn("wallpaper", "Preview wallpaper color resolution failed: " + e.message);
-            }
-            return appearancePage.systemTextColor;
-        }
-        return cfgColor;
-    }
+    // ===== C++ PREVIEW =====
+    readonly property var themeManager: ModernRecClock.ThemeManager
+    property string previewImagePath: ""
 
-    // Scale factor for preview — updated by updatePreview()
-    // 1.0 = use configured font sizes as-is; auto_scale reduces if text overflows
-    property real _previewScale: 1.0
-
-    // ===== WALLPAPER PREVIEW =====
-    function _loadPreviewWallpaper() {
-        if (previewWallpaperImage)
-            previewWallpaperImage.source = "image://modernreclock/wallpaper";
-        log.info("wallpaper", "Preview wallpaper source set to image://modernreclock/wallpaper");
-    }
-
-    // ===== Live preview =====
-    property string previewDayText: ""
-    property string previewDateText: ""
-    property string previewTimeText: ""
-    property string previewCustomText: ""
-    property string previewTimezoneText: ""
-    // Reuses the same parsing logic as main.qml elementOrderArray
-    readonly property var validElements: ["day", "date", "time", "custom", "timezone"]
-    property var previewOrderArray: {
-        if (!cfg_element_order) return validElements.slice();
-        var arr = cfg_element_order.split(",").map(function(x) { return x.trim(); }).filter(function(x) {
-            return validElements.indexOf(x) !== -1;
+    // Serialize all cfg_ properties to JSON string
+    function getFullConfig() {
+        let cfg = {};
+        configKeys.forEach(function(k) {
+            cfg[k] = appearancePage["cfg_" + k];
         });
-        return arr.length > 0 ? arr : validElements.slice();
+        return JSON.stringify(cfg);
+    }
+
+    // Apply a JSON config string back to cfg_ properties
+    function applyConfig(jsonString) {
+        try {
+            let cfg = JSON.parse(jsonString);
+            var count = 0;
+            for (let k in cfg) {
+                if (configKeys.indexOf(k) !== -1) {
+                    appearancePage["cfg_" + k] = cfg[k];
+                    count++;
+                }
+            }
+            log.info("config", "applyConfig: applied " + count + " keys");
+            return true;
+        } catch (e) {
+            log.warn("config", "applyConfig failed: " + e.message);
+            return false;
+        }
+    }
+
+    function _regeneratePreview() {
+        var cfgJson = appearancePage.getFullConfig();
+        var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
+        log.info("config", "Generating preview...");
+        // Pass all params explicitly — QML may not handle C++ default args
+        var out = themeManager.generatePreview(cfgJson, wpPath, -1, [], "", "");
+        log.info("config", "AFTER genPreview type=" + (typeof out) + " len=" + (out !== null && out !== undefined ? out.length : -1) + " val='" + (out || "") + "'");
+        if (out !== undefined && out !== null && out.length > 0) {
+            log.info("config", "Preview OK: " + out);
+            previewImagePath = "file://" + out;
+        } else {
+            log.warn("config", "Preview generation returned empty path. out=" + (out === undefined ? "undefined" : out === null ? "null" : out));
+        }
+    }
+
+    Timer {
+        id: regenTimer
+        interval: 400
+        repeat: false
+        running: false
+        onTriggered: appearancePage._regeneratePreview()
     }
 
     // Auto-derived from all cfg_ aliases — computed once at init (not a binding to avoid loops)
@@ -171,165 +178,32 @@ KCM.SimpleKCM {
             }
         }
         configKeys = keys;
-        updatePreview();
-        _loadPreviewWallpaper();
         log.info("config", "Config page opened — " + keys.length + " config keys discovered");
         log.info("config", "color_mode=" + cfg_color_mode + " locale=" + (cfg_locale || "(default)") + " auto_scale=" + cfg_auto_scale);
-    }
-
-    function getFullConfig() {
-        let cfg = {};
-        configKeys.forEach(k => cfg[k] = appearancePage["cfg_" + k]);
-        return JSON.stringify(cfg, null, 4);
-    }
-
-    function applyConfig(jsonString) {
-        try {
-            let cfg = JSON.parse(jsonString);
-            var count = 0;
-            for (let k in cfg) {
-                if (configKeys.indexOf(k) !== -1) {
-                    appearancePage["cfg_" + k] = cfg[k];
-                    count++;
-                }
-            }
-            log.info("config", "applyConfig: applied " + count + " keys from JSON");
-            return true;
-        } catch (e) {
-            log.error("config", "applyConfig failed: " + e.message);
-            return false;
-        }
-    }
-
-    // ===== PREVIEW FUNCTIONS =====
-    function previewEffectiveLocale() {
-        let custom = cfg_locale ? cfg_locale.trim() : "";
-        custom = custom.replace(/-/g, "_");
-        return custom.length > 0 ? Qt.locale(custom) : Qt.locale();
-    }
-
-    function previewFormatDate(format) {
-        try {
-            let fmt = format && format.trim().length > 0 ? format.trim() : "dd MMM yyyy";
-            return new Date().toLocaleDateString(previewEffectiveLocale(), fmt);
-        } catch (e) {
-            console.warn("Modern reClock: preview date format failed for", format, "-", e.message);
-            return Qt.formatDate(new Date(), "dd MMM yyyy");
-        }
-    }
-
-    function previewFormatTime() {
-        let format = cfg_time_format ? cfg_time_format.trim() : "";
-        if (format.length === 0) {
-            format = cfg_use_24_hour_format ? "hh:mm" : "hh:mm AP";
-        }
-        try {
-            let result = new Date().toLocaleTimeString(previewEffectiveLocale(), format);
-            if (result && result.trim() !== "")
-                return result;
-        } catch (e) {
-            console.warn("Modern reClock: preview time format failed for", format, "-", e.message);
-        }
-        let fallback = cfg_use_24_hour_format ? "hh:mm" : "hh:mm AP";
-        try {
-            return new Date().toLocaleTimeString(previewEffectiveLocale(), fallback);
-        } catch (e) {
-            console.warn("Modern reClock: preview fallback time format failed -", e.message);
-            return Qt.formatTime(new Date(), fallback);
-        }
-    }
-
-
-
-    function updatePreview() {
-        log.debug("config", "updatePreview: day=" + cfg_day_format + " date=" + cfg_date_format + " time=" + cfg_time_format + " color=" + cfg_color_mode);
-        let dayFmt = cfg_day_format && cfg_day_format.trim().length > 0 ? cfg_day_format.trim() : "dddd";
-        let day = previewFormatDate(dayFmt);
-        previewDayText = cfg_uppercase_day ? day.toUpperCase() : day;
-
-        let date = previewFormatDate(cfg_date_format);
-        previewDateText = cfg_uppercase_date ? date.toUpperCase() : date;
-
-        let time = previewFormatTime();
-        let deco = cfg_time_character || "";
-        previewTimeText = deco.trim().length > 0 ? deco + " " + time + " " + deco : time;
-
-        // Custom text preview
-        var customTxt = cfg_custom_text || "";
-        if (customTxt.length > 0 && cfg_custom_format) {
+        // Connect every known cfg_ signal to debounced regeneration (more reliable than for...in)
+        for (var i = 0; i < configKeys.length; i++) {
+            var sigName = "cfg_" + configKeys[i] + "Changed";
             try {
-                var formatted = Qt.formatDateTime(new Date(), customTxt);
-                previewCustomText = formatted && formatted.length > 0 ? formatted : customTxt;
-            } catch (e) {
-                previewCustomText = customTxt;
-            }
-        } else {
-            previewCustomText = customTxt;
-        }
-
-        // Timezone preview — format derived from main time format (no seconds)
-        var tzId = appearancePage.cfg_timezone_id || "";
-        var tzLabel = cfg_timezone_label || "";
-        if (tzId.length > 0) {
-            try {
-                // Derive format from main time format, strip seconds
-                var mainFmt = cfg_time_format ? cfg_time_format.trim() : "";
-                if (mainFmt.length === 0) {
-                    mainFmt = cfg_use_24_hour_format ? "hh:mm" : "hh:mm AP";
+                var sig = appearancePage[sigName];
+                if (typeof sig === 'function' && sig.connect) {
+                    sig.connect(regenTimer.restart);
                 }
-                var tzFmt = mainFmt.replace(/s{1,3}/g, '').replace(/z{1,3}/g, '').replace(/[:\s.]+$/, '');
-                if (!tzFmt || tzFmt.trim().length === 0) tzFmt = "HH:mm";
-
-                var formatted = ModernRecClock.TimeZone.formatDateTimeInZone(new Date(), tzFmt, tzId);
-                if (formatted && formatted.length > 0) {
-                    previewTimezoneText = tzLabel.length > 0 ? tzLabel + " " + formatted : formatted;
-                } else {
-                    previewTimezoneText = tzLabel.length > 0 ? tzLabel + " ??" : "??";
-                }
-            } catch (e) {
-                previewTimezoneText = tzLabel.length > 0 ? tzLabel + " ??" : "??";
-            }
-        } else {
-            previewTimezoneText = "";
+            } catch(e) {}
         }
-
-        // Preview scale based on width relative to reference 400px
-        _previewScale = (previewFrame && previewFrame.width > 0) ? previewFrame.width / 400 : 1.0;
-        if (cfg_auto_scale && previewFrame && previewFrame.width > 0) {
-            var pw = previewFrame.width;
-            var previewH = pw * 9 / 16;
-            var margin = Kirigami.Units.largeSpacing * 2;
-            var availableH = Math.max(1, previewH - margin);
-            var totalH = 0;
-            var eCount = 0;
-            for (var i = 0; i < previewOrderArray.length; i++) {
-                var el = previewOrderArray[i];
-                var show = false;
-                if (el === "day") show = showDay.checked;
-                else if (el === "date") show = showDate.checked;
-                else if (el === "time") show = showTime.checked;
-                else if (el === "custom") show = showCustom.checked && previewCustomText.length > 0;
-                else if (el === "timezone") show = showTimezone.checked && previewTimezoneText.length > 0;
-                if (!show) continue;
-                eCount++;
-                var size = (el === "day") ? 28 : 16;
-                totalH += size * _previewScale;
-            }
-            if (eCount > 0) totalH += (eCount - 1) * widgetSpacing.value * _previewScale;
-            if (totalH > 0) {
-                var fitScale = availableH / totalH;
-                _previewScale = Math.max(0.3, Math.min(_previewScale, fitScale));
-            }
-        }
+        // Initial preview generation
+        _regeneratePreview();
+        // Delayed retry in case KCM properties weren't synced yet
+        retryTimer.start();
     }
 
     Timer {
-        id: previewTimer
-        interval: 1000
-        repeat: true
-        running: true
-        // Note: mirrors main.qml timer but always runs at 1s for preview responsiveness
-        onTriggered: appearancePage.updatePreview()
+        id: retryTimer
+        interval: 500
+        repeat: false
+        onTriggered: {
+            if (!appearancePage.previewImagePath || appearancePage.previewImagePath.length === 0)
+                appearancePage._regeneratePreview();
+        }
     }
 
     // ===== RESET FUNCTIONS (data-driven) =====
@@ -417,7 +291,7 @@ KCM.SimpleKCM {
             timezoneFontBold.checked = d.bold;
             timezoneFontColor.color = d.color;
         }
-        updatePreview();
+        regenTimer.restart();
     }
 
     function resetGlobal() {
@@ -429,7 +303,7 @@ KCM.SimpleKCM {
         localeField.text = "";
         orderSection.resetRequested();
         languageCombo.currentIndex = 0;
-        updatePreview();
+        regenTimer.restart();
     }
 
     function resetDay() { resetSection("day"); }
@@ -460,7 +334,7 @@ KCM.SimpleKCM {
         }
         log.info("theme", "Loading theme: \"" + theme.name + "\"");
         applyConfig(JSON.stringify(theme.config));
-        updatePreview();
+        regenTimer.restart();
         log.info("theme", "Theme loaded successfully");
     }
 
@@ -484,119 +358,59 @@ KCM.SimpleKCM {
 
 
 
+    // ================= SECTION: LIVE PREVIEW =================
+    ColumnLayout {
+        id: _appearanceLayout
+        spacing: Kirigami.Units.largeSpacing
+
+    Kirigami.Heading {
+        text: i18n("Preview")
+        level: 2
+        Layout.fillWidth: true
+    }
+
+    // Centered preview — fixed 350px height, 16:9 width
+    Rectangle {
+        id: previewFrame
+        Layout.fillWidth: true
+        Layout.preferredHeight: 350
+        Layout.maximumWidth: 350 * 16 / 9
+        Layout.alignment: Qt.AlignHCenter
+        color: "#2a2a2a"
+        border.color: "#555"
+        border.width: 1
+        radius: Kirigami.Units.cornerRadius
+        clip: true
+
+        Image {
+            id: previewImage
+            anchors.centerIn: parent
+            width: Math.min(parent.width - Kirigami.Units.gridUnit, 350 * 16 / 9)
+            height: parent.height
+            fillMode: Image.PreserveAspectFit
+            source: appearancePage.previewImagePath
+            onStatusChanged: {
+                if (status === Image.Ready) log.info("config", "IMG ready: " + source);
+                else if (status === Image.Error) log.warn("config", "IMG ERROR: " + source);
+                else if (status === Image.Loading) log.info("config", "IMG loading: " + source);
+            }
+
+            QQC2.BusyIndicator {
+                anchors.centerIn: parent
+                running: parent.status === Image.Loading
+            }
+
+            QQC2.Label {
+                anchors.centerIn: parent
+                text: i18n("Adjust settings to generate preview")
+                color: Kirigami.Theme.disabledTextColor
+                visible: parent.status !== Image.Ready && parent.status !== Image.Loading
+            }
+        }
+    }
+
     Kirigami.FormLayout {
-        // anchors.fill: parent removed to avoid layout loops in SimpleKCM
-
-        // ================= SECTION: LIVE PREVIEW =================
-        Kirigami.Heading {
-            text: i18n("Preview")
-            level: 2
-            Layout.fillWidth: true
-            Kirigami.FormData.isSection: true
-        }
-
-        Rectangle {
-            id: previewFrame
-            Layout.fillWidth: true
-            implicitHeight: Math.max(width * 9 / 16, previewContent.implicitHeight + Kirigami.Units.largeSpacing * 2)
-            Layout.topMargin: Kirigami.Units.largeSpacing
-            color: Qt.rgba(0, 0, 0, 0.6)
-            radius: Kirigami.Units.cornerRadius
-            clip: true
-            onWidthChanged: updatePreview()
-
-            Image {
-                id: previewWallpaperImage
-                anchors.fill: parent
-                fillMode: Image.PreserveAspectCrop
-                source: ""
-                onStatusChanged: {
-                    if (status === Image.Ready)
-                        log.info("wallpaper", "Preview wallpaper loaded");
-                    else if (status === Image.Error)
-                        log.warn("wallpaper", "Preview wallpaper error: " + errorString);
-                }
-            }
-
-            Rectangle {
-                anchors.fill: parent
-                color: Qt.rgba(0, 0, 0, 0.3)
-            }
-
-            Column {
-                id: previewContent
-                anchors.top: parent.top
-                anchors.topMargin: Kirigami.Units.largeSpacing
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: widgetSpacing.value * appearancePage._previewScale
-
-                Repeater {
-                    model: appearancePage.previewOrderArray
-                    Text {
-                        visible: {
-                            if (modelData === "day") return showDay.checked;
-                            if (modelData === "date") return showDate.checked;
-                            if (modelData === "time") return showTime.checked;
-                            if (modelData === "custom") return showCustom.checked && appearancePage.previewCustomText.length > 0;
-                            if (modelData === "timezone") return showTimezone.checked && appearancePage.previewTimezoneText.length > 0;
-                            return false;
-                        }
-                        text: {
-                            if (modelData === "day") return appearancePage.previewDayText;
-                            if (modelData === "date") return appearancePage.previewDateText;
-                            if (modelData === "time") return appearancePage.previewTimeText;
-                            if (modelData === "custom") return appearancePage.previewCustomText;
-                            if (modelData === "timezone") return appearancePage.previewTimezoneText;
-                            return "";
-                        }
-                        font.family: {
-                            if (modelData === "day") return appearancePage.cfg_fontFamilyDay;
-                            if (modelData === "date") return appearancePage.cfg_fontFamilyDate;
-                            if (modelData === "time") return appearancePage.cfg_fontFamilyTime;
-                            if (modelData === "custom") return appearancePage.cfg_fontFamilyCustom;
-                            if (modelData === "timezone") return appearancePage.cfg_fontFamilyTimezone;
-                            return "";
-                        }
-                        font.pixelSize: {
-                            var ps = appearancePage._previewScale;
-                            if (modelData === "day") return Math.round(28 * ps);
-                            if (modelData === "date") return Math.round(16 * ps);
-                            if (modelData === "time") return Math.round(16 * ps);
-                            if (modelData === "custom") return Math.round(16 * ps);
-                            if (modelData === "timezone") return Math.round(16 * ps);
-                            return 1;
-                        }
-                        font.letterSpacing: {
-                            var s = appearancePage._previewScale;
-                            if (modelData === "day") return dayLetterSpacing.value * s;
-                            if (modelData === "date") return dateLetterSpacing.value * s;
-                            if (modelData === "time") return timeLetterSpacing.value * s;
-                            if (modelData === "custom") return customLetterSpacing.value * s;
-                            if (modelData === "timezone") return timezoneLetterSpacing.value * s;
-                            return 0;
-                        }
-                        font.bold: {
-                            if (modelData === "day") return dayFontBold.checked;
-                            if (modelData === "date") return dateFontBold.checked;
-                            if (modelData === "time") return timeFontBold.checked;
-                            if (modelData === "custom") return customFontBold.checked;
-                            if (modelData === "timezone") return timezoneFontBold.checked;
-                            return false;
-                        }
-                        color: {
-                            if (modelData === "day") return appearancePage._previewResolvedColor(dayFontColor.color);
-                            if (modelData === "date") return appearancePage._previewResolvedColor(dateFontColor.color);
-                            if (modelData === "time") return appearancePage._previewResolvedColor(timeFontColor.color);
-                            if (modelData === "custom") return appearancePage._previewResolvedColor(customFontColor.color);
-                            if (modelData === "timezone") return appearancePage._previewResolvedColor(timezoneFontColor.color);
-                            return "#FFFFFF";
-                        }
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-                }
-            }
-        }
+        Layout.fillWidth: true
 
         // ================= SECTION: GLOBAL =================
         Kirigami.Heading {
@@ -658,7 +472,7 @@ KCM.SimpleKCM {
             onActivated: {
                 var v = model[currentIndex].value;
                 _colorModeStorage.text = v;
-                appearancePage.updatePreview();
+                regenTimer.restart();
             }
             QQC2.ToolTip.text: i18n("Custom: each element has its own color.\\nFollow system theme: text color adapts to desktop theme.\\nInverse: inverted system colors for contrast.\\nWallpaper: text color derived from wallpaper brightness.")
             QQC2.ToolTip.visible: hovered
@@ -784,6 +598,7 @@ KCM.SimpleKCM {
         }
 
         QQC2.TextField {
+            id: localeField
             visible: dateFormatCombo.currentIndex === dateFormatCombo.model.length - 1
             Kirigami.FormData.label: i18n("Custom Locale:")
             Layout.fillWidth: true
@@ -1470,13 +1285,14 @@ KCM.SimpleKCM {
             }
         }
     }
+    }
 
-    // ===== Theme Sheets (extracted to ThemeSheets.qml) =====
+    // ===== Theme Sheets =====
     ThemeSheets {
         id: themeSheets
         getFullConfig: appearancePage.getFullConfig
         applyConfig: appearancePage.applyConfig
-        updatePreview: appearancePage.updatePreview
+        updatePreview: function() { regenTimer.restart(); }
         saveThemeFn: appearancePage.saveCurrentTheme
         deleteThemeFn: appearancePage.deleteTheme
         loadThemeFn: appearancePage.loadThemeConfig
