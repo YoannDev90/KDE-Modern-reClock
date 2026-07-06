@@ -14,6 +14,7 @@
 #include <QImage>
 #include <QPixmap>
 #include <QPainter>
+#include <QTextLayout>
 #include <QProcess>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -477,7 +478,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
 
     int configSpacing = qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
 
-    // Step 1: Measure natural text size (unscaled, like widget's metricsProvider)
+    // Step 1: Measure natural text size using QTextLayout (matches QML Text implicitWidth)
     QImage metricsImage(1, 1, QImage::Format_ARGB32);
     QPainter metricsPainter(&metricsImage);
     int naturalWidth = 0;
@@ -494,13 +495,18 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         mf.setPixelSize(qMax(8, e.configSize));
         mf.setBold(e.bold);
         if (e.letterSpacing != 0) mf.setLetterSpacing(QFont::AbsoluteSpacing, e.letterSpacing);
-        metricsPainter.setFont(mf);
-        QFontMetrics fm = metricsPainter.fontMetrics();
-        int tw = fm.boundingRect(e.sampleText).width();
+
+        QTextLayout layout(e.sampleText, mf);
+        layout.beginLayout();
+        QTextLine line = layout.createLine();
+        int tw = qCeil(line.naturalTextWidth());
+        layout.endLayout();
+
+        QFontMetrics fm(mf);
         int th = fm.height();
         if (tw > naturalWidth) naturalWidth = tw;
         naturalHeight += th;
-        if (m_log) m_log->info("theme", QString("  measure %1: text='%2' tw=%3 th=%4 asc=%5 des=%6").arg(el, e.sampleText.left(20)).arg(tw).arg(th).arg(fm.ascent()).arg(fm.descent()));
+        if (m_log) m_log->info("theme", QString("  measure %1: text='%2' tw=%3 th=%4").arg(el, e.sampleText.left(20)).arg(tw).arg(th));
     }
     int totalSpacing = configSpacing * qMax(0, order.count() - 1);
     naturalHeight += totalSpacing;
