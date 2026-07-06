@@ -689,21 +689,17 @@ KCM.SimpleKCM {
                 { "text": i18n("Polish"), "locale": "pl_PL", "day": "dddd", "date": "d MMMM yyyy", "time": "HH:mm", "h24": true },
                 { "text": i18n("Portuguese"), "locale": "pt_PT", "day": "dddd", "date": "d MMMM yyyy", "time": "HH:mm", "h24": true },
                 { "text": i18n("Russian"), "locale": "ru_RU", "day": "dddd", "date": "d MMMM yyyy", "time": "HH:mm", "h24": true },
-                { "text": i18n("Japanese"), "locale": "ja_JP", "day": "dddd", "date": "yyyy\u5E74M\u6708d\u65E5", "time": "H:mm", "h24": true },
+                { "text": i18n("Japanese"), "locale": "ja_JP", "day": "dddd", "date": "yyyy年M月d日", "time": "H:mm", "h24": true },
                 { "text": i18n("Custom"), "locale": "custom" }
             ]
             textRole: "text"
-
             Component.onCompleted: {
                 if (!appearancePage) return;
                 let loc = appearancePage.cfg_locale;
                 currentIndex = 0;
-                for (let i = 0; i < model.length; i++) {
-                    if (model[i].locale === loc) { currentIndex = i; break; }
-                }
+                for (let i = 0; i < model.length; i++) { if (model[i].locale === loc) { currentIndex = i; break; } }
                 if (currentIndex === 0 && loc !== "") currentIndex = model.length - 1;
             }
-
             onActivated: {
                 let item = model[currentIndex];
                 if (item.locale !== "custom") {
@@ -718,7 +714,7 @@ KCM.SimpleKCM {
 
         QQC2.ComboBox {
             id: textLanguageCombo
-            Kirigami.FormData.label: i18n("Text Language:")
+            Kirigami.FormData.label: i18n("Language:")
             Layout.fillWidth: true
             model: [
                 { "text": i18n("System Default"), "locale": "" },
@@ -735,63 +731,53 @@ KCM.SimpleKCM {
                 { "text": i18n("Japanese"), "locale": "ja_JP" }
             ]
             textRole: "text"
-
             Component.onCompleted: {
                 if (!appearancePage) return;
                 let loc = appearancePage.cfg_locale;
                 currentIndex = 0;
-                for (let i = 0; i < model.length; i++) {
-                    if (model[i].locale === loc) { currentIndex = i; break; }
-                }
+                for (let i = 0; i < model.length; i++) { if (model[i].locale === loc) { currentIndex = i; break; } }
             }
-
             onActivated: {
-                let item = model[currentIndex];
-                appearancePage.cfg_locale = item.locale;
+                appearancePage.cfg_locale = model[currentIndex].locale;
+                // Auto-switch locale preset to Custom
                 for (let i = 0; i < localePresetCombo.model.length; i++) {
-                    if (localePresetCombo.model[i].locale === "custom") {
-                        localePresetCombo.currentIndex = i;
-                        break;
-                    }
+                    if (localePresetCombo.model[i].locale === "custom") { localePresetCombo.currentIndex = i; break; }
                 }
             }
         }
 
         QQC2.ComboBox {
             id: dateFormatCombo
-            Kirigami.FormData.label: i18n("Date Format:")
+            Kirigami.FormData.label: i18n("Date/Time Format:")
             Layout.fillWidth: true
             model: [
-                { "text": "dd MMM yyyy", "format": "dd MMM yyyy" },
-                { "text": "d MMMM yyyy", "format": "d MMMM yyyy" },
-                { "text": "dd/MM/yyyy", "format": "dd/MM/yyyy" },
-                { "text": "MM/dd/yyyy", "format": "MM/dd/yyyy" },
-                { "text": "yyyy-MM-dd", "format": "yyyy-MM-dd" },
-                { "text": "MMMM d, yyyy", "format": "MMMM d, yyyy" },
-                { "text": "d. MMMM yyyy", "format": "d. MMMM yyyy" },
-                { "text": "Custom", "format": "custom" }
+                { "text": "dd MMMM yyyy / HH:mm", "date": "dd MMMM yyyy", "time": "HH:mm" },
+                { "text": "d MMMM yyyy / HH:mm:ss", "date": "d MMMM yyyy", "time": "HH:mm:ss" },
+                { "text": "dd/MM/yyyy / HH:mm", "date": "dd/MM/yyyy", "time": "HH:mm" },
+                { "text": "MM/dd/yyyy / h:mm AP", "date": "MM/dd/yyyy", "time": "h:mm AP" },
+                { "text": "yyyy-MM-dd / HH:mm", "date": "yyyy-MM-dd", "time": "HH:mm" },
+                { "text": "MMMM d, yyyy / h:mm AP", "date": "MMMM d, yyyy", "time": "h:mm AP" },
+                { "text": "d. MMMM yyyy / HH:mm", "date": "d. MMMM yyyy", "time": "HH:mm" },
+                { "text": i18n("Custom"), "date": "custom", "time": "custom" }
             ]
             textRole: "text"
-
             Component.onCompleted: {
                 if (!appearancePage) return;
-                let fmt = appearancePage.cfg_date_format;
+                let d = appearancePage.cfg_date_format;
+                let t = appearancePage.cfg_time_format;
                 currentIndex = 0;
                 for (let i = 0; i < model.length; i++) {
-                    if (model[i].format === fmt) { currentIndex = i; break; }
+                    if (model[i].date === d && model[i].time === t) { currentIndex = i; break; }
                 }
-                if (currentIndex === 0 && fmt !== model[0].format) currentIndex = model.length - 1;
+                if (currentIndex === 0 && (d !== model[0].date || t !== model[0].time)) currentIndex = model.length - 1;
             }
-
             onActivated: {
                 let item = model[currentIndex];
-                if (item.format !== "custom") {
-                    appearancePage.cfg_date_format = item.format;
+                if (item.date !== "custom") {
+                    appearancePage.cfg_date_format = item.date;
+                    appearancePage.cfg_time_format = item.time;
                     for (let i = 0; i < localePresetCombo.model.length; i++) {
-                        if (localePresetCombo.model[i].locale === "custom") {
-                            localePresetCombo.currentIndex = i;
-                            break;
-                        }
+                        if (localePresetCombo.model[i].locale === "custom") { localePresetCombo.currentIndex = i; break; }
                     }
                 }
             }
@@ -799,76 +785,29 @@ KCM.SimpleKCM {
 
         QQC2.TextField {
             visible: dateFormatCombo.currentIndex === dateFormatCombo.model.length - 1
-            Kirigami.FormData.label: i18n("Date Format:")
-            Layout.fillWidth: true
-            text: appearancePage.cfg_date_format
-            onTextChanged: appearancePage.cfg_date_format = text
-            placeholderText: i18n("dd MMMM yyyy")
-            QQC2.ToolTip.text: i18n("Qt date format. e.g. dddd d MMMM yyyy")
-            QKC2.ToolTip.visible: hovered
-            QKC2.ToolTip.delay: 800
-        }
-
-        QQC2.ComboBox {
-            id: timeFormatCombo
-            Kirigami.FormData.label: i18n("Time Format:")
-            Layout.fillWidth: true
-            model: [
-                { "text": "HH:mm", "format": "HH:mm" },
-                { "text": "HH:mm:ss", "format": "HH:mm:ss" },
-                { "text": "HH\'h\'mm", "format": "HH\'h\'mm" },
-                { "text": "h:mm AP", "format": "h:mm AP" },
-                { "text": "h:mm:ss AP", "format": "h:mm:ss AP" },
-                { "text": "H:mm", "format": "H:mm" },
-                { "text": "Custom", "format": "custom" }
-            ]
-            textRole: "text"
-
-            Component.onCompleted: {
-                if (!appearancePage) return;
-                let fmt = appearancePage.cfg_time_format;
-                currentIndex = 0;
-                for (let i = 0; i < model.length; i++) {
-                    if (model[i].format === fmt) { currentIndex = i; break; }
-                }
-                if (currentIndex === 0 && fmt !== model[0].format) currentIndex = model.length - 1;
-            }
-
-            onActivated: {
-                let item = model[currentIndex];
-                if (item.format !== "custom") {
-                    appearancePage.cfg_time_format = item.format;
-                    for (let i = 0; i < localePresetCombo.model.length; i++) {
-                        if (localePresetCombo.model[i].locale === "custom") {
-                            localePresetCombo.currentIndex = i;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        QQC2.TextField {
-            visible: timeFormatCombo.currentIndex === timeFormatCombo.model.length - 1
-            Kirigami.FormData.label: i18n("Time Format:")
-            Layout.fillWidth: true
-            text: appearancePage.cfg_time_format
-            onTextChanged: appearancePage.cfg_time_format = text
-            placeholderText: i18n("HH:mm:ss")
-            QQC2.ToolTip.text: i18n("Qt time format. e.g. hh:mm AP")
-            QKC2.ToolTip.visible: hovered
-            QKC2.ToolTip.delay: 800
-        }
-
-        QQC2.TextField {
-            id: localeField
             Kirigami.FormData.label: i18n("Custom Locale:")
             Layout.fillWidth: true
-            visible: localePresetCombo.currentIndex === localePresetCombo.model.length - 1
             placeholderText: i18n("e.g. fr_BE, en_GB, nl_BE")
-            QQC2.ToolTip.text: i18n("Locale used for weekday and month names. Leave empty to use the system locale.")
-            QKC2.ToolTip.visible: hovered
-            QKC2.ToolTip.delay: 800
+            text: appearancePage.cfg_locale
+            onTextChanged: appearancePage.cfg_locale = text
+        }
+
+        QQC2.TextField {
+            visible: dateFormatCombo.currentIndex === dateFormatCombo.model.length - 1
+            Kirigami.FormData.label: i18n("Date Format:")
+            Layout.fillWidth: true
+            placeholderText: i18n("dd MMMM yyyy")
+            text: appearancePage.cfg_date_format
+            onTextChanged: appearancePage.cfg_date_format = text
+        }
+
+        QQC2.TextField {
+            visible: dateFormatCombo.currentIndex === dateFormatCombo.model.length - 1
+            Kirigami.FormData.label: i18n("Time Format:")
+            Layout.fillWidth: true
+            placeholderText: i18n("HH:mm:ss")
+            text: appearancePage.cfg_time_format
+            onTextChanged: appearancePage.cfg_time_format = text
         }
 
         QQC2.Button {
