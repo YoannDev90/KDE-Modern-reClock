@@ -134,19 +134,8 @@ KCM.SimpleKCM {
     QQC2.TextField { id: _timezoneLabel; visible: false }
     QQC2.TextField { id: _timezoneDisplayText; visible: false }
 
-    // ===== Config key list =====
-    readonly property var configKeys: [
-        "show_day", "show_date", "show_time", "show_custom", "show_timezone",
-        "day_font_size", "date_font_size", "time_font_size", "custom_font_size", "timezone_font_size",
-        "day_letter_spacing", "date_letter_spacing", "time_letter_spacing", "custom_letter_spacing", "timezone_letter_spacing",
-        "day_font_color", "date_font_color", "time_font_color", "custom_font_color", "timezone_font_color",
-        "day_font_bold", "date_font_bold", "time_font_bold", "custom_font_bold", "timezone_font_bold",
-        "day_format", "date_format", "time_format", "timezone_format", "time_character",
-        "use_24_hour_format", "uppercase_day", "uppercase_date", "custom_format", "custom_text",
-        "fontFamilyDay", "fontFamilyDate", "fontFamilyTime", "fontFamilyCustom", "fontFamilyTimezone",
-        "widget_spacing", "element_order", "auto_scale", "color_mode", "locale",
-        "timezone_id", "timezone_label", "timezone_display_text"
-    ]
+    // ===== Config key list (shared from C++ ThemeManager) =====
+    readonly property var configKeys: themeManager ? themeManager.configKeys : []
 
     // Keys excluded from theme export (location-specific or user-specific)
     readonly property var exportExclude: [
@@ -194,6 +183,11 @@ KCM.SimpleKCM {
     property string exportThemeName: ""
     property string exportThemeDesc: ""
     property string exportThemeAuthor: ""
+
+    // Feedback
+    property string importError: ""
+    property string exportError: ""
+    property bool previewGenerating: false
 
     // Font families from config (auto-detected for export)
     property var themeFontKeys: ["fontFamilyDay", "fontFamilyDate", "fontFamilyTime", "fontFamilyCustom", "fontFamilyTimezone"]
@@ -273,10 +267,14 @@ KCM.SimpleKCM {
                     themesPage.applyConfig(jsonStr);
                     log.info("themes", "Applied community theme: " + themeId);
                 }
+            } else {
+                themesPage.indexError = i18n("Failed to download theme. Check your connection.");
+                log.error("themes", "Theme download failed: " + themeId);
             }
         }
 
         function onErrorOccurred(message) {
+            themesPage.indexError = message;
             log.error("themes", "ThemeManager error: " + message);
         }
     }
@@ -294,6 +292,7 @@ KCM.SimpleKCM {
                 themesPage.applyConfig(jsonStr);
                 log.info("themes", "Theme imported from: " + filePath);
             } else {
+                themesPage.importError = i18n("Failed to parse theme file. It may be corrupted.");
                 log.error("themes", "Failed to parse .mrt file");
             }
         }
@@ -437,8 +436,14 @@ KCM.SimpleKCM {
             log.info("export", "AppletId: " + aid);
             var fonts = themesPage.resolveFontPathsFromConfig();
             log.info("export", "Fonts: " + JSON.stringify(fonts));
+            themesPage.exportError = "";
+            themesPage.previewGenerating = true;
             var result = themeManager.generatePreview(cfgJson, wpPath, aid, fonts);
-            log.info("export", "Preview: " + result);
+            themesPage.previewGenerating = false;
+            if (!result || result.length === 0) {
+                themesPage.exportError = i18n("Preview generation failed. The .mrt will still be created.");
+            }
+            log.info("export", "Preview: " + (result || "(failed)"));
         }
 
         onAccepted: {
@@ -465,6 +470,20 @@ KCM.SimpleKCM {
 
             QQC2.Label {
                 text: i18n("Give your theme a name and description before exporting.")
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            QQC2.BusyIndicator {
+                visible: themesPage.previewGenerating
+                running: visible
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            QQC2.Label {
+                text: themesPage.exportError
+                visible: themesPage.exportError.length > 0
+                color: Kirigami.Theme.negativeTextColor
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -597,8 +616,16 @@ KCM.SimpleKCM {
             QQC2.Button {
                 text: i18n("Import .mrt...")
                 icon.name: "document-import"
-                onClicked: importFileDialog.open()
+                onClicked: { themesPage.importError = ""; importFileDialog.open(); }
             }
+        }
+
+        QQC2.Label {
+            text: themesPage.importError
+            visible: themesPage.importError.length > 0
+            color: Kirigami.Theme.negativeTextColor
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
         }
 
         Repeater {

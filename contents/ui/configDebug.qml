@@ -11,16 +11,6 @@ import org.kde.plasma.private.modernreclock as ModernRecClock
 KCM.SimpleKCM {
     id: debugPage
 
-    property string cfg_timezone_id: ""
-    property string cfg_timezone_label: ""
-    property string cfg_fontFamilyDay: "Anurati"
-    property string cfg_fontFamilyDate: "Poppins"
-    property string cfg_fontFamilyTime: "Poppins"
-    property string cfg_color_mode: "custom"
-    property color  cfg_day_font_color: "#FFFFFF"
-    property color  cfg_date_font_color: "#FFFFFF"
-    property color  cfg_time_font_color: "#FFFFFF"
-
     readonly property var log: ModernRecClock.Log
     readonly property var themeManager: ModernRecClock.ThemeManager
     readonly property bool _hasTheme: typeof PlasmaCore.Theme !== 'undefined' && PlasmaCore.Theme !== null
@@ -30,19 +20,8 @@ KCM.SimpleKCM {
     property string filterCategory: ""
     property string filterLevel: ""
 
-    // Config keys for preview generation
-    readonly property var configKeys: [
-        "show_day", "show_date", "show_time", "show_custom", "show_timezone",
-        "day_font_size", "date_font_size", "time_font_size", "custom_font_size", "timezone_font_size",
-        "day_letter_spacing", "date_letter_spacing", "time_letter_spacing", "custom_letter_spacing", "timezone_letter_spacing",
-        "day_font_color", "date_font_color", "time_font_color", "custom_font_color", "timezone_font_color",
-        "day_font_bold", "date_font_bold", "time_font_bold", "custom_font_bold", "timezone_font_bold",
-        "day_format", "date_format", "time_format", "timezone_format", "time_character",
-        "use_24_hour_format", "uppercase_day", "uppercase_date", "custom_format", "custom_text",
-        "fontFamilyDay", "fontFamilyDate", "fontFamilyTime", "fontFamilyCustom", "fontFamilyTimezone",
-        "widget_spacing", "element_order", "auto_scale", "color_mode", "locale",
-        "timezone_id", "timezone_label", "timezone_display_text"
-    ]
+    // Config keys for preview generation (shared from C++ ThemeManager)
+    readonly property var configKeys: themeManager ? themeManager.configKeys : []
 
     function getExportConfig() {
         let cfg = {};
