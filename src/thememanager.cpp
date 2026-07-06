@@ -483,9 +483,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
 
     int configSpacing = qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
 
-    // Step 1: Measure natural text size using QFontMetrics
-    QImage metricsImage(1, 1, QImage::Format_ARGB32);
-    QPainter metricsPainter(&metricsImage);
+    // Step 1: Measure natural text size using QTextLayout (same engine as QML Text)
     int naturalWidth = 0;
     int naturalHeight = 0;
     for (const QString &el : order) {
@@ -500,9 +498,14 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         mf.setPixelSize(qMax(8, e.configSize));
         mf.setBold(e.bold);
         if (e.letterSpacing != 0) mf.setLetterSpacing(QFont::AbsoluteSpacing, e.letterSpacing);
-        metricsPainter.setFont(mf);
-        QFontMetrics fm = metricsPainter.fontMetrics();
-        int tw = fm.horizontalAdvance(e.sampleText);
+
+        // QTextLayout gives same results as QML Text implicitWidth
+        QTextLayout layout(e.sampleText, mf);
+        layout.beginLayout();
+        QTextLine line = layout.createLine();
+        layout.endLayout();
+        int tw = qCeil(line.naturalTextWidth());
+        QFontMetrics fm(mf);
         int th = fm.height();
         if (tw > naturalWidth) naturalWidth = tw;
         naturalHeight += th;
@@ -510,27 +513,19 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     }
     int totalSpacing = configSpacing * qMax(0, order.count() - 1);
     naturalHeight += totalSpacing;
-    metricsPainter.end();
 
     if (m_log) m_log->info("theme", QString("natural: %1x%2 widget: %3x%4").arg(naturalWidth).arg(naturalHeight).arg(widgetRect.width()).arg(widgetRect.height()));
 
-    // Step 2: Calculate auto-scale matching widget logic
-    // Widget uses: fontScale = min((width-16)/natW, (height-16)/natH)
-    // QML measures text narrower than QFontMetrics (~50% for display fonts)
-    // Apply correction factor to match QML's implicitWidth
-    double qmlWidthRatio = 0.55; // QML Text implicitWidth is ~55% of QFontMetrics horizontalAdvance
-    int qmlNaturalWidth = qRound(naturalWidth * qmlWidthRatio);
-    int qmlNaturalHeight = naturalHeight; // height is usually accurate
-
+    // Step 2: Auto-scale = widget fits text proportionally
     double widgetFontScale = 1.0;
-    if (qmlNaturalWidth > 0 && qmlNaturalHeight > 0 && widgetRect.isValid()) {
+    if (naturalWidth > 0 && naturalHeight > 0 && widgetRect.isValid()) {
         double sw = widgetRect.width() - 16;
         double sh = widgetRect.height() - 16;
-        widgetFontScale = qMin(sw / qmlNaturalWidth, sh / qmlNaturalHeight);
+        widgetFontScale = qMin(sw / naturalWidth, sh / naturalHeight);
     }
-    if (m_log) m_log->info("theme", QString("widgetFontScale: %1 (qmlNatW=%2)").arg(widgetFontScale, 0, 'f', 3).arg(qmlNaturalWidth));
+    if (m_log) m_log->info("theme", QString("widgetFontScale: %1").arg(widgetFontScale, 0, 'f', 3));
 
-    // Final scale = widget auto-scale × wallpaper/screen scale
+    // Final scale = auto-scale × wallpaper/screen ratio
     double finalScale = widgetFontScale * scaleX;
     if (m_log) m_log->info("theme", QString("finalScale: %1").arg(finalScale, 0, 'f', 3));
 
