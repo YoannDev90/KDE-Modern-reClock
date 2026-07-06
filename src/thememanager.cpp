@@ -602,6 +602,77 @@ QString ThemeManager::fallbackPreview(const QString &outPath)
     return outPath;
 }
 
+QString ThemeManager::compositePreview(const QString &jsonConfig,
+                                        const QString &wallpaperPath,
+                                        const QString &qmlClockPath,
+                                        const QString &customDayName)
+{
+    Q_UNUSED(jsonConfig)
+    Q_UNUSED(customDayName)
+    qDebug() << "[ThemeManager] compositePreview clock:" << qmlClockPath;
+    QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
+    QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
+
+    // Load wallpaper
+    QImage wallpaper;
+    if (QFile::exists(wallpaperPath)) {
+        wallpaper = QImage(wallpaperPath);
+        if (m_log) m_log->info("theme", QString("wallpaper: %1x%2").arg(wallpaper.width()).arg(wallpaper.height()));
+    }
+    if (wallpaper.isNull()) {
+        wallpaper = QImage(1920, 1080, QImage::Format_ARGB32);
+        wallpaper.fill(QColor(42, 42, 50));
+    }
+
+    // Load QML clock image
+    QImage clockImage;
+    if (QFile::exists(qmlClockPath)) {
+        clockImage = QImage(qmlClockPath);
+        if (m_log) m_log->info("theme", QString("clock image: %1x%2").arg(clockImage.width()).arg(clockImage.height()));
+    }
+    if (clockImage.isNull()) {
+        if (m_log) m_log->info("theme", "clock image not found, using fallback");
+        return fallbackPreview(outPath);
+    }
+
+    // Scale factor
+    QScreen *screen = QGuiApplication::primaryScreen();
+    double scaleX = 1.0, scaleY = 1.0;
+    if (screen && !wallpaper.isNull()) {
+        scaleX = (double)wallpaper.width() / screen->size().width();
+        scaleY = (double)wallpaper.height() / screen->size().height();
+    }
+
+    // Find widget geometry
+    QRect widgetRect = findWidgetGeometry();
+    if (m_log) m_log->info("theme", QString("widget: %1,%2 %3x%4").arg(widgetRect.x()).arg(widgetRect.y()).arg(widgetRect.width()).arg(widgetRect.height()));
+
+    // Calculate position on wallpaper
+    int wpX = widgetRect.isValid() ? qRound(widgetRect.x() * scaleX) : 0;
+    int wpY = widgetRect.isValid() ? qRound(widgetRect.y() * scaleY) : 0;
+    int wpW = widgetRect.isValid() ? qRound(widgetRect.width() * scaleX) : wallpaper.width();
+
+    // Scale clock image to fit widget width on wallpaper
+    int scaledW = wpW;
+    int scaledH = qRound((double)clockImage.height() * scaledW / clockImage.width());
+    QImage scaledClock = clockImage.scaled(scaledW, scaledH, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+    // Center vertically in widget area
+    int wpH = widgetRect.isValid() ? qRound(widgetRect.height() * scaleY) : wallpaper.height();
+    int y = wpY + qMax(0, (wpH - scaledH) / 2);
+
+    // Composite
+    QPainter p(&wallpaper);
+    p.setRenderHint(QPainter::SmoothPixmapTransform);
+    p.drawImage(wpX, y, scaledClock);
+    p.end();
+
+    wallpaper.save(outPath, "PNG");
+    qint64 size = QFileInfo(outPath).size();
+    if (m_log) m_log->info("theme", QString("composite saved: %1 size: %2").arg(outPath).arg(size));
+    return outPath;
+}
+
 
 
 // ===== FONT PERSISTENCE =====

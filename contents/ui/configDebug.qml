@@ -189,28 +189,31 @@ KCM.SimpleKCM {
                 icon.name: "image-generate"
                 onClicked: {
                     log.info("theme", "Manual preview generation started");
-                    var cfgJson = debugPage.getExportConfig();
-                    var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
-                    // Build custom date ISO string for selected day
+                    // Calculate custom date
                     var month = (monthCombo.currentIndex + 1).toString().padStart(2, '0');
-                    var dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-                    var targetDay = dayCombo.currentIndex; // 0=Monday
-                    // Find first matching day in the month
+                    var targetDay = dayCombo.currentIndex;
                     var d = new Date(yearSpin.value, monthCombo.currentIndex, 1);
-                    while (d.getDay() !== (targetDay + 1) % 7) { // JS: 0=Sun,1=Mon...
-                        d.setDate(d.getDate() + 1);
-                    }
+                    while (d.getDay() !== (targetDay + 1) % 7) d.setDate(d.getDate() + 1);
                     var customDate = d.getFullYear() + "-" + month + "-" + d.getDate().toString().padStart(2, '0');
                     log.info("theme", "Preview date: " + customDate + " (" + dayCombo.currentText + ")");
-                    // Set config so widget also uses this date
                     try { plasmoid.configuration.custom_preview_date = customDate; } catch (e) {}
-                    var result = themeManager.generatePreview(cfgJson, wpPath, -1, [], customDate, dayCombo.currentText);
-                    if (result) {
-                        previewImage.source = "file://" + result + "?t=" + Date.now();
-                        log.info("theme", "Preview generated: " + result);
-                    } else {
-                        log.error("theme", "Preview generation failed");
-                    }
+
+                    // Grab QML-rendered clock text (matches Appearance tab rendering)
+                    qmlClockColumn.grabToImage(function(result) {
+                        var tmpFile = themeManager.cacheDir + "/previews/qml_clock.png";
+                        result.saveToFile(tmpFile);
+                        log.info("theme", "QML clock captured: " + tmpFile);
+                        // Composite on wallpaper via C++
+                        var cfgJson = debugPage.getExportConfig();
+                        var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
+                        var out = themeManager.compositePreview(cfgJson, wpPath, tmpFile, dayCombo.currentText);
+                        if (out) {
+                            previewImage.source = "file://" + out + "?t=" + Date.now();
+                            log.info("theme", "Preview generated: " + out);
+                        } else {
+                            log.error("theme", "Preview generation failed");
+                        }
+                    });
                 }
             }
             QQC2.Label {
@@ -219,6 +222,37 @@ KCM.SimpleKCM {
                 opacity: 0.5
             }
             Item { Layout.fillWidth: true }
+        }
+
+        // Hidden QML clock text (matches Appearance tab rendering)
+        Item {
+            id: qmlClockColumn
+            width: 400
+            height: 200
+            visible: false
+
+            Column {
+                anchors.centerIn: parent
+                spacing: plasmoid.configuration.widget_spacing
+
+                Repeater {
+                    model: ["day", "date", "time"]
+                    Text {
+                        visible: plasmoid.configuration["show_" + modelData]
+                        text: {
+                            if (modelData === "day") return "WEDNESDAY";
+                            if (modelData === "date") return "06 JULY 2026";
+                            if (modelData === "time") return "- 14:30:00 -";
+                            return "";
+                        }
+                        font.family: plasmoid.configuration["fontFamily" + modelData.charAt(0).toUpperCase() + modelData.slice(1)] || "sans-serif"
+                        font.pixelSize: plasmoid.configuration[modelData + "_font_size"] || 19
+                        font.bold: plasmoid.configuration[modelData + "_font_bold"] || false
+                        color: plasmoid.configuration[modelData + "_font_color"] || "#FFFFFF"
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+            }
         }
 
         Rectangle {

@@ -52,6 +52,10 @@ public:
                                          const QStringList &fontPaths = {},
                                          const QString &customDate = {},
                                          const QString &customDayName = {});
+    Q_INVOKABLE QString compositePreview(const QString &jsonConfig,
+                                          const QString &wallpaperPath,
+                                          const QString &qmlClockPath,
+                                          const QString &customDayName = {});
 
 signals:
     void indexFetchComplete(bool success);
