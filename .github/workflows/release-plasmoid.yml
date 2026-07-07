@@ -37,12 +37,12 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake qt6-base-dev qt6-declarative-dev
+           sudo apt-get install -y cmake qt6-base-dev qt6-declarative-dev libfontconfig-dev
           if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
             # Aarch64 build via Docker (Qt6 cross-compilation is not feasible in CI)
             sudo apt-get install -y qemu-user-static binfmt-support
             docker run --rm --platform linux/arm64 -v $(pwd):/src -w /src ubuntu:24.04 bash -c "
-              apt-get update && apt-get install -y cmake g++ qt6-base-dev qt6-declarative-dev &&
+              apt-get update && apt-get install -y cmake g++ qt6-base-dev qt6-declarative-dev libfontconfig-dev &&
               mkdir -p build && cd build && cmake .. -DCMAKE_INSTALL_PREFIX=/usr && make -j\$(nproc)
             "
             cp build/libmodernreclock_backend.so modernreclock-timezone_aarch64.so
