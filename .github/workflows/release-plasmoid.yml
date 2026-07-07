@@ -113,7 +113,7 @@ jobs:
         run: |
           VERSION=${{ steps.get_version.outputs.version }}
           # Exclude non-plasmoid folders and files
-          zip -r com.github.yoanndev90.modernreclock-$VERSION.plasmoid . -x "translate/*" "assets/*" ".git/*" ".github/*" "README.md" "LICENSE" "install-*.sh" "CMakeLists.txt" "src/*" "build/*" "bin/*" "com.github.yoanndev90.modernreclock-*.plasmoid"
+          zip -r com.github.yoanndev90.modernreclock-$VERSION.plasmoid . -x "community_themes/*" "translate/*" "assets/*" ".git/*" ".github/*" "README.md" "LICENSE" "install-*.sh" "CMakeLists.txt" "src/*" "build/*" "bin/*" "com.github.yoanndev90.modernreclock-*.plasmoid"
 
       - name: Download plugin artifacts
         uses: actions/download-artifact@v4
