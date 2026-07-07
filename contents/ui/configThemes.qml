@@ -613,6 +613,11 @@ KCM.SimpleKCM {
                 icon.name: "document-import"
                 onClicked: { themesPage.importError = ""; importFileDialog.open(); }
             }
+            QQC2.Button {
+                text: i18n("Add Font...")
+                icon.name: "list-add"
+                onClicked: fontFileDialog.open()
+            }
         }
 
         QQC2.Label {
@@ -640,15 +645,6 @@ KCM.SimpleKCM {
                         themesPage.embedFontPaths = paths;
                     }
                 }
-            }
-        }
-
-        RowLayout {
-            spacing: Kirigami.Units.smallSpacing
-            QQC2.Button {
-                text: i18n("Add Font...")
-                icon.name: "list-add"
-                onClicked: fontFileDialog.open()
             }
         }
 
