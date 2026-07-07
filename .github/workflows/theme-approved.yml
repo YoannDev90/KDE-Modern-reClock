@@ -204,8 +204,10 @@ jobs:
           This PR was automatically generated after the theme was approved.
           BODYEOF
 
-          gh pr create \
+          PR_URL=$(gh pr create \
             --base main \
             --head "${{ steps.paths.outputs.branch }}" \
             --title "Add community theme: ${{ steps.paths.outputs.name }}" \
-            --body-file /tmp/pr-body.md
+            --body-file /tmp/pr-body.md)
+          echo "pr_url=$PR_URL"
+          gh pr merge --auto --squash "$PR_URL"
