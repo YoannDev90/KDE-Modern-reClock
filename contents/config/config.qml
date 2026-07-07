@@ -19,7 +19,7 @@ ConfigModel {
     }
     ConfigCategory {
         name: i18n("Debug")
-        icon: "tools-report-bug"
+        icon: "dialog-warning"
         source: "configDebug.qml"
     }
 }
