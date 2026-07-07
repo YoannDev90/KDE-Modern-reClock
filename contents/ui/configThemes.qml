@@ -232,6 +232,7 @@ KCM.SimpleKCM {
     Component.onCompleted: {
         log.info("themes", "Themes page opened");
         themeManager.restorePersistedFonts();
+        themeManager.fetchIndex();
     }
 
     // ===== Network callbacks =====
@@ -692,7 +693,7 @@ KCM.SimpleKCM {
             GridView {
                 id: communityGrid
                 cellWidth: Math.floor(width / 4)
-                cellHeight: Kirigami.Units.gridUnit * 14
+                cellHeight: Math.floor(cellWidth * 1.0)
                 model: themesPage.communityThemes
 
                 delegate: Item {
