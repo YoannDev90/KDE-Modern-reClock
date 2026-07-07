@@ -49,7 +49,7 @@ public:
                                         const QString &customDayName = {});
 
 signals:
-    void indexFetchComplete(bool success);
+    void indexFetchComplete(bool success, const QString &jsonData);
     void themeDownloaded(const QString &themeId, bool success);
     void errorOccurred(const QString &message);
 

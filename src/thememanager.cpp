@@ -272,10 +272,10 @@ void ThemeManager::fetchIndex()
                 file.write(data);
                 file.close();
             }
-            emit indexFetchComplete(true);
+            emit indexFetchComplete(true, QString::fromUtf8(data));
         },
         [this]() {
-            emit indexFetchComplete(false);
+            emit indexFetchComplete(false, {});
         }
     );
 }

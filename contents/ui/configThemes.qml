@@ -237,22 +237,16 @@ KCM.SimpleKCM {
     // ===== Network callbacks =====
     Connections {
         target: themeManager
-        function onIndexFetchComplete(success) {
-            if (success) {
-                var indexFile = themeManager.cacheDir + "/index.json";
-                var xhr = new XMLHttpRequest();
-                xhr.open("GET", "file://" + indexFile);
-                xhr.onload = function() {
-                    try {
-                        themesPage.communityThemes = JSON.parse(xhr.responseText);
-                        themesPage.indexLoaded = true;
-                        themesPage.indexError = "";
-                        log.info("themes", "Loaded " + themesPage.communityThemes.length + " community themes");
-                    } catch (e) {
-                        themesPage.indexError = e.message;
-                    }
-                };
-                xhr.send();
+        function onIndexFetchComplete(success, jsonData) {
+            if (success && jsonData) {
+                try {
+                    themesPage.communityThemes = JSON.parse(jsonData);
+                    themesPage.indexLoaded = true;
+                    themesPage.indexError = "";
+                    log.info("themes", "Loaded " + themesPage.communityThemes.length + " community themes");
+                } catch (e) {
+                    themesPage.indexError = e.message;
+                }
             } else {
                 themesPage.indexError = i18n("Failed to fetch theme index");
                 log.error("gallery", "Index fetch failed");
