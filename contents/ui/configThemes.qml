@@ -740,16 +740,14 @@ KCM.SimpleKCM {
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }
+                            }
+                        }
 
-                                QQC2.Button {
-                                    text: i18n("Preview")
-                                    icon.name: "document-preview"
-                                    Layout.fillWidth: true
-                                    onClicked: {
-                                        themesPage.previewThemeData = modelData;
-                                        previewDialog.open();
-                                    }
-                                }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                themesPage.previewThemeData = modelData;
+                                previewDialog.open();
                             }
                         }
                     }
