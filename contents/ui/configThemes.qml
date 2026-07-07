@@ -589,19 +589,19 @@ KCM.SimpleKCM {
     }
 
     // ===== UI =====
-    Kirigami.FormLayout {
+    ColumnLayout {
         anchors.fill: parent
+        spacing: Kirigami.Units.largeSpacing
 
         // ==================== FILE OPERATIONS ====================
         Kirigami.Heading {
             text: i18n("Theme Files")
             level: 2
             Layout.fillWidth: true
-            Kirigami.FormData.isSection: true
         }
 
         RowLayout {
-            Kirigami.FormData.label: i18n("File:")
+            spacing: Kirigami.Units.smallSpacing
             QQC2.Button {
                 text: i18n("Export .zip...")
                 icon.name: "document-save"
@@ -625,7 +625,7 @@ KCM.SimpleKCM {
         Repeater {
             model: themesPage.embedFontPaths
             RowLayout {
-                Kirigami.FormData.label: index === 0 ? i18n("Fonts:") : ""
+                spacing: Kirigami.Units.smallSpacing
                 QQC2.Label {
                     text: modelData.split("/").pop()
                     elide: Text.ElideRight
@@ -643,7 +643,7 @@ KCM.SimpleKCM {
         }
 
         RowLayout {
-            Kirigami.FormData.label: themesPage.embedFontPaths.length === 0 ? i18n("Fonts:") : ""
+            spacing: Kirigami.Units.smallSpacing
             QQC2.Button {
                 text: i18n("Add Font...")
                 icon.name: "list-add"
@@ -651,16 +651,19 @@ KCM.SimpleKCM {
             }
         }
 
+        Kirigami.Separator {
+            Layout.fillWidth: true
+        }
+
         // ==================== COMMUNITY THEMES ====================
         Kirigami.Heading {
             text: i18n("Community Themes")
             level: 2
             Layout.fillWidth: true
-            Kirigami.FormData.isSection: true
         }
 
         RowLayout {
-            Kirigami.FormData.label: i18n("Online:")
+            spacing: Kirigami.Units.smallSpacing
             QQC2.Button {
                 text: themesPage.indexLoaded ? i18n("Refresh") : i18n("Load Themes")
                 icon.name: themesPage.indexLoaded ? "view-refresh" : "download"
@@ -682,14 +685,14 @@ KCM.SimpleKCM {
 
         QQC2.ScrollView {
             Layout.fillWidth: true
-            Layout.preferredHeight: Kirigami.Units.gridUnit * 14
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 16
             visible: themesPage.communityThemes.length > 0
             clip: true
 
             GridView {
                 id: communityGrid
-                cellWidth: Kirigami.Units.gridUnit * 10
-                cellHeight: Kirigami.Units.gridUnit * 8
+                cellWidth: Kirigami.Units.gridUnit * 12
+                cellHeight: Kirigami.Units.gridUnit * 10
                 model: themesPage.communityThemes
 
                 delegate: Item {
@@ -710,7 +713,7 @@ KCM.SimpleKCM {
 
                             Image {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: Kirigami.Units.gridUnit * 5
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 6
                                 fillMode: Image.PreserveAspectCrop
                                 source: modelData.preview_url || ""
                                 asynchronous: true
@@ -725,6 +728,7 @@ KCM.SimpleKCM {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 Layout.margins: Kirigami.Units.smallSpacing
+                                Layout.alignment: Qt.AlignBottom
 
                                 QQC2.Label {
                                     text: modelData.name || i18n("Untitled")
@@ -764,12 +768,15 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
         }
 
+        Kirigami.Separator {
+            Layout.fillWidth: true
+        }
+
         // ==================== LOCAL THEMES ====================
         Kirigami.Heading {
             text: i18n("Local Themes")
             level: 2
             Layout.fillWidth: true
-            Kirigami.FormData.isSection: true
         }
 
         QQC2.Label {
@@ -778,6 +785,10 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             Kirigami.Theme.colorSet: Kirigami.Theme.View
             color: Kirigami.Theme.disabledTextColor
+        }
+
+        Item {
+            Layout.fillHeight: true
         }
     }
 }
