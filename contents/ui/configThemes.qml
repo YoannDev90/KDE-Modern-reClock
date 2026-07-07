@@ -685,14 +685,14 @@ KCM.SimpleKCM {
 
         QQC2.ScrollView {
             Layout.fillWidth: true
-            Layout.preferredHeight: Kirigami.Units.gridUnit * 16
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 20
             visible: themesPage.communityThemes.length > 0
             clip: true
 
             GridView {
                 id: communityGrid
-                cellWidth: Kirigami.Units.gridUnit * 12
-                cellHeight: Kirigami.Units.gridUnit * 10
+                cellWidth: Math.floor(width / 4)
+                cellHeight: Kirigami.Units.gridUnit * 14
                 model: themesPage.communityThemes
 
                 delegate: Item {
@@ -713,7 +713,7 @@ KCM.SimpleKCM {
 
                             Image {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: Kirigami.Units.gridUnit * 6
+                                Layout.preferredHeight: Kirigami.Units.gridUnit * 8
                                 fillMode: Image.PreserveAspectCrop
                                 source: modelData.preview_url || ""
                                 asynchronous: true
