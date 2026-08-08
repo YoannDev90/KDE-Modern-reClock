@@ -102,25 +102,23 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/YoannDev90/KDE-Modern-reCl
 
 ### From a release
 
-1. Download the `.plasmoid` matching your architecture from the [latest release](https://github.com/YoannDev90/KDE-Modern-reClock/releases/latest):
-   - `com.github.yoanndev90.modernreclock-VERSION-x86_64.plasmoid` — Intel/AMD systems (includes C++ plugin)
-   - `com.github.yoanndev90.modernreclock-VERSION-aarch64.plasmoid` — ARM systems (includes C++ plugin)
-   - `com.github.yoanndev90.modernreclock-VERSION.plasmoid` — Universal (QML-only, limited features)
+1. Download `com.github.yoanndev90.modernreclock-VERSION.plasmoid` from the [latest release](https://github.com/YoannDev90/KDE-Modern-reClock/releases/latest)
 2. Install:
    ```bash
-   kpackagetool6 -t Plasma/Applet -i com.github.yoanndev90.modernreclock-VERSION-ARCH.plasmoid
+   kpackagetool6 -t Plasma/Applet -i com.github.yoanndev90.modernreclock-VERSION.plasmoid
    ```
 3. Or use Plasma installer ("Add Widgets" > "Install from Local File")
+
+> **Note**: The universal `.plasmoid` works without the C++ plugin. For full features (timezone, wallpaper detection), use `install-dist.sh` or install the plugin manually.
 
 > **C++ plugins**: The install script will try to build all C++ plugins (timezone, wallpaper, and logger) from source. If cmake/KF6-dev are not installed, it will automatically download precompiled binaries for your architecture from the release.
 
 ### Offline install (no internet required)
 
 1. Download from the release:
-   - `com.github.yoanndev90.modernreclock-VERSION-ARCH.plasmoid` (arch-specific, recommended)
-   - Or `com.github.yoanndev90.modernreclock-VERSION.plasmoid` + `modernreclock-timezone-VERSION-ARCH.zip`
-2. For arch-specific `.plasmoid`: install directly with `kpackagetool6 -t Plasma/Applet -i <file>.plasmoid`
-3. For universal `.plasmoid`: extract the zip, run `install-local.sh` from the extracted folder
+   - `com.github.yoanndev90.modernreclock-VERSION.plasmoid`
+   - `modernreclock-plugins-VERSION-ARCH.zip` (matching your architecture)
+2. Extract the zip, run `install-local.sh` from the extracted folder
 
 ### From source (for developers)
 

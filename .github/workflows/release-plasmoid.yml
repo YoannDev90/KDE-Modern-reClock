@@ -123,46 +123,30 @@ jobs:
       - name: Prepare release assets
         run: |
           VERSION=${{ steps.get_version.outputs.version }}
-          PLASMOID_ID="com.github.yoanndev90.modernreclock"
           mkdir -p release-assets
 
           # Universal plasmoid (QML-only, for KDE Store)
           cp *.plasmoid release-assets/
 
-          # Arch-specific plasmoids (QML + compiled .so)
+          # Raw .so files for each arch
+          for arch_dir in plugin-artifacts/plugin-*; do
+            ARCH=$(basename "$arch_dir" | sed 's/plugin-//')
+            cp "$arch_dir"/*.so "release-assets/modernreclock-timezone_${ARCH}.so"
+          done
+
+          # Offline install zip for each arch
           for arch_dir in plugin-artifacts/plugin-*; do
             ARCH=$(basename "$arch_dir" | sed 's/plugin-//')
             TMPDIR=$(mktemp -d)
-
-            # Extract universal plasmoid
-            unzip -qo *.plasmoid -d "$TMPDIR"
-
-            # Add compiled plugin
-            mkdir -p "$TMPDIR/contents/code"
-            cp "$arch_dir"/*.so "$TMPDIR/contents/code/"
-            # Copy qmldir from build artifacts if present, otherwise generate it
+            mkdir -p "$TMPDIR/$ARCH"
+            cp "$arch_dir"/*.so "$TMPDIR/$ARCH/"
             if [ -f "$arch_dir/qmldir" ]; then
-              cp "$arch_dir/qmldir" "$TMPDIR/contents/code/"
+              cp "$arch_dir/qmldir" "$TMPDIR/$ARCH/"
             else
-              printf 'module org.kde.plasma.private.modernreclock\nlinktarget modernreclock_backend\noptional plugin modernreclock_backend\nclassname ModernRecClockPlugin\ndepends Qt6Core 6.4\ndepends Qt6Qml 6.4\n' > "$TMPDIR/contents/code/qmldir"
+              printf 'module org.kde.plasma.private.modernreclock\nlinktarget modernreclock_backend\noptional plugin modernreclock_backend\nclassname ModernRecClockPlugin\ndepends Qt6Core 6.4\ndepends Qt6Qml 6.4\n' > "$TMPDIR/$ARCH/qmldir"
             fi
-
-            # Create arch-specific plasmoid
-            (cd "$TMPDIR" && zip -r "$OLDPWD/release-assets/${PLASMOID_ID}-${VERSION}-${ARCH}.plasmoid" . -x '*.DS_Store' '*/__MACOSX/*')
+            (cd "$TMPDIR" && zip -r "$OLDPWD/release-assets/modernreclock-timezone-${VERSION}-${ARCH}.zip" "$ARCH/")
             rm -rf "$TMPDIR"
-
-            # Also create raw .so + offline zip (kept for backward compat)
-            cp "$arch_dir"/*.so "release-assets/modernreclock-timezone_${ARCH}.so"
-            TMPDIR2=$(mktemp -d)
-            mkdir -p "$TMPDIR2/$ARCH"
-            cp "$arch_dir"/*.so "$TMPDIR2/$ARCH/"
-            if [ -f "$arch_dir/qmldir" ]; then
-              cp "$arch_dir/qmldir" "$TMPDIR2/$ARCH/"
-            else
-              printf 'module org.kde.plasma.private.modernreclock\nlinktarget modernreclock_backend\noptional plugin modernreclock_backend\nclassname ModernRecClockPlugin\ndepends Qt6Core 6.4\ndepends Qt6Qml 6.4\n' > "$TMPDIR2/$ARCH/qmldir"
-            fi
-            (cd "$TMPDIR2" && zip -r "$OLDPWD/release-assets/modernreclock-timezone-${VERSION}-${ARCH}.zip" "$ARCH/")
-            rm -rf "$TMPDIR2"
           done
 
           # install-dist.sh for remote one-line install
@@ -194,22 +178,19 @@ jobs:
             ```
 
             #### Manual install
-            1. Download the `.plasmoid` matching your architecture:
-               - `*-x86_64.plasmoid` for Intel/AMD systems
-               - `*-aarch64.plasmoid` for ARM systems
-               - `*.plasmoid` (universal, QML-only — some features may be limited)
+            1. Download `com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid`
             2. Install:
                ```bash
-               kpackagetool6 -t Plasma/Applet -i <file>.plasmoid
+               kpackagetool6 -t Plasma/Applet -i com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid
                ```
             3. Or use Plasma installer ("Add Widgets" > "Install from Local File")
+
+            > **Note**: The universal `.plasmoid` works without the C++ plugin. For full features (timezone, wallpaper detection), use `install-dist.sh` or install the plugin manually.
 
             #### Files
             | File | Description |
             |------|-------------|
-            | `*-x86_64.plasmoid` | Widget with C++ plugin for x86_64 (full features) |
-            | `*-aarch64.plasmoid` | Widget with C++ plugin for aarch64 (full features) |
-            | `*.plasmoid` | Universal QML-only package (KDE Store compatible) |
+            | `*.plasmoid` | Widget package (QML-only, KDE Store compatible) |
             | `modernreclock-timezone_*.so` | Timezone plugin (raw .so, for manual install) |
             | `modernreclock-timezone-*.zip` | Offline install zip (plugin + qmldir) |
             | `install-dist.sh` | One-line remote install script |
