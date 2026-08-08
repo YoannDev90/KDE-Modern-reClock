@@ -4,7 +4,8 @@ import org.kde.plasma.private.modernreclock as ModernRecClock
 
 ConfigModel {
     Component.onCompleted: {
-        ModernRecClock.Log.info("config", "ConfigModel loaded — 3 categories: Appearance, Themes, Debug");
+        if (ModernRecClock.Log)
+            ModernRecClock.Log.info("config", "ConfigModel loaded — 3 categories: Appearance, Themes, Debug");
     }
 
     ConfigCategory {

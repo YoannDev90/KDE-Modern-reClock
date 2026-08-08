@@ -11,8 +11,13 @@ import org.kde.plasma.private.modernreclock as ModernRecClock
 KCM.SimpleKCM {
     id: themesPage
 
-    readonly property var log: ModernRecClock.Log
-    readonly property var themeManager: ModernRecClock.ThemeManager
+    readonly property var log: ModernRecClock.Log ?? ({
+        debug: function(cat, msg) {},
+        info: function(cat, msg) {},
+        warn: function(cat, msg) {},
+        error: function(cat, msg) {}
+    })
+    readonly property var themeManager: ModernRecClock.ThemeManager ?? null
 
     // ===== Config keys synced with Appearance page via KConfig =====
     // Each cfg_* property is automatically synced by the KCM framework

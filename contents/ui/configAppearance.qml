@@ -11,8 +11,13 @@ import org.kde.plasma.private.modernreclock as ModernRecClock
 KCM.SimpleKCM {
     id: appearancePage
 
-    // Logger shorthand
-    readonly property var log: ModernRecClock.Log
+    // Logger shorthand — fallback to no-op if C++ plugin not loaded
+    readonly property var log: ModernRecClock.Log ?? ({
+        debug: function(cat, msg) {},
+        info: function(cat, msg) {},
+        warn: function(cat, msg) {},
+        error: function(cat, msg) {}
+    })
 
     // properties
     property alias cfg_show_day: showDay.checked
@@ -114,7 +119,7 @@ KCM.SimpleKCM {
     }
 
     // ===== C++ PREVIEW =====
-    readonly property var themeManager: ModernRecClock.ThemeManager
+    readonly property var themeManager: ModernRecClock.ThemeManager ?? null
     property string previewImagePath: ""
 
     // Serialize all cfg_ properties to JSON string
@@ -146,6 +151,7 @@ KCM.SimpleKCM {
     }
 
     function _regeneratePreview() {
+        if (!themeManager) return;
         var cfgJson = appearancePage.getFullConfig();
         var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
         log.info("config", "Generating preview...");

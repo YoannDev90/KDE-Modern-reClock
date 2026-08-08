@@ -15,7 +15,12 @@ import org.kde.plasma.private.modernreclock as ModernRecClock
 Item {
     id: root
 
-    readonly property var log: ModernRecClock.Log
+    readonly property var log: ModernRecClock.Log ?? ({
+        debug: function(cat, msg) {},
+        info: function(cat, msg) {},
+        warn: function(cat, msg) {},
+        error: function(cat, msg) {}
+    })
 
     required property string elementOrder
 

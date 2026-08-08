@@ -11,8 +11,13 @@ import org.kde.plasma.private.modernreclock as ModernRecClock
 KCM.SimpleKCM {
     id: debugPage
 
-    readonly property var log: ModernRecClock.Log
-    readonly property var themeManager: ModernRecClock.ThemeManager
+    readonly property var log: ModernRecClock.Log ?? ({
+        debug: function(cat, msg) {},
+        info: function(cat, msg) {},
+        warn: function(cat, msg) {},
+        error: function(cat, msg) {}
+    })
+    readonly property var themeManager: ModernRecClock.ThemeManager ?? null
     readonly property bool _hasTheme: typeof PlasmaCore.Theme !== 'undefined' && PlasmaCore.Theme !== null
     readonly property color _themeText: _hasTheme && PlasmaCore.Theme.textColor ? PlasmaCore.Theme.textColor : "#FFFFFF"
 
