@@ -414,12 +414,9 @@ KCM.SimpleKCM {
                     font.family: "Monospace"
                     font.pixelSize: 11
                     text: {
-                        // Detect package path
+                        // Detect package path from QML file location
                         var pkgPath = Qt.resolvedUrl("../").toString();
-                        // Remove file:// prefix and trailing /
                         pkgPath = pkgPath.replace(/^file:\/\//, "").replace(/\/$/, "");
-                        // Check common KDE Plasma 6 paths
-                        var home = StandardPaths.writableLocation(StandardPaths.HomeLocation);
                         var qmlDir = "/usr/lib64/qt6/qml/org/kde/plasma/private/modernreclock";
                         return "sudo cp " + pkgPath + "/code/libmodernreclock_backend.so " + qmlDir + "/ && sudo cp " + pkgPath + "/code/qmldir " + qmlDir + "/";
                     }

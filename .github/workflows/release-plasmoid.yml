@@ -109,23 +109,39 @@ jobs:
           chmod +x translate/build.sh
           ./translate/build.sh
 
-      - name: Create plasmoid archive
-        run: |
-          VERSION=${{ steps.get_version.outputs.version }}
-          # Exclude non-plasmoid folders and files
-          zip -r com.github.yoanndev90.modernreclock-$VERSION.plasmoid . -x "community_themes/*" "translate/*" "assets/*" ".git/*" ".github/*" "README.md" "LICENSE" "install-*.sh" "CMakeLists.txt" "src/*" "build/*" "bin/*" "com.github.yoanndev90.modernreclock-*.plasmoid"
-
       - name: Download plugin artifacts
         uses: actions/download-artifact@v4
         with:
           path: plugin-artifacts
+
+      - name: Create plasmoid archive
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          mkdir -p contents/code
+
+          # Include x86_64 plugin in the plasmoid (most common arch)
+          if [ -f "plugin-artifacts/plugin-x86_64/libmodernreclock_backend.so" ]; then
+            cp plugin-artifacts/plugin-x86_64/libmodernreclock_backend.so contents/code/
+            if [ -f "plugin-artifacts/plugin-x86_64/qmldir" ]; then
+              cp plugin-artifacts/plugin-x86_64/qmldir contents/code/
+            else
+              printf 'module org.kde.plasma.private.modernreclock\nlinktarget modernreclock_backend\noptional plugin modernreclock_backend\nclassname ModernRecClockPlugin\ndepends Qt6Core 6.4\ndepends Qt6Qml 6.4\n' > contents/code/qmldir
+            fi
+            echo "Included x86_64 plugin in plasmoid"
+          else
+            echo "WARNING: x86_64 plugin not found, creating QML-only plasmoid"
+            rm -rf contents/code
+          fi
+
+          # Exclude non-plasmoid folders and files
+          zip -r com.github.yoanndev90.modernreclock-$VERSION.plasmoid . -x "community_themes/*" "translate/*" "assets/*" ".git/*" ".github/*" "README.md" "LICENSE" "install-*.sh" "CMakeLists.txt" "src/*" "build/*" "bin/*" "plugin-artifacts/*" "com.github.yoanndev90.modernreclock-*.plasmoid"
 
       - name: Prepare release assets
         run: |
           VERSION=${{ steps.get_version.outputs.version }}
           mkdir -p release-assets
 
-          # Universal plasmoid (QML-only, for KDE Store)
+          # Plasmoid (includes x86_64 plugin for convenience)
           cp *.plasmoid release-assets/
 
           # Raw .so files for each arch
@@ -185,13 +201,13 @@ jobs:
                ```
             3. Or use Plasma installer ("Add Widgets" > "Install from Local File")
 
-            > **Note**: The universal `.plasmoid` works without the C++ plugin. For full features (timezone, wallpaper detection), use `install-dist.sh` or install the plugin manually.
+            > **Note**: The `.plasmoid` includes the x86_64 C++ plugin. After install, if features like timezone or wallpaper detection are disabled, open the widget config and follow the instructions to copy the plugin to the QML directory.
 
             #### Files
             | File | Description |
             |------|-------------|
-            | `*.plasmoid` | Widget package (QML-only, KDE Store compatible) |
-            | `modernreclock-timezone_*.so` | Timezone plugin (raw .so, for manual install) |
+            | `*.plasmoid` | Widget package (includes x86_64 C++ plugin) |
+            | `modernreclock-timezone_*.so` | Timezone plugin (raw .so, for aarch64 or manual install) |
             | `modernreclock-timezone-*.zip` | Offline install zip (plugin + qmldir) |
             | `install-dist.sh` | One-line remote install script |
           files: |

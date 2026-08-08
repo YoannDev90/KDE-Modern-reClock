@@ -15,7 +15,12 @@ KCM.SimpleKCM {
         debug: function(cat, msg) {},
         info: function(cat, msg) {},
         warn: function(cat, msg) {},
-        error: function(cat, msg) {}
+        error: function(cat, msg) {},
+        count: 0,
+        clear: function() {},
+        exportText: function() { return ""; },
+        exportLogsToFile: function() { return false; },
+        model: null
     })
     readonly property var themeManager: ModernRecClock.ThemeManager ?? null
     readonly property bool _hasTheme: typeof PlasmaCore.Theme !== 'undefined' && PlasmaCore.Theme !== null
@@ -249,13 +254,14 @@ KCM.SimpleKCM {
             QQC2.Button {
                 text: i18n("Fetch Logs")
                 icon.name: "view-refresh"
+                enabled: ModernRecClock.Log !== undefined
                 onClicked: {
                     plasmaLogText.text = i18n("Loading...");
                     ModernRecClock.Log.fetchPlasmaLogsAsync(300);
                 }
             }
             Connections {
-                target: ModernRecClock.Log
+                target: ModernRecClock.Log ?? null
                 function onPlasmaLogsFetched(result) { plasmaLogText.text = result || "(empty)"; }
             }
             QQC2.Button {
