@@ -109,7 +109,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/YoannDev90/KDE-Modern-reCl
    ```
 3. Or use Plasma installer ("Add Widgets" > "Install from Local File")
 
-> **Note**: The universal `.plasmoid` works without the C++ plugin. For full features (timezone, wallpaper detection), use `install-dist.sh` or install the plugin manually.
+> **Note**: The `.plasmoid` includes the x86_64 C++ plugin. After install, if features like timezone or wallpaper detection are disabled, open the widget config and follow the instructions to copy the plugin to the QML directory.
 
 > **C++ plugins**: The install script will try to build all C++ plugins (timezone, wallpaper, and logger) from source. If cmake/KF6-dev are not installed, it will automatically download precompiled binaries for your architecture from the release.
 
