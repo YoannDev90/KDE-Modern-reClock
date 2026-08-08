@@ -93,9 +93,9 @@ else
 fi
 
 # Create zip
-ARCH=$(uname -m)
 if [ "$WITH_PLUGIN" = true ] && [ "$PLUGIN_INSTALLED" = true ]; then
-    OUTFILE="${OUTPUT_DIR}/${PLASMOID_NAME}-${VERSION}-${ARCH}.plasmoid"
+    OUTFILE="${OUTPUT_DIR}/${PLASMOID_NAME}-${VERSION}.plasmoid"
+    echo "  Plugin included — user will need to run install command on first load"
 else
     OUTFILE="${OUTPUT_DIR}/${PLASMOID_NAME}-${VERSION}.plasmoid"
 fi
