@@ -9,8 +9,13 @@ import org.kde.plasma.private.modernreclock as ModernRecClock
 PlasmoidItem {
     id: root
 
-    // Logger shorthand
-    readonly property var log: ModernRecClock.Log
+    // Logger shorthand — fallback to no-op if C++ plugin not loaded
+    readonly property var log: ModernRecClock.Log ?? ({
+        debug: function(cat, msg) {},
+        info: function(cat, msg) {},
+        warn: function(cat, msg) {},
+        error: function(cat, msg) {}
+    })
 
     // Setting background as transparent with a drop shadow
     Plasmoid.backgroundHints: PlasmaCore.Types.ShadowBackground | PlasmaCore.Types.ConfigurableBackground
@@ -122,6 +127,7 @@ PlasmoidItem {
     property color _wallpaperColor: systemTextColor
 
     function _loadWallpaper() {
+        if (!ModernRecClock.Wallpaper) return;
         var path = ModernRecClock.Wallpaper.wallpaperPath();
         log.debug("wallpaper", "wallpaperPath() returned: " + (path || "(empty)"));
         if (path && path.length > 0) {
@@ -136,7 +142,7 @@ PlasmoidItem {
 
     // React to wallpaper changes via QFileSystemWatcher (C++ signal)
     Connections {
-        target: ModernRecClock.Wallpaper
+        target: ModernRecClock.Wallpaper ?? null
         function onWallpaperChanged() {
             log.info("wallpaper", "Wallpaper changed (watcher notification) — reloading");
             if (root.colorMode === "wallpaper") {
@@ -294,6 +300,11 @@ PlasmoidItem {
         if (tzId.length === 0) return "";
         var label = plasmoid.configuration.timezone_label || "";
         var format = timezoneFormat();
+
+        if (!ModernRecClock.TimeZone) {
+            log.warn("timezone", "TimeZone plugin not loaded, cannot format timezone");
+            return label.length > 0 ? label + " ??" : "??";
+        }
 
         try {
             var formatted = ModernRecClock.TimeZone.formatDateTimeInZone(new Date(), format, tzId);
