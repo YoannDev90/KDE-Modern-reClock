@@ -475,24 +475,10 @@ KCM.SimpleKCM {
         }
     }
 
-    // ===== Deferred heavy content — loaded async to speed up page creation =====
-    Loader {
+    Kirigami.FormLayout {
         Layout.fillWidth: true
-        Layout.fillHeight: true
-        active: true
-        asynchronous: true
-        sourceComponent: Component {
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            implicitWidth: formLayout.implicitWidth
-            implicitHeight: formLayout.implicitHeight
 
-            Kirigami.FormLayout {
-                id: formLayout
-                anchors.fill: parent
-
-                // ================= SECTION: GLOBAL =================
+        // ================= SECTION: GLOBAL =================
         Kirigami.Heading {
             text: i18n("Global")
             level: 2
@@ -1418,10 +1404,7 @@ KCM.SimpleKCM {
                 onClicked: themeSheets.openRawJson()
             }
         }
-        } // Kirigami.FormLayout
-        } // Item wrapper
-        } // Component
-    } // Loader
+    }
 
     // ===== Theme Sheets =====
     ThemeSheets {
