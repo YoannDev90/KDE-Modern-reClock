@@ -121,10 +121,28 @@ KCM.SimpleKCM {
     // ===== C++ PREVIEW =====
     readonly property var themeManager: ModernRecClock.ThemeManager ?? null
     property string previewImagePath: ""
+    property var _perfEntries: []
+    property string _perfSummary: ""
+    QQC2.TextField { id: _copyHelper; visible: false; selectByMouse: true }
+
+    function _perf(tag) {
+        var now = Date.now();
+        _perfEntries.push({ tag: tag, ms: now });
+        if (_perfEntries.length > 1) {
+            var prev = _perfEntries[_perfEntries.length - 2];
+            var delta = now - prev.ms;
+            _perfSummary += tag + ": " + delta + "ms\n";
+            log.info("perf", tag + ": +" + delta + "ms (total=" + (now - _perfEntries[0].ms) + "ms)");
+        } else {
+            _perfSummary += tag + ": 0ms (start)\n";
+            log.info("perf", tag + ": START");
+        }
+    }
 
     Connections {
         target: appearancePage.themeManager
         function onPreviewGenerated(outPath) {
+            appearancePage._perf("preview_received");
             appearancePage.previewImagePath = "file://" + outPath;
         }
     }
@@ -176,6 +194,7 @@ KCM.SimpleKCM {
     // Auto-derived from all cfg_ aliases — computed once at init (not a binding to avoid loops)
     property var configKeys: []
     Component.onCompleted: {
+        _perf("onCompleted_start");
         var keys = [];
         for (var prop in appearancePage) {
             if (prop.startsWith("cfg_") && typeof appearancePage[prop] !== "function") {
@@ -183,6 +202,7 @@ KCM.SimpleKCM {
             }
         }
         configKeys = keys;
+        _perf("configKeys_discovered(" + keys.length + ")");
         log.info("config", "Config page opened — " + keys.length + " config keys discovered");
         log.info("config", "color_mode=" + cfg_color_mode + " locale=" + (cfg_locale || "(default)") + " auto_scale=" + cfg_auto_scale);
         // Connect every known cfg_ signal to debounced regeneration (more reliable than for...in)
@@ -195,8 +215,10 @@ KCM.SimpleKCM {
                 }
             } catch(e) {}
         }
+        _perf("signals_connected");
         // Initial preview generation
         _regeneratePreview();
+        _perf("preview_dispatched");
         // Delayed retry in case KCM properties weren't synced yet
         retryTimer.start();
     }
@@ -438,6 +460,46 @@ KCM.SimpleKCM {
                     font.italic: true
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                     opacity: 0.7
+                }
+            }
+        }
+    }
+
+    // ================= PERF TIMING OVERLAY (debug) =================
+    Rectangle {
+        Layout.fillWidth: true
+        visible: _perfSummary.length > 0
+        color: Qt.rgba(0, 0, 0, 0.7)
+        radius: Kirigami.Units.cornerRadius
+        Layout.preferredHeight: perfCol.implicitHeight + 16
+
+        ColumnLayout {
+            id: perfCol
+            anchors.fill: parent
+            anchors.margins: 8
+            spacing: 2
+
+            QQC2.Label {
+                text: "[PERF] Config timing"
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                font.bold: true
+                color: "#00FF00"
+            }
+            QQC2.Label {
+                text: _perfSummary
+                font.family: "monospace"
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                color: "#CCCCCC"
+                wrapMode: Text.NoWrap
+            }
+            QQC2.Button {
+                text: i18n("Copy")
+                icon.name: "edit-copy"
+                Layout.preferredHeight: 24
+                onClicked: {
+                    _copyHelper.text = _perfSummary;
+                    _copyHelper.selectAll();
+                    _copyHelper.copy();
                 }
             }
         }

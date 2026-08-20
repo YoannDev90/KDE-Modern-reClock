@@ -26,6 +26,7 @@
 #include <QRegularExpression>
 #include <QGuiApplication>
 #include <QRandomGenerator>
+#include <QElapsedTimer>
 #include <QDebug>
 #include <fontconfig/fontconfig.h>
 
@@ -677,26 +678,39 @@ void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
                                         const QString &customDate,
                                         const QString &customDayName)
 {
+    QElapsedTimer totalTimer;
+    totalTimer.start();
+
     // Pre-load fonts on main thread (QFontDatabase is not thread-safe)
+    QElapsedTimer t;
+    t.start();
     QStringList loadedFamilies;
     for (const QString &fp : fontPaths) {
         int id = QFontDatabase::addApplicationFont(fp);
         loadedFamilies.append(QFontDatabase::applicationFontFamilies(id));
     }
+    qint64 fontLoadMs = t.elapsed();
 
     // Capture screen info on main thread (QGuiApplication::primaryScreen not thread-safe)
+    t.start();
     QScreen *screen = QGuiApplication::primaryScreen();
     QSize screenSize = screen ? screen->size() : QSize(1920, 1080);
     double dpr = screen ? screen->devicePixelRatio() : 1.0;
 
     // Capture widget geometry on main thread
     QRect widgetRect = findWidgetGeometry();
+    qint64 captureMs = t.elapsed();
 
     QString cacheDir = m_cacheDir;
     Logger *log = m_log;
 
+    qDebug() << "[PERF] generatePreviewAsync dispatch: fontLoad=" << fontLoadMs << "ms capture=" << captureMs << "ms total_main=" << totalTimer.elapsed() << "ms";
+
     [[maybe_unused]] auto future = QtConcurrent::run([this, jsonConfig, wallpaperPath, loadedFamilies, screenSize, dpr,
                         widgetRect, cacheDir, log, customDate, customDayName]() {
+        QElapsedTimer bgTimer;
+        bgTimer.start();
+
         QDir().mkpath(cacheDir + QStringLiteral("/previews"));
         QString outPath = cacheDir + QStringLiteral("/previews/export_preview.png");
 
@@ -715,6 +729,7 @@ void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
         if (doc.isNull() || !doc.isObject()) {
             if (log) log->info("theme", "ERROR: invalid config JSON");
             fallbackPreview(outPath);
+            qDebug() << "[PERF] generatePreviewAsync bg: INVALID JSON" << bgTimer.elapsed() << "ms";
             emit previewGenerated(outPath);
             return;
         }
@@ -728,6 +743,7 @@ void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
             canvas = QImage(1920, 1080, QImage::Format_ARGB32);
             canvas.fill(QColor(42, 42, 50));
         }
+        qint64 wallpaperMs = bgTimer.elapsed();
 
         // Scale factor
         double scaleX = 1.0, scaleY = 1.0;
@@ -863,6 +879,8 @@ void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
 
         p.end();
         canvas.save(outPath, "PNG");
+        qint64 renderMs = bgTimer.elapsed();
+        qDebug() << "[PERF] generatePreviewAsync bg: wallpaper=" << wallpaperMs << "ms render=" << renderMs << "ms total_bg=" << renderMs << "ms";
         emit previewGenerated(outPath);
     });
 }
