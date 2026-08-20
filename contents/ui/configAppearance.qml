@@ -122,6 +122,13 @@ KCM.SimpleKCM {
     readonly property var themeManager: ModernRecClock.ThemeManager ?? null
     property string previewImagePath: ""
 
+    Connections {
+        target: appearancePage.themeManager
+        function onPreviewGenerated(outPath) {
+            appearancePage.previewImagePath = "file://" + outPath;
+        }
+    }
+
     // Serialize all cfg_ properties to JSON string
     function getFullConfig() {
         let cfg = {};
@@ -154,16 +161,8 @@ KCM.SimpleKCM {
         if (!themeManager) return;
         var cfgJson = appearancePage.getFullConfig();
         var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
-        log.info("config", "Generating preview...");
-        // Pass all params explicitly — QML may not handle C++ default args
-        var out = themeManager.generatePreview(cfgJson, wpPath, -1, [], "", "");
-        log.info("config", "AFTER genPreview type=" + (typeof out) + " len=" + (out !== null && out !== undefined ? out.length : -1) + " val='" + (out || "") + "'");
-        if (out !== undefined && out !== null && out.length > 0) {
-            log.info("config", "Preview OK: " + out);
-            previewImagePath = "file://" + out;
-        } else {
-            log.warn("config", "Preview generation returned empty path. out=" + (out === undefined ? "undefined" : out === null ? "null" : out));
-        }
+        log.info("config", "Generating preview (async)...");
+        themeManager.generatePreviewAsync(cfgJson, wpPath, -1, [], "", "");
     }
 
     Timer {

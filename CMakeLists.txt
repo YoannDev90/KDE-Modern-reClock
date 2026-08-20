@@ -8,7 +8,7 @@ set(CMAKE_AUTOMOC ON)
 include(GNUInstallDirs)
 
 # Qt 6
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Qml Gui Quick Network DBus)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Qml Gui Quick Network DBus Concurrent)
 
 # Zlib for CRC32 in zip archive
 find_package(ZLIB REQUIRED)
@@ -38,6 +38,7 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
     Qt6::Quick
     Qt6::Network
     Qt6::DBus
+    Qt6::Concurrent
     ${FONTCONFIG_LIBRARIES}
     ZLIB::ZLIB
 )

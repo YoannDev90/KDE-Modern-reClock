@@ -670,6 +670,203 @@ QString ThemeManager::fallbackPreview(const QString &outPath)
     return outPath;
 }
 
+void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
+                                        const QString &wallpaperPath,
+                                        int appletId,
+                                        const QStringList &fontPaths,
+                                        const QString &customDate,
+                                        const QString &customDayName)
+{
+    // Pre-load fonts on main thread (QFontDatabase is not thread-safe)
+    QStringList loadedFamilies;
+    for (const QString &fp : fontPaths) {
+        int id = QFontDatabase::addApplicationFont(fp);
+        loadedFamilies.append(QFontDatabase::applicationFontFamilies(id));
+    }
+
+    // Capture screen info on main thread (QGuiApplication::primaryScreen not thread-safe)
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QSize screenSize = screen ? screen->size() : QSize(1920, 1080);
+    double dpr = screen ? screen->devicePixelRatio() : 1.0;
+
+    // Capture widget geometry on main thread
+    QRect widgetRect = findWidgetGeometry();
+
+    QString cacheDir = m_cacheDir;
+    Logger *log = m_log;
+
+    [[maybe_unused]] auto future = QtConcurrent::run([this, jsonConfig, wallpaperPath, loadedFamilies, screenSize, dpr,
+                        widgetRect, cacheDir, log, customDate, customDayName]() {
+        QDir().mkpath(cacheDir + QStringLiteral("/previews"));
+        QString outPath = cacheDir + QStringLiteral("/previews/export_preview.png");
+
+        auto resolveFamily = [&](const QString &configName) -> QString {
+            if (configName.isEmpty()) return {};
+            if (loadedFamilies.contains(configName)) return configName;
+            QString lower = configName.toLower();
+            for (const QString &f : loadedFamilies) {
+                if (f.toLower() == lower || f.toLower().contains(lower) || lower.contains(f.toLower()))
+                    return f;
+            }
+            return configName;
+        };
+
+        QJsonDocument doc = QJsonDocument::fromJson(jsonConfig.toUtf8());
+        if (doc.isNull() || !doc.isObject()) {
+            if (log) log->info("theme", "ERROR: invalid config JSON");
+            fallbackPreview(outPath);
+            emit previewGenerated(outPath);
+            return;
+        }
+        QJsonObject cfg = doc.object();
+
+        // Load wallpaper
+        QImage canvas;
+        if (QFile::exists(wallpaperPath))
+            canvas = QImage(wallpaperPath);
+        if (canvas.isNull()) {
+            canvas = QImage(1920, 1080, QImage::Format_ARGB32);
+            canvas.fill(QColor(42, 42, 50));
+        }
+
+        // Scale factor
+        double scaleX = 1.0, scaleY = 1.0;
+        if (!canvas.isNull()) {
+            scaleX = (double)canvas.width() / screenSize.width();
+            scaleY = (double)canvas.height() / screenSize.height();
+        }
+
+        // Widget on wallpaper
+        int wpX = widgetRect.isValid() ? qRound(widgetRect.x() * scaleX) : 0;
+        int wpY = widgetRect.isValid() ? qRound(widgetRect.y() * scaleY) : 0;
+        int wpW = widgetRect.isValid() ? qRound(widgetRect.width() * scaleX) : canvas.width();
+        int wpH = widgetRect.isValid() ? qRound(widgetRect.height() * scaleY) : canvas.height();
+
+        // Element order
+        QString orderStr = cfg.value(QStringLiteral("element_order")).toString(QStringLiteral("day,date,time,custom,timezone"));
+        QStringList order = orderStr.split(',');
+        int configSpacing = qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
+
+        // Parse elements
+        struct ClockElement {
+            bool visible; int configSize; int letterSpacing;
+            bool bold; QColor color; QString family; QString sampleText;
+        };
+        QMap<QString, ClockElement> elements;
+
+        auto addElement = [&](const QString &name, const QString &fontKey, int defaultSize, const QString &sample) {
+            ClockElement e;
+            e.visible = cfg.value(QStringLiteral("show_") + name).toBool(true);
+            e.family = cfg.value(QStringLiteral("fontFamily") + fontKey).toString();
+            e.configSize = qRound(cfg.value(name + QStringLiteral("_font_size")).toDouble(defaultSize));
+            e.letterSpacing = qRound(cfg.value(name + QStringLiteral("_letter_spacing")).toDouble(0));
+            e.bold = cfg.value(name + QStringLiteral("_font_bold")).toBool(false);
+            e.color = QColor(cfg.value(name + QStringLiteral("_font_color")).toString(QStringLiteral("#FFFFFF")));
+            if (!e.color.isValid()) e.color = Qt::white;
+            e.sampleText = sample.toUpper();
+            elements.insert(name, e);
+        };
+
+        QDateTime now;
+        if (!customDate.isEmpty())
+            now = QDateTime::fromString(customDate, Qt::ISODate);
+        if (!now.isValid()) {
+            QRandomGenerator *rng = QRandomGenerator::global();
+            now = QDateTime(QDate(2024 + rng->bounded(5), 1 + rng->bounded(12), 1 + rng->bounded(28)),
+                            QTime(rng->bounded(24), rng->bounded(60), rng->bounded(60)));
+        }
+        QLocale locale(cfg.value(QStringLiteral("locale")).toString(QStringLiteral("en_US")));
+        QString dateFormat = cfg.value(QStringLiteral("date_format")).toString(QStringLiteral("dd MMM yyyy"));
+        QString timeFormat = cfg.value(QStringLiteral("time_format")).toString(QStringLiteral("HH:mm:ss"));
+        QString timeChar = cfg.value(QStringLiteral("time_character")).toString();
+
+        addElement(QStringLiteral("day"), QStringLiteral("Day"), 72,
+                   customDayName.isEmpty() ? locale.toString(now.date(), QStringLiteral("dddd")) : customDayName);
+        addElement(QStringLiteral("date"), QStringLiteral("Date"), 19, locale.toString(now.date(), dateFormat));
+        QString timeSample = locale.toString(now.time(), timeFormat);
+        if (!timeChar.trimmed().isEmpty()) timeSample = timeChar + QStringLiteral(" ") + timeSample + QStringLiteral(" ") + timeChar;
+        addElement(QStringLiteral("time"), QStringLiteral("Time"), 19, timeSample);
+        addElement(QStringLiteral("custom"), QStringLiteral("Custom"), 19,
+                   cfg.value(QStringLiteral("custom_text")).toString(QStringLiteral("Custom Text")));
+        QString tzText = cfg.value(QStringLiteral("timezone_display_text")).toString();
+        if (tzText.isEmpty()) tzText = cfg.value(QStringLiteral("timezone_label")).toString();
+        if (tzText.isEmpty()) tzText = QStringLiteral("UTC+8:00");
+        addElement(QStringLiteral("timezone"), QStringLiteral("Timezone"), 14, tzText);
+
+        // Measure natural text
+        int naturalWidth = 0, naturalHeight = 0;
+        for (const QString &el : order) {
+            if (!elements.contains(el)) continue;
+            auto &e = elements[el];
+            if (!e.visible) continue;
+            QString resolvedFam = resolveFamily(e.family);
+            QFont mf(!resolvedFam.isEmpty() ? resolvedFam : QStringLiteral("sans-serif"), qMax(8, e.configSize));
+            mf.setPixelSize(qMax(8, e.configSize));
+            mf.setBold(e.bold);
+            if (e.letterSpacing != 0) mf.setLetterSpacing(QFont::AbsoluteSpacing, e.letterSpacing);
+            QTextLayout layout(e.sampleText, mf);
+            layout.beginLayout();
+            QTextLine line = layout.createLine();
+            layout.endLayout();
+            int tw = qCeil(line.naturalTextWidth());
+            QFontMetrics fm(mf);
+            if (tw > naturalWidth) naturalWidth = tw;
+            naturalHeight += fm.height();
+        }
+        naturalHeight += configSpacing * qMax(0, order.count() - 1);
+
+        // Auto-scale
+        double widgetFontScale = 1.0;
+        if (naturalWidth > 0 && naturalHeight > 0 && widgetRect.isValid()) {
+            double sw = widgetRect.width() - 16;
+            double sh = widgetRect.height() - 16;
+            widgetFontScale = qMin(sw / naturalWidth, sh / naturalHeight);
+        }
+        double finalScale = widgetFontScale * scaleX;
+
+        // Render
+        QPainter p(&canvas);
+        p.setRenderHint(QPainter::TextAntialiasing);
+        p.setRenderHint(QPainter::Antialiasing);
+
+        int totalRenderedHeight = 0;
+        for (const QString &el : order) {
+            if (!elements.contains(el)) continue;
+            auto &e = elements[el];
+            if (!e.visible) continue;
+            totalRenderedHeight += qMax(8, qRound(e.configSize * finalScale));
+        }
+        totalRenderedHeight += qRound(configSpacing * finalScale) * qMax(0, order.count() - 1);
+        int y = wpY + qMax(0, (wpH - totalRenderedHeight) / 2);
+
+        for (const QString &el : order) {
+            if (!elements.contains(el)) continue;
+            auto &e = elements[el];
+            if (!e.visible) continue;
+            int scaledSize = qMax(8, qRound(e.configSize * finalScale));
+            int scaledSpacing = qRound(e.letterSpacing * finalScale);
+            int scaledElemSpacing = qRound(configSpacing * finalScale);
+            QString resolvedFamily = resolveFamily(e.family);
+            QFont f(!resolvedFamily.isEmpty() ? resolvedFamily : QStringLiteral("sans-serif"), qMax(8, scaledSize));
+            f.setPixelSize(qMax(8, scaledSize));
+            f.setBold(e.bold);
+            if (scaledSpacing != 0) f.setLetterSpacing(QFont::AbsoluteSpacing, scaledSpacing);
+            p.setFont(f);
+            p.setPen(e.color);
+            QFontMetrics fm = p.fontMetrics();
+            int textWidth = fm.horizontalAdvance(e.sampleText);
+            int textX = wpX + qMax(0, (wpW - textWidth) / 2);
+            int textH = fm.height();
+            p.drawText(QRect(textX, y, textWidth + 10, textH), Qt::AlignLeft | Qt::AlignVCenter, e.sampleText);
+            y += scaledSize + scaledElemSpacing;
+        }
+
+        p.end();
+        canvas.save(outPath, "PNG");
+        emit previewGenerated(outPath);
+    });
+}
+
 // ===== FONT PERSISTENCE =====
 
 void ThemeManager::persistActiveFonts(const QStringList &fontPaths)

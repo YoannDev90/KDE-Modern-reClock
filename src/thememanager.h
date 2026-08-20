@@ -5,6 +5,7 @@
 #include <QNetworkReply>
 #include <QStringList>
 #include <QTimer>
+#include <QtConcurrent>
 
 class Logger;
 
@@ -48,10 +49,18 @@ public:
                                         const QString &customDate = {},
                                         const QString &customDayName = {});
 
+    Q_INVOKABLE void generatePreviewAsync(const QString &jsonConfig,
+                                          const QString &wallpaperPath,
+                                          int appletId = -1,
+                                          const QStringList &fontPaths = {},
+                                          const QString &customDate = {},
+                                          const QString &customDayName = {});
+
 signals:
     void indexFetchComplete(bool success, const QString &jsonData);
     void themeDownloaded(const QString &themeId, bool success);
     void errorOccurred(const QString &message);
+    void previewGenerated(const QString &outPath);
 
 private:
     Logger *m_log = nullptr;
