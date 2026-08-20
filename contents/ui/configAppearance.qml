@@ -60,7 +60,6 @@ KCM.SimpleKCM {
     property bool cfg_auto_scale: false
     property string cfg_alignMode: "none"
     property string cfg_color_mode: "custom"
-    property bool cfg_adapt_to_theme: false // deprecated, kept for migration
 
     // ===== Custom text element properties =====
     property bool cfg_show_custom: false
@@ -90,6 +89,8 @@ KCM.SimpleKCM {
 
     // ===== System font list (shared ListModel — one allocation for 5 ComboBoxes) =====
     ListModel { id: fontListModel }
+    // O(1) font name → index lookup (built once during population)
+    property var fontIndexCache: ({})
 
     // ===== Theme management =====
     // savedThemesJson is a simple bridge: KCM writes cfg_saved_themes → this mirrors it
@@ -99,14 +100,6 @@ KCM.SimpleKCM {
     onSavedThemesJsonChanged: {
         try { savedThemes = JSON.parse(savedThemesJson); }
         catch (e) { savedThemes = []; }
-    }
-
-    // Helper: find font name index in shared ListModel
-    function findFontIndex(name) {
-        for (var i = 0; i < fontListModel.count; i++) {
-            if (fontListModel.get(i).name === name) return i;
-        }
-        return -1;
     }
 
     // ===== C++ PREVIEW =====
@@ -169,15 +162,23 @@ KCM.SimpleKCM {
     Component.onCompleted: {
         // Defer all heavy init to after first paint — lets QML render the UI immediately
         Qt.callLater(function() {
-            // Populate shared font ListModel once
+            // Populate shared font ListModel in batches of 50
             var fonts = Qt.fontFamilies();
-            var bundled = ["Anurati", "Poppins"];
-            for (var b = 0; b < bundled.length; b++)
-                fontListModel.append({ name: bundled[b] });
+            var all = ["Anurati", "Poppins"];
             for (var i = 0; i < fonts.length; i++) {
-                if (bundled.indexOf(fonts[i]) === -1)
-                    fontListModel.append({ name: fonts[i] });
+                if (all.indexOf(fonts[i]) === -1)
+                    all.push(fonts[i]);
             }
+            var cache = {};
+            var BATCH = 50;
+            for (var start = 0; start < all.length; start += BATCH) {
+                var end = Math.min(start + BATCH, all.length);
+                for (var j = start; j < end; j++) {
+                    fontListModel.append({ name: all[j] });
+                    cache[all[j]] = j;
+                }
+            }
+            fontIndexCache = cache;
             log.info("config", "Font list loaded: " + fontListModel.count + " families");
 
             var keys = [];
@@ -748,11 +749,11 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             model: fontListModel
             textRole: "name"
-            currentIndex: Math.max(0, findFontIndex(appearancePage.cfg_fontFamilyDay))
+            currentIndex: fontIndexCache[appearancePage.cfg_fontFamilyDay] !== undefined ? fontIndexCache[appearancePage.cfg_fontFamilyDay] : 0
             editable: true
             onActivated: appearancePage.cfg_fontFamilyDay = fontListModel.get(currentIndex).name
             onEditTextChanged: {
-                if (editText !== undefined && findFontIndex(editText) !== -1) {
+                if (editText !== undefined && fontIndexCache[editText] !== undefined) {
                     appearancePage.cfg_fontFamilyDay = editText;
                 }
             }
@@ -844,11 +845,11 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             model: fontListModel
             textRole: "name"
-            currentIndex: Math.max(0, findFontIndex(appearancePage.cfg_fontFamilyDate))
+            currentIndex: fontIndexCache[appearancePage.cfg_fontFamilyDate] !== undefined ? fontIndexCache[appearancePage.cfg_fontFamilyDate] : 0
             editable: true
             onActivated: appearancePage.cfg_fontFamilyDate = fontListModel.get(currentIndex).name
             onEditTextChanged: {
-                if (editText !== undefined && findFontIndex(editText) !== -1) {
+                if (editText !== undefined && fontIndexCache[editText] !== undefined) {
                     appearancePage.cfg_fontFamilyDate = editText;
                 }
             }
@@ -940,11 +941,11 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             model: fontListModel
             textRole: "name"
-            currentIndex: Math.max(0, findFontIndex(appearancePage.cfg_fontFamilyTime))
+            currentIndex: fontIndexCache[appearancePage.cfg_fontFamilyTime] !== undefined ? fontIndexCache[appearancePage.cfg_fontFamilyTime] : 0
             editable: true
             onActivated: appearancePage.cfg_fontFamilyTime = fontListModel.get(currentIndex).name
             onEditTextChanged: {
-                if (editText !== undefined && findFontIndex(editText) !== -1) {
+                if (editText !== undefined && fontIndexCache[editText] !== undefined) {
                     appearancePage.cfg_fontFamilyTime = editText;
                 }
             }
@@ -1073,11 +1074,11 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             model: fontListModel
             textRole: "name"
-            currentIndex: Math.max(0, findFontIndex(appearancePage.cfg_fontFamilyCustom))
+            currentIndex: fontIndexCache[appearancePage.cfg_fontFamilyCustom] !== undefined ? fontIndexCache[appearancePage.cfg_fontFamilyCustom] : 0
             editable: true
             onActivated: appearancePage.cfg_fontFamilyCustom = fontListModel.get(currentIndex).name
             onEditTextChanged: {
-                if (editText !== undefined && findFontIndex(editText) !== -1) {
+                if (editText !== undefined && fontIndexCache[editText] !== undefined) {
                     appearancePage.cfg_fontFamilyCustom = editText;
                 }
             }
@@ -1266,11 +1267,11 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             model: fontListModel
             textRole: "name"
-            currentIndex: Math.max(0, findFontIndex(appearancePage.cfg_fontFamilyTimezone))
+            currentIndex: fontIndexCache[appearancePage.cfg_fontFamilyTimezone] !== undefined ? fontIndexCache[appearancePage.cfg_fontFamilyTimezone] : 0
             editable: true
             onActivated: appearancePage.cfg_fontFamilyTimezone = fontListModel.get(currentIndex).name
             onEditTextChanged: {
-                if (editText !== undefined && findFontIndex(editText) !== -1) {
+                if (editText !== undefined && fontIndexCache[editText] !== undefined) {
                     appearancePage.cfg_fontFamilyTimezone = editText;
                 }
             }

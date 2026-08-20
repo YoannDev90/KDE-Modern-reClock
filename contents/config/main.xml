@@ -170,11 +170,6 @@
             <default>custom</default>
         </entry>
 
-        <!-- Deprecated: kept for migration from older configs -->
-        <entry name="adapt_to_theme" type="Bool">
-            <default>false</default>
-        </entry>
-
         <!-- Alignment mode: none, center, centerH, centerV -->
         <entry name="alignMode" type="String">
             <label>Widget alignment on screen</label>
