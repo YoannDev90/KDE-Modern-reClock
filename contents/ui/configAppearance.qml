@@ -87,8 +87,8 @@ KCM.SimpleKCM {
     // ===== Saved themes =====
     property string cfg_saved_themes: ""
 
-    // ===== System font list (shared ListModel — one allocation for 5 ComboBoxes) =====
-    ListModel { id: fontListModel }
+    // ===== System font list (shared JS array — assigned in one shot, no per-item signals) =====
+    property var fontArray: []
     // O(1) font name → index lookup (built once during population)
     property var fontIndexCache: ({})
 
@@ -162,24 +162,21 @@ KCM.SimpleKCM {
     Component.onCompleted: {
         // Defer all heavy init to after first paint — lets QML render the UI immediately
         Qt.callLater(function() {
-            // Populate shared font ListModel in batches of 50
+            // Build full font list (single JS array) — assigned in ONE shot, no per-item signals
             var fonts = Qt.fontFamilies();
             var all = ["Anurati", "Poppins"];
             for (var i = 0; i < fonts.length; i++) {
                 if (all.indexOf(fonts[i]) === -1)
                     all.push(fonts[i]);
             }
+            // Build O(1) name→index cache in the same single pass
             var cache = {};
-            var BATCH = 50;
-            for (var start = 0; start < all.length; start += BATCH) {
-                var end = Math.min(start + BATCH, all.length);
-                for (var j = start; j < end; j++) {
-                    fontListModel.append({ name: all[j] });
-                    cache[all[j]] = j;
-                }
-            }
+            for (var j = 0; j < all.length; j++)
+                cache[all[j]] = j;
             fontIndexCache = cache;
-            log.info("config", "Font list loaded: " + fontListModel.count + " families");
+            // One-shot assignment: no ListModel.append() signal storm
+            fontArray = all;
+            log.info("config", "Font list loaded: " + all.length + " families");
 
             var keys = [];
             for (var prop in appearancePage) {
@@ -747,11 +744,10 @@ KCM.SimpleKCM {
             id: dayFontCombo
             Kirigami.FormData.label: i18n("Font:")
             Layout.fillWidth: true
-            model: fontListModel
-            textRole: "name"
+            model: fontArray
             currentIndex: fontIndexCache[appearancePage.cfg_fontFamilyDay] !== undefined ? fontIndexCache[appearancePage.cfg_fontFamilyDay] : 0
             editable: true
-            onActivated: appearancePage.cfg_fontFamilyDay = fontListModel.get(currentIndex).name
+            onActivated: appearancePage.cfg_fontFamilyDay = fontArray[currentIndex]
             onEditTextChanged: {
                 if (editText !== undefined && fontIndexCache[editText] !== undefined) {
                     appearancePage.cfg_fontFamilyDay = editText;
@@ -843,11 +839,10 @@ KCM.SimpleKCM {
             id: dateFontCombo
             Kirigami.FormData.label: i18n("Font:")
             Layout.fillWidth: true
-            model: fontListModel
-            textRole: "name"
+            model: fontArray
             currentIndex: fontIndexCache[appearancePage.cfg_fontFamilyDate] !== undefined ? fontIndexCache[appearancePage.cfg_fontFamilyDate] : 0
             editable: true
-            onActivated: appearancePage.cfg_fontFamilyDate = fontListModel.get(currentIndex).name
+            onActivated: appearancePage.cfg_fontFamilyDate = fontArray[currentIndex]
             onEditTextChanged: {
                 if (editText !== undefined && fontIndexCache[editText] !== undefined) {
                     appearancePage.cfg_fontFamilyDate = editText;
@@ -939,11 +934,10 @@ KCM.SimpleKCM {
             id: timeFontCombo
             Kirigami.FormData.label: i18n("Font:")
             Layout.fillWidth: true
-            model: fontListModel
-            textRole: "name"
+            model: fontArray
             currentIndex: fontIndexCache[appearancePage.cfg_fontFamilyTime] !== undefined ? fontIndexCache[appearancePage.cfg_fontFamilyTime] : 0
             editable: true
-            onActivated: appearancePage.cfg_fontFamilyTime = fontListModel.get(currentIndex).name
+            onActivated: appearancePage.cfg_fontFamilyTime = fontArray[currentIndex]
             onEditTextChanged: {
                 if (editText !== undefined && fontIndexCache[editText] !== undefined) {
                     appearancePage.cfg_fontFamilyTime = editText;
@@ -1072,11 +1066,10 @@ KCM.SimpleKCM {
             id: customFontCombo
             Kirigami.FormData.label: i18n("Font:")
             Layout.fillWidth: true
-            model: fontListModel
-            textRole: "name"
+            model: fontArray
             currentIndex: fontIndexCache[appearancePage.cfg_fontFamilyCustom] !== undefined ? fontIndexCache[appearancePage.cfg_fontFamilyCustom] : 0
             editable: true
-            onActivated: appearancePage.cfg_fontFamilyCustom = fontListModel.get(currentIndex).name
+            onActivated: appearancePage.cfg_fontFamilyCustom = fontArray[currentIndex]
             onEditTextChanged: {
                 if (editText !== undefined && fontIndexCache[editText] !== undefined) {
                     appearancePage.cfg_fontFamilyCustom = editText;
@@ -1265,11 +1258,10 @@ KCM.SimpleKCM {
             id: timezoneFontCombo
             Kirigami.FormData.label: i18n("Font:")
             Layout.fillWidth: true
-            model: fontListModel
-            textRole: "name"
+            model: fontArray
             currentIndex: fontIndexCache[appearancePage.cfg_fontFamilyTimezone] !== undefined ? fontIndexCache[appearancePage.cfg_fontFamilyTimezone] : 0
             editable: true
-            onActivated: appearancePage.cfg_fontFamilyTimezone = fontListModel.get(currentIndex).name
+            onActivated: appearancePage.cfg_fontFamilyTimezone = fontArray[currentIndex]
             onEditTextChanged: {
                 if (editText !== undefined && fontIndexCache[editText] !== undefined) {
                     appearancePage.cfg_fontFamilyTimezone = editText;
