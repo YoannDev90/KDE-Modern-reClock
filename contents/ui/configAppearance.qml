@@ -5,7 +5,6 @@ import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 import org.kde.kquickcontrols as KQControls
-import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.private.modernreclock as ModernRecClock
 
 KCM.SimpleKCM {
@@ -19,130 +18,104 @@ KCM.SimpleKCM {
         error: function(cat, msg) {}
     })
 
-    // properties
-    property alias cfg_show_day: showDay.checked
-    property alias cfg_show_date: showDate.checked
-    property alias cfg_show_time: showTime.checked
+    // ===== Config keys — plain properties (no hidden controls needed) =====
+    property bool cfg_show_day: true
+    property bool cfg_show_date: true
+    property bool cfg_show_time: true
 
-    property alias cfg_day_font_size: dayFontSize.value
-    property alias cfg_date_font_size: dateFontSize.value
-    property alias cfg_time_font_size: timeFontSize.value
+    property int cfg_day_font_size: 72
+    property int cfg_date_font_size: 19
+    property int cfg_time_font_size: 19
 
-    property alias cfg_day_letter_spacing: dayLetterSpacing.value
-    property alias cfg_date_letter_spacing: dateLetterSpacing.value
-    property alias cfg_time_letter_spacing: timeLetterSpacing.value
+    property int cfg_day_letter_spacing: 17
+    property int cfg_date_letter_spacing: 3
+    property int cfg_time_letter_spacing: 3
 
-    property alias cfg_day_font_color: dayFontColor.color
-    property alias cfg_date_font_color: dateFontColor.color
-    property alias cfg_time_font_color: timeFontColor.color
+    property string cfg_day_font_color: "#FFFFFF"
+    property string cfg_date_font_color: "#FFFFFF"
+    property string cfg_time_font_color: "#FFFFFF"
 
-    property alias cfg_day_format: dayFormat.text
-    property alias cfg_date_format: dateFormat.text
-    property alias cfg_time_format: timeFormat.text
-    property alias cfg_use_24_hour_format: use24HourFormat.checked
-    property alias cfg_time_character: timeCharacter.text
+    property string cfg_day_format: "dddd"
+    property string cfg_date_format: "dd MMM yyyy"
+    property string cfg_time_format: ""
+    property bool cfg_use_24_hour_format: false
+    property string cfg_time_character: "-"
 
-    property alias cfg_uppercase_day: uppercaseDay.checked
-    property alias cfg_uppercase_date: uppercaseDate.checked
+    property bool cfg_uppercase_day: true
+    property bool cfg_uppercase_date: true
 
-    property alias cfg_day_font_bold: dayFontBold.checked
-    property alias cfg_date_font_bold: dateFontBold.checked
-    property alias cfg_time_font_bold: timeFontBold.checked
+    property bool cfg_day_font_bold: false
+    property bool cfg_date_font_bold: false
+    property bool cfg_time_font_bold: false
 
-    property alias cfg_fontFamilyDay: _fontFamilyDayStorage.text
-    property alias cfg_fontFamilyDate: _fontFamilyDateStorage.text
-    property alias cfg_fontFamilyTime: _fontFamilyTimeStorage.text
-    property alias cfg_fontFamilyCustom: _fontFamilyCustomStorage.text
-    property alias cfg_fontFamilyTimezone: _fontFamilyTimezoneStorage.text
+    property string cfg_fontFamilyDay: "Anurati"
+    property string cfg_fontFamilyDate: "Poppins"
+    property string cfg_fontFamilyTime: "Poppins"
+    property string cfg_fontFamilyCustom: "Poppins"
+    property string cfg_fontFamilyTimezone: "Poppins"
 
-    property alias cfg_widget_spacing: widgetSpacing.value
+    property int cfg_widget_spacing: 5
 
-    property alias cfg_locale: localeField.text
-    property alias cfg_auto_scale: autoScale.checked
+    property string cfg_locale: ""
+    property bool cfg_auto_scale: false
     property string cfg_alignMode: "none"
     property string cfg_color_mode: "custom"
     property bool cfg_adapt_to_theme: false // deprecated, kept for migration
 
     // ===== Custom text element properties =====
-    property alias cfg_show_custom: showCustom.checked
-    property alias cfg_custom_text: customTextField.text
-    property alias cfg_custom_format: customFormat.checked
-    property alias cfg_custom_font_size: customFontSize.value
-    property alias cfg_custom_letter_spacing: customLetterSpacing.value
-    property alias cfg_custom_font_bold: customFontBold.checked
-    property alias cfg_custom_font_color: customFontColor.color
+    property bool cfg_show_custom: false
+    property string cfg_custom_text: ""
+    property bool cfg_custom_format: false
+    property int cfg_custom_font_size: 19
+    property int cfg_custom_letter_spacing: 3
+    property bool cfg_custom_font_bold: false
+    property string cfg_custom_font_color: "#FFFFFF"
 
     // ===== Timezone element properties =====
-    property alias cfg_show_timezone: showTimezone.checked
+    property bool cfg_show_timezone: false
     property string cfg_timezone_id: ""
-    property alias cfg_timezone_label: timezoneLabel.text
+    property string cfg_timezone_label: ""
     property string cfg_timezone_display_text: ""
     property string cfg_custom_preview_date: ""
-    property alias cfg_timezone_format: _timezoneFmtStorage.text
-    property alias cfg_timezone_font_size: timezoneFontSize.value
-    property alias cfg_timezone_letter_spacing: timezoneLetterSpacing.value
-    property alias cfg_timezone_font_bold: timezoneFontBold.checked
-    property alias cfg_timezone_font_color: timezoneFontColor.color
+    property string cfg_timezone_format: "HH:mm"
+    property int cfg_timezone_font_size: 19
+    property int cfg_timezone_letter_spacing: 3
+    property bool cfg_timezone_font_bold: false
+    property string cfg_timezone_font_color: "#FFFFFF"
 
-    property alias cfg_element_order: elementOrderField.text
+    property string cfg_element_order: "day,date,time,custom,timezone"
 
-    // ===== Saved themes (plain string alias for KCM sync) =====
-    property alias cfg_saved_themes: _savedThemesStorage.text
+    // ===== Saved themes =====
+    property string cfg_saved_themes: ""
 
-    // ===== System font list =====
-    readonly property var systemFontList: {
-        var fonts = Qt.fontFamilies();
-        var bundled = ["Anurati", "Poppins"];
-        var result = bundled.slice();
-        for (var i = 0; i < fonts.length; i++) {
-            if (bundled.indexOf(fonts[i]) === -1)
-                result.push(fonts[i]);
-        }
-        return result;
-    }
+    // ===== System font list (shared ListModel — one allocation for 5 ComboBoxes) =====
+    ListModel { id: fontListModel }
 
     // ===== Theme management =====
+    // savedThemesJson is a simple bridge: KCM writes cfg_saved_themes → this mirrors it
     property string savedThemesJson: cfg_saved_themes || "[]"
-    property var savedThemes: {
-        try { return JSON.parse(savedThemesJson); }
-        catch (e) { return []; }
+    // Parse lazily: only when savedThemesJson actually changes, not as a binding
+    property var savedThemes: []
+    onSavedThemesJsonChanged: {
+        try { savedThemes = JSON.parse(savedThemesJson); }
+        catch (e) { savedThemes = []; }
     }
 
-    // ===== System theme colors =====
-    readonly property bool _hasTheme: typeof PlasmaCore.Theme !== 'undefined' && PlasmaCore.Theme !== null
-    readonly property color systemTextColor: _hasTheme && PlasmaCore.Theme.textColor ? PlasmaCore.Theme.textColor : "#FFFFFF"
-    readonly property color systemBgColor: {
-        var r = 1.0 - systemTextColor.r;
-        var g = 1.0 - systemTextColor.g;
-        var b = 1.0 - systemTextColor.b;
-        return Qt.rgba(r, g, b, 1.0);
+    // Helper: find font name index in shared ListModel
+    function findFontIndex(name) {
+        for (var i = 0; i < fontListModel.count; i++) {
+            if (fontListModel.get(i).name === name) return i;
+        }
+        return -1;
     }
 
     // ===== C++ PREVIEW =====
     readonly property var themeManager: ModernRecClock.ThemeManager ?? null
     property string previewImagePath: ""
-    property var _perfEntries: []
-    property string _perfSummary: ""
-    QQC2.TextField { id: _copyHelper; visible: false; selectByMouse: true }
-
-    function _perf(tag) {
-        var now = Date.now();
-        _perfEntries.push({ tag: tag, ms: now });
-        if (_perfEntries.length > 1) {
-            var prev = _perfEntries[_perfEntries.length - 2];
-            var delta = now - prev.ms;
-            _perfSummary += tag + ": " + delta + "ms\n";
-            log.info("perf", tag + ": +" + delta + "ms (total=" + (now - _perfEntries[0].ms) + "ms)");
-        } else {
-            _perfSummary += tag + ": 0ms (start)\n";
-            log.info("perf", tag + ": START");
-        }
-    }
 
     Connections {
         target: appearancePage.themeManager
         function onPreviewGenerated(outPath) {
-            appearancePage._perf("preview_received");
             appearancePage.previewImagePath = "file://" + outPath;
         }
     }
@@ -194,43 +167,41 @@ KCM.SimpleKCM {
     // Auto-derived from all cfg_ aliases — computed once at init (not a binding to avoid loops)
     property var configKeys: []
     Component.onCompleted: {
-        _perf("onCompleted_start");
-        var keys = [];
-        for (var prop in appearancePage) {
-            if (prop.startsWith("cfg_") && typeof appearancePage[prop] !== "function") {
-                keys.push(prop.substring(4));
+        // Defer all heavy init to after first paint — lets QML render the UI immediately
+        Qt.callLater(function() {
+            // Populate shared font ListModel once
+            var fonts = Qt.fontFamilies();
+            var bundled = ["Anurati", "Poppins"];
+            for (var b = 0; b < bundled.length; b++)
+                fontListModel.append({ name: bundled[b] });
+            for (var i = 0; i < fonts.length; i++) {
+                if (bundled.indexOf(fonts[i]) === -1)
+                    fontListModel.append({ name: fonts[i] });
             }
-        }
-        configKeys = keys;
-        _perf("configKeys_discovered(" + keys.length + ")");
-        log.info("config", "Config page opened — " + keys.length + " config keys discovered");
-        log.info("config", "color_mode=" + cfg_color_mode + " locale=" + (cfg_locale || "(default)") + " auto_scale=" + cfg_auto_scale);
-        // Connect every known cfg_ signal to debounced regeneration (more reliable than for...in)
-        for (var i = 0; i < configKeys.length; i++) {
-            var sigName = "cfg_" + configKeys[i] + "Changed";
-            try {
-                var sig = appearancePage[sigName];
-                if (typeof sig === 'function' && sig.connect) {
-                    sig.connect(regenTimer.restart);
-                }
-            } catch(e) {}
-        }
-        _perf("signals_connected");
-        // Initial preview generation
-        _regeneratePreview();
-        _perf("preview_dispatched");
-        // Delayed retry in case KCM properties weren't synced yet
-        retryTimer.start();
-    }
+            log.info("config", "Font list loaded: " + fontListModel.count + " families");
 
-    Timer {
-        id: retryTimer
-        interval: 500
-        repeat: false
-        onTriggered: {
-            if (!appearancePage.previewImagePath || appearancePage.previewImagePath.length === 0)
-                appearancePage._regeneratePreview();
-        }
+            var keys = [];
+            for (var prop in appearancePage) {
+                if (prop.startsWith("cfg_") && typeof appearancePage[prop] !== "function") {
+                    keys.push(prop.substring(4));
+                }
+            }
+            configKeys = keys;
+            log.info("config", "Config page opened — " + keys.length + " config keys discovered");
+            log.info("config", "color_mode=" + cfg_color_mode + " locale=" + (cfg_locale || "(default)") + " auto_scale=" + cfg_auto_scale);
+            // Connect every known cfg_ signal to debounced regeneration
+            for (var i = 0; i < configKeys.length; i++) {
+                var sigName = "cfg_" + configKeys[i] + "Changed";
+                try {
+                    var sig = appearancePage[sigName];
+                    if (typeof sig === 'function' && sig.connect) {
+                        sig.connect(regenTimer.restart);
+                    }
+                } catch(e) {}
+            }
+            // Initial preview generation
+            _regeneratePreview();
+        });
     }
 
     // ===== RESET FUNCTIONS (data-driven) =====
@@ -247,54 +218,49 @@ KCM.SimpleKCM {
         if (!d) return;
         log.info("config", "Resetting section: " + type);
         if (type === "day") {
-            showDay.checked = d.show;
+            cfg_show_day = d.show;
             cfg_fontFamilyDay = d.font;
-            dayFontCombo.currentIndex = Math.max(0, dayFontCombo.model.indexOf(d.font));
-            dayFontSize.value = d.size;
-            dayLetterSpacing.value = d.spacing;
-            dayFormat.text = d.format;
-            uppercaseDay.checked = d.uppercase;
-            dayFontBold.checked = d.bold;
-            dayFontColor.color = d.color;
+            cfg_day_font_size = d.size;
+            cfg_day_letter_spacing = d.spacing;
+            cfg_day_format = d.format;
+            cfg_uppercase_day = d.uppercase;
+            cfg_day_font_bold = d.bold;
+            cfg_day_font_color = d.color;
         } else if (type === "date") {
-            showDate.checked = d.show;
+            cfg_show_date = d.show;
             cfg_fontFamilyDate = d.font;
-            dateFontCombo.currentIndex = Math.max(0, dateFontCombo.model.indexOf(d.font));
-            dateFontSize.value = d.size;
-            dateLetterSpacing.value = d.spacing;
-            dateFormat.text = d.format;
-            uppercaseDate.checked = d.uppercase;
-            dateFontBold.checked = d.bold;
-            dateFontColor.color = d.color;
+            cfg_date_font_size = d.size;
+            cfg_date_letter_spacing = d.spacing;
+            cfg_date_format = d.format;
+            cfg_uppercase_date = d.uppercase;
+            cfg_date_font_bold = d.bold;
+            cfg_date_font_color = d.color;
         } else if (type === "time") {
-            showTime.checked = d.show;
+            cfg_show_time = d.show;
             cfg_fontFamilyTime = d.font;
-            timeFontCombo.currentIndex = Math.max(0, timeFontCombo.model.indexOf(d.font));
-            timeFontSize.value = d.size;
-            timeLetterSpacing.value = d.spacing;
-            timeFormat.text = d.format || "";
-            use24HourFormat.checked = d.h24 || false;
-            timeCharacter.text = d.deco || "-";
-            timeFontBold.checked = d.bold;
-            timeFontColor.color = d.color;
+            cfg_time_font_size = d.size;
+            cfg_time_letter_spacing = d.spacing;
+            cfg_time_format = d.format || "";
+            cfg_use_24_hour_format = d.h24 || false;
+            cfg_time_character = d.deco || "-";
+            cfg_time_font_bold = d.bold;
+            cfg_time_font_color = d.color;
         } else if (type === "custom") {
-            showCustom.checked = d.show;
+            cfg_show_custom = d.show;
             cfg_fontFamilyCustom = d.font;
-            customFontCombo.currentIndex = Math.max(0, customFontCombo.model.indexOf(d.font));
-            customFontSize.value = d.size;
-            customLetterSpacing.value = d.spacing;
-            customTextField.text = d.text || "";
-            customFormat.checked = d.formatText || false;
-            customFontBold.checked = d.bold;
-            customFontColor.color = d.color;
+            cfg_custom_font_size = d.size;
+            cfg_custom_letter_spacing = d.spacing;
+            cfg_custom_text = d.text || "";
+            cfg_custom_format = d.formatText || false;
+            cfg_custom_font_bold = d.bold;
+            cfg_custom_font_color = d.color;
         } else if (type === "timezone") {
-            showTimezone.checked = d.show;
+            cfg_show_timezone = d.show;
             cfg_fontFamilyTimezone = d.font;
-            timezoneFontCombo.currentIndex = Math.max(0, timezoneFontCombo.model.indexOf(d.font));
-            timezoneFontSize.value = d.size;
-            timezoneLetterSpacing.value = d.spacing;
-            appearancePage.cfg_timezone_id = d.id || "";
-            appearancePage.cfg_timezone_display_text = "";
+            cfg_timezone_font_size = d.size;
+            cfg_timezone_letter_spacing = d.spacing;
+            cfg_timezone_id = d.id || "";
+            cfg_timezone_display_text = "";
             // Select matching preset in ComboBox or set custom text
             var tzVal = d.id || "";
             var found = false;
@@ -302,34 +268,32 @@ KCM.SimpleKCM {
                 if (timezoneIdField.model.get(j).value === tzVal) {
                     timezoneIdField.currentIndex = j;
                     timezoneIdField.editText = timezoneIdField.model.get(j).text;
-                    appearancePage.cfg_timezone_display_text = timezoneIdField.model.get(j).text;
+                    cfg_timezone_display_text = timezoneIdField.model.get(j).text;
                     found = true;
                     break;
                 }
             }
             if (!found && tzVal.length > 0) {
                 timezoneIdField.editText = tzVal;
-                appearancePage.cfg_timezone_display_text = tzVal;
+                cfg_timezone_display_text = tzVal;
             } else if (!found) {
                 timezoneIdField.currentIndex = 0;
             }
-            timezoneLabel.text = d.label || "";
-            timezoneFmt.text = "";
-            timezoneFontBold.checked = d.bold;
-            timezoneFontColor.color = d.color;
+            cfg_timezone_label = d.label || "";
+            cfg_timezone_format = "HH:mm";
+            cfg_timezone_font_bold = d.bold;
+            cfg_timezone_font_color = d.color;
         }
         regenTimer.restart();
     }
 
     function resetGlobal() {
         log.info("config", "Resetting all settings to defaults");
-        autoScale.checked = false;
-        _colorModeStorage.text = "custom";
-        colorModeCombo.currentIndex = 0;
-        widgetSpacing.value = 5;
-        localeField.text = "";
+        cfg_auto_scale = false;
+        cfg_color_mode = "custom";
+        cfg_widget_spacing = 5;
+        cfg_locale = "";
         orderSection.resetRequested();
-        languageCombo.currentIndex = 0;
         regenTimer.restart();
     }
 
@@ -465,46 +429,6 @@ KCM.SimpleKCM {
         }
     }
 
-    // ================= PERF TIMING OVERLAY (debug) =================
-    Rectangle {
-        Layout.fillWidth: true
-        visible: _perfSummary.length > 0
-        color: Qt.rgba(0, 0, 0, 0.7)
-        radius: Kirigami.Units.cornerRadius
-        Layout.preferredHeight: perfCol.implicitHeight + 16
-
-        ColumnLayout {
-            id: perfCol
-            anchors.fill: parent
-            anchors.margins: 8
-            spacing: 2
-
-            QQC2.Label {
-                text: "[PERF] Config timing"
-                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                font.bold: true
-                color: "#00FF00"
-            }
-            QQC2.Label {
-                text: _perfSummary
-                font.family: "monospace"
-                font.pointSize: Kirigami.Theme.smallFont.pointSize
-                color: "#CCCCCC"
-                wrapMode: Text.NoWrap
-            }
-            QQC2.Button {
-                text: i18n("Copy")
-                icon.name: "edit-copy"
-                Layout.preferredHeight: 24
-                onClicked: {
-                    _copyHelper.text = _perfSummary;
-                    _copyHelper.selectAll();
-                    _copyHelper.copy();
-                }
-            }
-        }
-    }
-
     Kirigami.Heading {
         text: i18n("Preview")
         level: 2
@@ -551,10 +475,17 @@ KCM.SimpleKCM {
         }
     }
 
-    Kirigami.FormLayout {
+    // ===== Deferred heavy content — loaded async to speed up page creation =====
+    Loader {
         Layout.fillWidth: true
+        Layout.fillHeight: true
+        active: true
+        asynchronous: true
+        sourceComponent: Component {
+            Kirigami.FormLayout {
+                Layout.fillWidth: true
 
-        // ================= SECTION: GLOBAL =================
+                // ================= SECTION: GLOBAL =================
         Kirigami.Heading {
             text: i18n("Global")
             level: 2
@@ -565,11 +496,8 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: autoScale
             text: i18n("Auto-scale (fitting widget size)")
-            onCheckedChanged: {
-                if (appearancePage.cfg_auto_scale !== checked) {
-                    appearancePage.cfg_auto_scale = checked;
-                }
-            }
+            checked: appearancePage.cfg_auto_scale
+            onToggled: appearancePage.cfg_auto_scale = checked
         }
 
         // Alignment mode
@@ -613,7 +541,7 @@ KCM.SimpleKCM {
             }
             onActivated: {
                 var v = model[currentIndex].value;
-                _colorModeStorage.text = v;
+                cfg_color_mode = v;
                 regenTimer.restart();
             }
             QQC2.ToolTip.text: i18n("Custom: each element has its own color.\\nFollow system theme: text color adapts to desktop theme.\\nInverse: inverted system colors for contrast.\\nWallpaper: text color derived from wallpaper brightness.")
@@ -626,6 +554,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Element spacing:")
             from: 0
             to: 999
+            value: appearancePage.cfg_widget_spacing
+            onValueModified: appearancePage.cfg_widget_spacing = value
         }
 
         // ===== LOCALE SECTION =====
@@ -791,36 +721,6 @@ KCM.SimpleKCM {
             wrapMode: Text.WordWrap
         }
 
-        // Hidden field for the alias
-        QQC2.TextField {
-            id: elementOrderField
-            visible: false
-        }
-
-        // Hidden field for saved_themes KCM alias
-        QQC2.TextField {
-            id: _savedThemesStorage
-            visible: false
-            text: appearancePage.savedThemesJson
-            onTextChanged: appearancePage.savedThemesJson = text
-        }
-
-        // Hidden fields for fontFamily KCM aliases
-        QQC2.TextField { id: _fontFamilyDayStorage; visible: false; text: "Anurati" }
-        QQC2.TextField { id: _fontFamilyDateStorage; visible: false; text: "Poppins" }
-        QQC2.TextField { id: _fontFamilyTimeStorage; visible: false; text: "Poppins" }
-        QQC2.TextField { id: _fontFamilyCustomStorage; visible: false; text: "Poppins" }
-        QQC2.TextField { id: _fontFamilyTimezoneStorage; visible: false; text: "Poppins" }
-
-        // Hidden field for timezone_format KCM alias
-        QQC2.TextField { id: _timezoneFmtStorage; visible: false; text: "" }
-
-        // Hidden field for color_mode KCM alias
-        QQC2.TextField {
-            id: _colorModeStorage
-            visible: false
-            text: appearancePage.cfg_color_mode
-            onTextChanged: appearancePage.cfg_color_mode = text
         }
 
         // ===== ORDER SYSTEM (extracted to OrderSection.qml) =====
@@ -845,18 +745,21 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: showDay
             text: i18n("Show day")
+            checked: appearancePage.cfg_show_day
+            onToggled: appearancePage.cfg_show_day = checked
         }
 
         QQC2.ComboBox {
             id: dayFontCombo
             Kirigami.FormData.label: i18n("Font:")
             Layout.fillWidth: true
-            model: appearancePage.systemFontList
-            currentIndex: Math.max(0, model.indexOf(appearancePage.cfg_fontFamilyDay))
+            model: fontListModel
+            textRole: "name"
+            currentIndex: Math.max(0, findFontIndex(appearancePage.cfg_fontFamilyDay))
             editable: true
-            onActivated: appearancePage.cfg_fontFamilyDay = model[currentIndex]
+            onActivated: appearancePage.cfg_fontFamilyDay = fontListModel.get(currentIndex).name
             onEditTextChanged: {
-                if (editText !== undefined && model.indexOf(editText) !== -1) {
+                if (editText !== undefined && findFontIndex(editText) !== -1) {
                     appearancePage.cfg_fontFamilyDay = editText;
                 }
             }
@@ -867,6 +770,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Font size:")
             from: 1
             to: 999
+            value: appearancePage.cfg_day_font_size
+            onValueModified: appearancePage.cfg_day_font_size = value
         }
 
         QQC2.SpinBox {
@@ -874,6 +779,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Letter spacing:")
             from: 0
             to: 999
+            value: appearancePage.cfg_day_letter_spacing
+            onValueModified: appearancePage.cfg_day_letter_spacing = value
         }
 
         QQC2.TextField {
@@ -881,6 +788,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Format:")
             Layout.fillWidth: true
             placeholderText: "dddd"
+            text: appearancePage.cfg_day_format
+            onEditingFinished: appearancePage.cfg_day_format = text
             QQC2.ToolTip.text: i18n("Use Qt date formats. For example: dddd = full weekday name, ddd = short weekday name.")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
@@ -889,17 +798,26 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: uppercaseDay
             text: i18n("Uppercase")
+            checked: appearancePage.cfg_uppercase_day
+            onToggled: appearancePage.cfg_uppercase_day = checked
         }
 
         QQC2.CheckBox {
             id: dayFontBold
             text: i18n("Bold")
+            checked: appearancePage.cfg_day_font_bold
+            onToggled: appearancePage.cfg_day_font_bold = checked
         }
 
         KQControls.ColorButton {
             id: dayFontColor
             Kirigami.FormData.label: i18n("Font color:")
             showAlphaChannel: false
+            color: appearancePage.cfg_day_font_color
+            onColorChanged: {
+                var s = color.toString();
+                if (appearancePage.cfg_day_font_color !== s) appearancePage.cfg_day_font_color = s;
+            }
         }
 
         QQC2.Button {
@@ -923,18 +841,21 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: showDate
             text: i18n("Show date")
+            checked: appearancePage.cfg_show_date
+            onToggled: appearancePage.cfg_show_date = checked
         }
 
         QQC2.ComboBox {
             id: dateFontCombo
             Kirigami.FormData.label: i18n("Font:")
             Layout.fillWidth: true
-            model: appearancePage.systemFontList
-            currentIndex: Math.max(0, model.indexOf(appearancePage.cfg_fontFamilyDate))
+            model: fontListModel
+            textRole: "name"
+            currentIndex: Math.max(0, findFontIndex(appearancePage.cfg_fontFamilyDate))
             editable: true
-            onActivated: appearancePage.cfg_fontFamilyDate = model[currentIndex]
+            onActivated: appearancePage.cfg_fontFamilyDate = fontListModel.get(currentIndex).name
             onEditTextChanged: {
-                if (editText !== undefined && model.indexOf(editText) !== -1) {
+                if (editText !== undefined && findFontIndex(editText) !== -1) {
                     appearancePage.cfg_fontFamilyDate = editText;
                 }
             }
@@ -945,6 +866,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Font size:")
             from: 1
             to: 999
+            value: appearancePage.cfg_date_font_size
+            onValueModified: appearancePage.cfg_date_font_size = value
         }
 
         QQC2.SpinBox {
@@ -952,6 +875,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Letter spacing:")
             from: 0
             to: 999
+            value: appearancePage.cfg_date_letter_spacing
+            onValueModified: appearancePage.cfg_date_letter_spacing = value
         }
 
         QQC2.TextField {
@@ -959,6 +884,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Format:")
             Layout.fillWidth: true
             placeholderText: "dd MMM yyyy"
+            text: appearancePage.cfg_date_format
+            onEditingFinished: appearancePage.cfg_date_format = text
             QQC2.ToolTip.text: i18n("Use Qt date formats like dd MMM yyyy, MM/dd/yyyy, or dddd d MMMM yyyy.")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
@@ -967,17 +894,26 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: uppercaseDate
             text: i18n("Uppercase")
+            checked: appearancePage.cfg_uppercase_date
+            onToggled: appearancePage.cfg_uppercase_date = checked
         }
 
         QQC2.CheckBox {
             id: dateFontBold
             text: i18n("Bold")
+            checked: appearancePage.cfg_date_font_bold
+            onToggled: appearancePage.cfg_date_font_bold = checked
         }
 
         KQControls.ColorButton {
             id: dateFontColor
             Kirigami.FormData.label: i18n("Font color:")
             showAlphaChannel: false
+            color: appearancePage.cfg_date_font_color
+            onColorChanged: {
+                var s = color.toString();
+                if (appearancePage.cfg_date_font_color !== s) appearancePage.cfg_date_font_color = s;
+            }
         }
 
         QQC2.Button {
@@ -1001,18 +937,21 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: showTime
             text: i18n("Show time")
+            checked: appearancePage.cfg_show_time
+            onToggled: appearancePage.cfg_show_time = checked
         }
 
         QQC2.ComboBox {
             id: timeFontCombo
             Kirigami.FormData.label: i18n("Font:")
             Layout.fillWidth: true
-            model: appearancePage.systemFontList
-            currentIndex: Math.max(0, model.indexOf(appearancePage.cfg_fontFamilyTime))
+            model: fontListModel
+            textRole: "name"
+            currentIndex: Math.max(0, findFontIndex(appearancePage.cfg_fontFamilyTime))
             editable: true
-            onActivated: appearancePage.cfg_fontFamilyTime = model[currentIndex]
+            onActivated: appearancePage.cfg_fontFamilyTime = fontListModel.get(currentIndex).name
             onEditTextChanged: {
-                if (editText !== undefined && model.indexOf(editText) !== -1) {
+                if (editText !== undefined && findFontIndex(editText) !== -1) {
                     appearancePage.cfg_fontFamilyTime = editText;
                 }
             }
@@ -1023,6 +962,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Font size:")
             from: 1
             to: 999
+            value: appearancePage.cfg_time_font_size
+            onValueModified: appearancePage.cfg_time_font_size = value
         }
 
         QQC2.SpinBox {
@@ -1030,6 +971,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Letter spacing:")
             from: 0
             to: 999
+            value: appearancePage.cfg_time_letter_spacing
+            onValueModified: appearancePage.cfg_time_letter_spacing = value
         }
 
         QQC2.TextField {
@@ -1037,6 +980,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Format:")
             Layout.fillWidth: true
             placeholderText: i18n("hh:mm")
+            text: appearancePage.cfg_time_format
+            onEditingFinished: appearancePage.cfg_time_format = text
             QQC2.ToolTip.text: i18n("Use Qt time formats like hh:mm, hh:mm:ss, or hh:mm AP. Leave empty to use the 12/24-hour setting.")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
@@ -1045,17 +990,26 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: use24HourFormat
             text: i18n("Use 24-hour format")
+            checked: appearancePage.cfg_use_24_hour_format
+            onToggled: appearancePage.cfg_use_24_hour_format = checked
         }
 
         QQC2.CheckBox {
             id: timeFontBold
             text: i18n("Bold")
+            checked: appearancePage.cfg_time_font_bold
+            onToggled: appearancePage.cfg_time_font_bold = checked
         }
 
         KQControls.ColorButton {
             id: timeFontColor
             Kirigami.FormData.label: i18n("Font color:")
             showAlphaChannel: false
+            color: appearancePage.cfg_time_font_color
+            onColorChanged: {
+                var s = color.toString();
+                if (appearancePage.cfg_time_font_color !== s) appearancePage.cfg_time_font_color = s;
+            }
         }
 
         QQC2.TextField {
@@ -1063,6 +1017,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Decoration character:")
             Layout.fillWidth: true
             placeholderText: "-"
+            text: appearancePage.cfg_time_character
+            onEditingFinished: appearancePage.cfg_time_character = text
             QQC2.ToolTip.text: i18n("A character displayed on both sides of the time. Leave empty to show no decoration.")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
@@ -1089,6 +1045,8 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: showCustom
             text: i18n("Show custom text")
+            checked: appearancePage.cfg_show_custom
+            onToggled: appearancePage.cfg_show_custom = checked
         }
 
         QQC2.TextField {
@@ -1096,6 +1054,11 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Text:")
             Layout.fillWidth: true
             placeholderText: i18n("e.g. Good Morning, or HH:mm for live time")
+            text: appearancePage.cfg_custom_text
+            onTextChanged: {
+                if (appearancePage.cfg_custom_text !== text) appearancePage.cfg_custom_text = text;
+                regenTimer.restart();
+            }
             QQC2.ToolTip.text: i18n("Static text, or a Qt date/time format (e.g. dddd, HH:mm, yyyy-MM-dd)")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
@@ -1104,6 +1067,8 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: customFormat
             text: i18n("Interpret as date/time format")
+            checked: appearancePage.cfg_custom_format
+            onToggled: appearancePage.cfg_custom_format = checked
             QQC2.ToolTip.text: i18n("When enabled, Qt format tokens like dddd or HH:mm are replaced with the current date/time")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
@@ -1113,12 +1078,13 @@ KCM.SimpleKCM {
             id: customFontCombo
             Kirigami.FormData.label: i18n("Font:")
             Layout.fillWidth: true
-            model: appearancePage.systemFontList
-            currentIndex: Math.max(0, model.indexOf(appearancePage.cfg_fontFamilyCustom))
+            model: fontListModel
+            textRole: "name"
+            currentIndex: Math.max(0, findFontIndex(appearancePage.cfg_fontFamilyCustom))
             editable: true
-            onActivated: appearancePage.cfg_fontFamilyCustom = model[currentIndex]
+            onActivated: appearancePage.cfg_fontFamilyCustom = fontListModel.get(currentIndex).name
             onEditTextChanged: {
-                if (editText !== undefined && model.indexOf(editText) !== -1) {
+                if (editText !== undefined && findFontIndex(editText) !== -1) {
                     appearancePage.cfg_fontFamilyCustom = editText;
                 }
             }
@@ -1129,6 +1095,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Font size:")
             from: 1
             to: 999
+            value: appearancePage.cfg_custom_font_size
+            onValueModified: appearancePage.cfg_custom_font_size = value
         }
 
         QQC2.SpinBox {
@@ -1136,17 +1104,26 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Letter spacing:")
             from: 0
             to: 999
+            value: appearancePage.cfg_custom_letter_spacing
+            onValueModified: appearancePage.cfg_custom_letter_spacing = value
         }
 
         QQC2.CheckBox {
             id: customFontBold
             text: i18n("Bold")
+            checked: appearancePage.cfg_custom_font_bold
+            onToggled: appearancePage.cfg_custom_font_bold = checked
         }
 
         KQControls.ColorButton {
             id: customFontColor
             Kirigami.FormData.label: i18n("Font color:")
             showAlphaChannel: false
+            color: appearancePage.cfg_custom_font_color
+            onColorChanged: {
+                var s = color.toString();
+                if (appearancePage.cfg_custom_font_color !== s) appearancePage.cfg_custom_font_color = s;
+            }
         }
 
         QQC2.Button {
@@ -1170,6 +1147,8 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: showTimezone
             text: i18n("Show secondary timezone")
+            checked: appearancePage.cfg_show_timezone
+            onToggled: appearancePage.cfg_show_timezone = checked
         }
 
         QQC2.ComboBox {
@@ -1281,29 +1260,24 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Label:")
             Layout.fillWidth: true
             placeholderText: i18n("e.g. NYC, Tokyo")
+            text: appearancePage.cfg_timezone_label
+            onEditingFinished: appearancePage.cfg_timezone_label = text
             QQC2.ToolTip.text: i18n("Short label displayed before the timezone time. Leave empty for no label.")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
-        }
-
-        // Timezone format is now automatically derived from main time format (no seconds)
-        // Hidden field to keep config key alive for backward compatibility
-        QQC2.TextField {
-            id: timezoneFmt
-            visible: false
-            text: ""
         }
 
         QQC2.ComboBox {
             id: timezoneFontCombo
             Kirigami.FormData.label: i18n("Font:")
             Layout.fillWidth: true
-            model: appearancePage.systemFontList
-            currentIndex: Math.max(0, model.indexOf(appearancePage.cfg_fontFamilyTimezone))
+            model: fontListModel
+            textRole: "name"
+            currentIndex: Math.max(0, findFontIndex(appearancePage.cfg_fontFamilyTimezone))
             editable: true
-            onActivated: appearancePage.cfg_fontFamilyTimezone = model[currentIndex]
+            onActivated: appearancePage.cfg_fontFamilyTimezone = fontListModel.get(currentIndex).name
             onEditTextChanged: {
-                if (editText !== undefined && model.indexOf(editText) !== -1) {
+                if (editText !== undefined && findFontIndex(editText) !== -1) {
                     appearancePage.cfg_fontFamilyTimezone = editText;
                 }
             }
@@ -1314,6 +1288,8 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Font size:")
             from: 1
             to: 999
+            value: appearancePage.cfg_timezone_font_size
+            onValueModified: appearancePage.cfg_timezone_font_size = value
         }
 
         QQC2.SpinBox {
@@ -1321,17 +1297,26 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Letter spacing:")
             from: 0
             to: 999
+            value: appearancePage.cfg_timezone_letter_spacing
+            onValueModified: appearancePage.cfg_timezone_letter_spacing = value
         }
 
         QQC2.CheckBox {
             id: timezoneFontBold
             text: i18n("Bold")
+            checked: appearancePage.cfg_timezone_font_bold
+            onToggled: appearancePage.cfg_timezone_font_bold = checked
         }
 
         KQControls.ColorButton {
             id: timezoneFontColor
             Kirigami.FormData.label: i18n("Font color:")
             showAlphaChannel: false
+            color: appearancePage.cfg_timezone_font_color
+            onColorChanged: {
+                var s = color.toString();
+                if (appearancePage.cfg_timezone_font_color !== s) appearancePage.cfg_timezone_font_color = s;
+            }
         }
 
         QQC2.Button {
@@ -1426,8 +1411,9 @@ KCM.SimpleKCM {
                 onClicked: themeSheets.openRawJson()
             }
         }
-    }
-    }
+        } // Kirigami.FormLayout (inside Loader)
+        } // Component
+    } // Loader
 
     // ===== Theme Sheets =====
     ThemeSheets {
