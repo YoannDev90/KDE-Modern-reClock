@@ -98,7 +98,15 @@ try_cmake_build() {
         cmake .. -DCMAKE_INSTALL_PREFIX=/usr 2>&1 && make -j$(nproc) 2>&1
     )
     if [ $? -eq 0 ]; then
-        sudo make -C build install 2>&1
+        # Copy .so and qmldir directly instead of sudo make install (needs terminal for password)
+        # Try without sudo first (dir may exist from previous install), then with sudo
+        if cp build/libmodernreclock_backend.so "$PLUGIN_DIR/" 2>/dev/null; then
+            cp build/qmldir "$PLUGIN_DIR/" 2>/dev/null || true
+        else
+            sudo mkdir -p "$PLUGIN_DIR"
+            sudo cp build/libmodernreclock_backend.so "$PLUGIN_DIR/"
+            sudo cp build/qmldir "$PLUGIN_DIR/" 2>/dev/null || true
+        fi
         echo "Build successful (cmake)."
         return 0
     fi
@@ -169,9 +177,13 @@ depends Qt6Qml 6.4
 QMLEOF
 
     # Install
-    sudo mkdir -p "$PLUGIN_DIR"
-    sudo cp build/libmodernreclock_backend.so "$PLUGIN_DIR/"
-    sudo cp build/qmldir "$PLUGIN_DIR/"
+    if cp build/libmodernreclock_backend.so "$PLUGIN_DIR/" 2>/dev/null; then
+        cp build/qmldir "$PLUGIN_DIR/" 2>/dev/null || true
+    else
+        sudo mkdir -p "$PLUGIN_DIR"
+        sudo cp build/libmodernreclock_backend.so "$PLUGIN_DIR/"
+        sudo cp build/qmldir "$PLUGIN_DIR/"
+    fi
 
     echo "Build successful (direct compilation)."
     return 0
@@ -208,9 +220,13 @@ try_download_precompiled() {
     unzip -qo "$tmpzip" -d "$tmpdir" 2>/dev/null
 
     if [ -f "${tmpdir}/${ARCH}/libmodernreclock_backend.so" ]; then
-        sudo mkdir -p "$PLUGIN_DIR"
-        sudo cp "${tmpdir}/${ARCH}/libmodernreclock_backend.so" "$PLUGIN_DIR/"
-        sudo cp "${tmpdir}/${ARCH}/qmldir" "$PLUGIN_DIR/"
+        if cp "${tmpdir}/${ARCH}/libmodernreclock_backend.so" "$PLUGIN_DIR/" 2>/dev/null; then
+            cp "${tmpdir}/${ARCH}/qmldir" "$PLUGIN_DIR/" 2>/dev/null || true
+        else
+            sudo mkdir -p "$PLUGIN_DIR"
+            sudo cp "${tmpdir}/${ARCH}/libmodernreclock_backend.so" "$PLUGIN_DIR/"
+            sudo cp "${tmpdir}/${ARCH}/qmldir" "$PLUGIN_DIR/"
+        fi
         rm -rf "$tmpdir" "$tmpzip"
         echo "Precompiled plugin installed."
         return 0

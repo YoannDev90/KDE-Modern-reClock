@@ -40,10 +40,11 @@ echo "Detected: $DISTRO"
 TEMP_DIR=$(mktemp -d)
 echo "--- Downloading Modern reClock ---"
 git clone --depth 1 "$REPO_URL" "$TEMP_DIR"
+cd "$TEMP_DIR"
 
 # ---- Run distro script ----
-chmod +x "${TEMP_DIR}/scripts/install-${DISTRO}.sh"
-source "${TEMP_DIR}/scripts/install-${DISTRO}.sh"
+chmod +x "scripts/install-${DISTRO}.sh"
+source "scripts/install-${DISTRO}.sh"
 
 # ---- Cleanup ----
 rm -rf "$TEMP_DIR"
