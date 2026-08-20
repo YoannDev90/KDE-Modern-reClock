@@ -30,6 +30,7 @@ add_library(${PLUGIN_NAME} MODULE
     src/logger.cpp
     src/thememanager.cpp
     src/mrtarchive.cpp
+    src/fonthelper.cpp
 )
 target_link_libraries(${PLUGIN_NAME} PRIVATE
     Qt6::Core
@@ -43,6 +44,16 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
     ZLIB::ZLIB
 )
 target_include_directories(${PLUGIN_NAME} PRIVATE ${FONTCONFIG_INCLUDE_DIRS})
+
+# Release mode: strip debug/info logs and qDebug noise at compile time
+option(ENABLE_DEBUG_LOGS "Enable debug and info logs (default: OFF for release)" OFF)
+if(NOT ENABLE_DEBUG_LOGS)
+    target_compile_definitions(${PLUGIN_NAME} PRIVATE
+        MODERNRECLOCK_RELEASE
+        QT_NO_DEBUG_OUTPUT
+        QT_NO_INFO_OUTPUT
+    )
+endif()
 
 # Install plugin to KDE QML dir so plasma shell can find it
 # KDE_INSTALL_QMLDIR may not resolve; use qt6 qml path as fallback
@@ -68,3 +79,27 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/qmldir
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/qmldir
     DESTINATION ${PLUGIN_INSTALL_DIR}
 )
+
+# Precompile plasmoid QML to bytecode (.qmlc) so the QML engine skips parsing
+# on first load. Outputs are written next to the sources in contents/ui/ —
+# the install scripts / kpackagetool6 ship them alongside the .qml files.
+find_program(QMLCACHEGEN_EXECUTABLE qmlcachegen)
+if(QMLCACHEGEN_EXECUTABLE)
+    file(GLOB MODERNRECLOCK_QML_FILES ${CMAKE_CURRENT_SOURCE_DIR}/contents/ui/*.qml)
+    set(QMLC_OUTPUTS "")
+    foreach(qml_file ${MODERNRECLOCK_QML_FILES})
+        get_filename_component(qml_name ${qml_file} NAME_WE)
+        set(qmlc_file ${CMAKE_CURRENT_SOURCE_DIR}/contents/ui/${qml_name}.qmlc)
+        list(APPEND QMLC_OUTPUTS ${qmlc_file})
+        add_custom_command(
+            OUTPUT ${qmlc_file}
+            COMMAND ${QMLCACHEGEN_EXECUTABLE} ${qml_file} -o ${qmlc_file}
+            DEPENDS ${qml_file}
+            COMMENT "Precompiling QML: ${qml_name}.qml"
+            VERBATIM
+        )
+    endforeach()
+    add_custom_target(qmlcache ALL DEPENDS ${QMLC_OUTPUTS})
+else()
+    message(STATUS "qmlcachegen not found — skipping QML precompilation")
+endif()

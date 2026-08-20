@@ -1,12 +1,12 @@
-import QtQml
-import QtQuick
-import QtQuick.Controls as QQC2
-import QtQuick.Layouts
-import QtQuick.Dialogs as Dialogs
+import QtQml 2.0
+import QtQuick 2.0
+import QtQuick.Controls 2.0 as QQC2
+import QtQuick.Layouts 1.0
+import QtQuick.Dialogs 6.0 as Dialogs
 
-import org.kde.kcmutils as KCM
-import org.kde.kirigami as Kirigami
-import org.kde.plasma.private.modernreclock as ModernRecClock
+import org.kde.kcmutils 1.0 as KCM
+import org.kde.kirigami 2.0 as Kirigami
+import org.kde.plasma.private.modernreclock 1.0 as ModernRecClock
 
 KCM.SimpleKCM {
     id: themesPage

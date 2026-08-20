@@ -1,9 +1,9 @@
-import QtQml
-import QtQuick
-import QtQuick.Controls as QQC2
-import QtQuick.Layouts
-import org.kde.kirigami as Kirigami
-import org.kde.plasma.private.modernreclock as ModernRecClock
+import QtQml 2.0
+import QtQuick 2.0
+import QtQuick.Controls 2.0 as QQC2
+import QtQuick.Layouts 1.0
+import org.kde.kirigami 2.0 as Kirigami
+import org.kde.plasma.private.modernreclock 1.0 as ModernRecClock
 
 /**
  * Element order section for configAppearance.qml.

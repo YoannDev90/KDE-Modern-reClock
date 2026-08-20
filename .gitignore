@@ -13,3 +13,4 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 Makefile
+contents/ui/*.qmlc

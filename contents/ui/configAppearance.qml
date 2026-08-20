@@ -1,11 +1,11 @@
-import QtQuick
-import QtQuick.Controls as QQC2
-import QtQuick.Layouts
+import QtQuick 2.0
+import QtQuick.Controls 2.0 as QQC2
+import QtQuick.Layouts 1.0
 
-import org.kde.kcmutils as KCM
-import org.kde.kirigami as Kirigami
-import org.kde.kquickcontrols as KQControls
-import org.kde.plasma.private.modernreclock as ModernRecClock
+import org.kde.kcmutils 1.0 as KCM
+import org.kde.kirigami 2.0 as Kirigami
+import org.kde.kquickcontrols 1.0 as KQControls
+import org.kde.plasma.private.modernreclock 1.0 as ModernRecClock
 
 KCM.SimpleKCM {
     id: appearancePage
@@ -162,8 +162,11 @@ KCM.SimpleKCM {
     Component.onCompleted: {
         // Defer all heavy init to after first paint — lets QML render the UI immediately
         Qt.callLater(function() {
-            // Build full font list (single JS array) — assigned in ONE shot, no per-item signals
-            var fonts = Qt.fontFamilies();
+            // Build full font list (single JS array) — assigned in ONE shot, no per-item signals.
+            // Fonts come from the C++ cache (ModernRecClock.Fonts) — enumerated once per
+            // plasmashell session in a background thread at plugin init, so subsequent
+            // config opens are instant.
+            var fonts = ModernRecClock.Fonts.fontFamilies();
             var all = ["Anurati", "Poppins"];
             for (var i = 0; i < fonts.length; i++) {
                 if (all.indexOf(fonts[i]) === -1)

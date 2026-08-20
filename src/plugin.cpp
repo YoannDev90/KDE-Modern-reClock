@@ -7,6 +7,7 @@
 #include "logger.h"
 #include "wallpaperimageprovider.h"
 #include "thememanager.h"
+#include "fonthelper.h"
 
 class ModernRecClockPlugin : public QQmlExtensionPlugin {
     Q_OBJECT
@@ -34,12 +35,19 @@ public:
                 if (s_logger) tm->setLogger(s_logger);
                 return tm;
             });
+        qmlRegisterSingletonType<FontHelper>(uri, 1, 0, "Fonts",
+            [](QQmlEngine*, QJSEngine*) -> QObject* {
+                return new FontHelper();
+            });
     }
 
     void initializeEngine(QQmlEngine* engine, const char* uri) override {
         qDebug() << "[ModernRecClock] ModernRecClockPlugin::initializeEngine uri=" << uri << "engine=" << engine;
         engine->addImageProvider(QStringLiteral("modernreclock"), new WallpaperImageProvider());
         qDebug() << "[ModernRecClock] Image provider 'modernreclock' registered for engine" << engine;
+        // Pre-fetch the (expensive) system font list in the background so the
+        // first config-dialog open doesn't pay the fontconfig enumeration cost.
+        FontHelper::prefetch();
     }
 };
 
