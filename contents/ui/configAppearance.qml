@@ -482,8 +482,15 @@ KCM.SimpleKCM {
         active: true
         asynchronous: true
         sourceComponent: Component {
-            Kirigami.FormLayout {
+            Item {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
+            implicitWidth: formLayout.implicitWidth
+            implicitHeight: formLayout.implicitHeight
+
+            Kirigami.FormLayout {
+                id: formLayout
+                anchors.fill: parent
 
                 // ================= SECTION: GLOBAL =================
         Kirigami.Heading {
@@ -1411,7 +1418,8 @@ KCM.SimpleKCM {
                 onClicked: themeSheets.openRawJson()
             }
         }
-        } // Kirigami.FormLayout (inside Loader)
+        } // Kirigami.FormLayout
+        } // Item wrapper
         } // Component
     } // Loader
 
