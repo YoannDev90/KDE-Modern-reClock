@@ -5,7 +5,6 @@ import QtQuick.Window
 
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.private.modernreclock as ModernRecClock
 
 KCM.SimpleKCM {
@@ -23,8 +22,6 @@ KCM.SimpleKCM {
         model: null
     })
     readonly property var themeManager: ModernRecClock.ThemeManager ?? null
-    readonly property bool _hasTheme: typeof PlasmaCore.Theme !== 'undefined' && PlasmaCore.Theme !== null
-    readonly property color _themeText: _hasTheme && PlasmaCore.Theme.textColor ? PlasmaCore.Theme.textColor : "#FFFFFF"
 
     // Filter
     property string filterCategory: ""
@@ -64,13 +61,6 @@ KCM.SimpleKCM {
         lines.push("TimeZone: " + (ModernRecClock.TimeZone !== undefined ? "loaded" : "NOT LOADED"));
         lines.push("Wallpaper: " + (ModernRecClock.Wallpaper !== undefined ? "loaded" : "NOT LOADED"));
         lines.push("");
-
-        if (_hasTheme) {
-            lines.push(sep + nl + "THEME" + nl + sep);
-            lines.push("Text: " + _themeText.toString());
-            lines.push("Background: " + (PlasmaCore.Theme.backgroundColor ? PlasmaCore.Theme.backgroundColor.toString() : "N/A"));
-            lines.push("");
-        }
 
         if (ModernRecClock.Wallpaper !== undefined) {
             var wpPath = "";
@@ -114,7 +104,16 @@ KCM.SimpleKCM {
         log.info("system", "═══ Debug ready ═══");
     }
 
-    Component.onCompleted: initDebugInfo()
+    Component.onCompleted: Qt.callLater(function() { initDebugInfo(); })
+
+    // ===== Deferred heavy content — loaded async to speed up page creation =====
+    Loader {
+        anchors.fill: parent
+        active: true
+        asynchronous: true
+        sourceComponent: Component {
+            Item {
+                anchors.fill: parent
 
     ColumnLayout {
         anchors.fill: parent
@@ -295,4 +294,7 @@ KCM.SimpleKCM {
             }
         }
     }
+            } // Item (Loader root)
+        } // Component
+    } // Loader
 }

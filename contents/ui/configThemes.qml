@@ -19,125 +19,64 @@ KCM.SimpleKCM {
     })
     readonly property var themeManager: ModernRecClock.ThemeManager ?? null
 
-    // ===== Config keys synced with Appearance page via KConfig =====
-    // Each cfg_* property is automatically synced by the KCM framework
-    property alias cfg_show_day: _showDay.checked
-    property alias cfg_show_date: _showDate.checked
-    property alias cfg_show_time: _showTime.checked
-    property alias cfg_show_custom: _showCustom.checked
-    property alias cfg_show_timezone: _showTimezone.checked
+    // ===== Config keys — plain properties (no hidden controls needed) =====
+    property bool cfg_show_day: true
+    property bool cfg_show_date: true
+    property bool cfg_show_time: true
+    property bool cfg_show_custom: false
+    property bool cfg_show_timezone: false
 
-    property alias cfg_day_font_size: _dayFontSize.value
-    property alias cfg_date_font_size: _dateFontSize.value
-    property alias cfg_time_font_size: _timeFontSize.value
-    property alias cfg_custom_font_size: _customFontSize.value
-    property alias cfg_timezone_font_size: _timezoneFontSize.value
+    property int cfg_day_font_size: 72
+    property int cfg_date_font_size: 19
+    property int cfg_time_font_size: 19
+    property int cfg_custom_font_size: 19
+    property int cfg_timezone_font_size: 19
 
-    property alias cfg_day_letter_spacing: _dayLetterSpacing.value
-    property alias cfg_date_letter_spacing: _dateLetterSpacing.value
-    property alias cfg_time_letter_spacing: _timeLetterSpacing.value
-    property alias cfg_custom_letter_spacing: _customLetterSpacing.value
-    property alias cfg_timezone_letter_spacing: _timezoneLetterSpacing.value
+    property int cfg_day_letter_spacing: 17
+    property int cfg_date_letter_spacing: 3
+    property int cfg_time_letter_spacing: 3
+    property int cfg_custom_letter_spacing: 3
+    property int cfg_timezone_letter_spacing: 3
 
-    property alias cfg_day_font_color: _dayFontColor.color
-    property alias cfg_date_font_color: _dateFontColor.color
-    property alias cfg_time_font_color: _timeFontColor.color
-    property alias cfg_custom_font_color: _customFontColor.color
-    property alias cfg_timezone_font_color: _timezoneFontColor.color
+    property string cfg_day_font_color: "#FFFFFF"
+    property string cfg_date_font_color: "#FFFFFF"
+    property string cfg_time_font_color: "#FFFFFF"
+    property string cfg_custom_font_color: "#FFFFFF"
+    property string cfg_timezone_font_color: "#FFFFFF"
 
-    property alias cfg_day_font_bold: _dayFontBold.checked
-    property alias cfg_date_font_bold: _dateFontBold.checked
-    property alias cfg_time_font_bold: _timeFontBold.checked
-    property alias cfg_custom_font_bold: _customFontBold.checked
-    property alias cfg_timezone_font_bold: _timezoneFontBold.checked
+    property bool cfg_day_font_bold: false
+    property bool cfg_date_font_bold: false
+    property bool cfg_time_font_bold: false
+    property bool cfg_custom_font_bold: false
+    property bool cfg_timezone_font_bold: false
 
-    property alias cfg_day_format: _dayFormat.text
-    property alias cfg_date_format: _dateFormat.text
-    property alias cfg_time_format: _timeFormat.text
-    property alias cfg_timezone_format: _timezoneFormat.text
-    property alias cfg_time_character: _timeCharacter.text
-    property alias cfg_use_24_hour_format: _use24HourFormat.checked
-    property alias cfg_uppercase_day: _uppercaseDay.checked
-    property alias cfg_uppercase_date: _uppercaseDate.checked
-    property alias cfg_custom_format: _customFormat.checked
-    property alias cfg_custom_text: _customText.text
+    property string cfg_day_format: "dddd"
+    property string cfg_date_format: "dd MMM yyyy"
+    property string cfg_time_format: ""
+    property string cfg_timezone_format: "HH:mm"
+    property string cfg_time_character: "-"
+    property bool cfg_use_24_hour_format: false
+    property bool cfg_uppercase_day: true
+    property bool cfg_uppercase_date: true
+    property bool cfg_custom_format: false
+    property string cfg_custom_text: ""
 
-    property alias cfg_fontFamilyDay: _fontFamilyDay.text
-    property alias cfg_fontFamilyDate: _fontFamilyDate.text
-    property alias cfg_fontFamilyTime: _fontFamilyTime.text
-    property alias cfg_fontFamilyCustom: _fontFamilyCustom.text
-    property alias cfg_fontFamilyTimezone: _fontFamilyTimezone.text
+    property string cfg_fontFamilyDay: "Anurati"
+    property string cfg_fontFamilyDate: "Poppins"
+    property string cfg_fontFamilyTime: "Poppins"
+    property string cfg_fontFamilyCustom: "Poppins"
+    property string cfg_fontFamilyTimezone: "Poppins"
 
-    property alias cfg_widget_spacing: _widgetSpacing.value
-    property alias cfg_element_order: _elementOrder.text
-    property alias cfg_auto_scale: _autoScale.checked
-    property alias cfg_color_mode: _colorMode.text
-    property alias cfg_locale: _locale.text
+    property int cfg_widget_spacing: 5
+    property string cfg_element_order: "day,date,time,custom,timezone"
+    property bool cfg_auto_scale: false
+    property string cfg_color_mode: "custom"
+    property string cfg_locale: ""
 
-    property alias cfg_saved_themes: _savedThemes.text
-    property alias cfg_timezone_id: _timezoneId.text
-    property alias cfg_timezone_label: _timezoneLabel.text
-    property alias cfg_timezone_display_text: _timezoneDisplayText.text
-
-    // ===== Hidden controls for KCM binding =====
-    QQC2.CheckBox { id: _showDay; visible: false }
-    QQC2.CheckBox { id: _showDate; visible: false }
-    QQC2.CheckBox { id: _showTime; visible: false }
-    QQC2.CheckBox { id: _showCustom; visible: false }
-    QQC2.CheckBox { id: _showTimezone; visible: false }
-
-    QQC2.SpinBox { id: _dayFontSize; visible: false; from: 1; to: 999 }
-    QQC2.SpinBox { id: _dateFontSize; visible: false; from: 1; to: 999 }
-    QQC2.SpinBox { id: _timeFontSize; visible: false; from: 1; to: 999 }
-    QQC2.SpinBox { id: _customFontSize; visible: false; from: 1; to: 999 }
-    QQC2.SpinBox { id: _timezoneFontSize; visible: false; from: 1; to: 999 }
-
-    QQC2.SpinBox { id: _dayLetterSpacing; visible: false; from: 0; to: 999 }
-    QQC2.SpinBox { id: _dateLetterSpacing; visible: false; from: 0; to: 999 }
-    QQC2.SpinBox { id: _timeLetterSpacing; visible: false; from: 0; to: 999 }
-    QQC2.SpinBox { id: _customLetterSpacing; visible: false; from: 0; to: 999 }
-    QQC2.SpinBox { id: _timezoneLetterSpacing; visible: false; from: 0; to: 999 }
-
-    // Colors stored as strings, not ColorButtons (no ColorButton needed here)
-    QtObject { id: _dayFontColor; property string color: "#FFFFFF" }
-    QtObject { id: _dateFontColor; property string color: "#FFFFFF" }
-    QtObject { id: _timeFontColor; property string color: "#FFFFFF" }
-    QtObject { id: _customFontColor; property string color: "#FFFFFF" }
-    QtObject { id: _timezoneFontColor; property string color: "#FFFFFF" }
-
-    QQC2.CheckBox { id: _dayFontBold; visible: false }
-    QQC2.CheckBox { id: _dateFontBold; visible: false }
-    QQC2.CheckBox { id: _timeFontBold; visible: false }
-    QQC2.CheckBox { id: _customFontBold; visible: false }
-    QQC2.CheckBox { id: _timezoneFontBold; visible: false }
-
-    QQC2.TextField { id: _dayFormat; visible: false }
-    QQC2.TextField { id: _dateFormat; visible: false }
-    QQC2.TextField { id: _timeFormat; visible: false }
-    QQC2.TextField { id: _timezoneFormat; visible: false }
-    QQC2.TextField { id: _timeCharacter; visible: false }
-    QQC2.CheckBox { id: _use24HourFormat; visible: false }
-    QQC2.CheckBox { id: _uppercaseDay; visible: false }
-    QQC2.CheckBox { id: _uppercaseDate; visible: false }
-    QQC2.CheckBox { id: _customFormat; visible: false }
-    QQC2.TextField { id: _customText; visible: false }
-
-    QQC2.TextField { id: _fontFamilyDay; visible: false }
-    QQC2.TextField { id: _fontFamilyDate; visible: false }
-    QQC2.TextField { id: _fontFamilyTime; visible: false }
-    QQC2.TextField { id: _fontFamilyCustom; visible: false }
-    QQC2.TextField { id: _fontFamilyTimezone; visible: false }
-
-    QQC2.SpinBox { id: _widgetSpacing; visible: false; from: 0; to: 999 }
-    QQC2.TextField { id: _elementOrder; visible: false }
-    QQC2.CheckBox { id: _autoScale; visible: false }
-    QQC2.TextField { id: _colorMode; visible: false }
-    QQC2.TextField { id: _locale; visible: false }
-
-    QQC2.TextField { id: _savedThemes; visible: false }
-    QQC2.TextField { id: _timezoneId; visible: false }
-    QQC2.TextField { id: _timezoneLabel; visible: false }
-    QQC2.TextField { id: _timezoneDisplayText; visible: false }
+    property string cfg_saved_themes: ""
+    property string cfg_timezone_id: ""
+    property string cfg_timezone_label: ""
+    property string cfg_timezone_display_text: ""
 
     // ===== Config key list (shared from C++ ThemeManager) =====
     readonly property var configKeys: themeManager ? themeManager.configKeys : []
@@ -278,6 +217,15 @@ KCM.SimpleKCM {
             log.error("themes", "ThemeManager error: " + message);
         }
     }
+
+    // ===== Deferred heavy content — loaded async to speed up page creation =====
+    Loader {
+        anchors.fill: parent
+        active: true
+        asynchronous: true
+        sourceComponent: Component {
+            Item {
+                anchors.fill: parent
 
     // ===== File dialogs =====
     Dialogs.FileDialog {
@@ -791,4 +739,7 @@ KCM.SimpleKCM {
             Layout.fillHeight: true
         }
     }
+            } // Item (Loader root)
+        } // Component
+    } // Loader
 }
