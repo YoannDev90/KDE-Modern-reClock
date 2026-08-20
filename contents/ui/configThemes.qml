@@ -1,8 +1,8 @@
-import QtQml 2.0
-import QtQuick 2.0
-import QtQuick.Controls 2.0 as QQC2
-import QtQuick.Layouts 1.0
-import QtQuick.Dialogs 6.0 as Dialogs
+import QtQml 2.15
+import QtQuick 2.15
+import QtQuick.Controls 2.15 as QQC2
+import QtQuick.Layouts 1.15
+import QtQuick.Dialogs 6.2 as Dialogs
 
 import org.kde.kcmutils 1.0 as KCM
 import org.kde.kirigami 2.0 as Kirigami

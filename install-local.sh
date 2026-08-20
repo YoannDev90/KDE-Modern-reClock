@@ -98,10 +98,10 @@ rm -rf ~/.cache/kpackage/.*modernreclock* 2>/dev/null || true
 rm -rf ~/.cache/kirigami/*modernreclock* 2>/dev/null || true
 find ~/.cache -name "*.qmlc" -path "*modernreclock*" -delete 2>/dev/null || true
 
-if [[ " $* " == *" -force-reload "* ]] || [[ " $* " == *" --fr "* ]]; then
-    echo "--- Restarting Plasmashell ---"
-    plasmashell --replace & disown
-fi
+# Restart is unconditional: QML/.qmlc and plugin changes are only picked up
+# by a fresh plasmashell. (--fr / -force-reload are kept as harmless no-ops.)
+echo "--- Restarting Plasmashell ---"
+plasmashell --replace & disown
 
 echo "--- Done! ---"
 echo "Add 'Modern reClock' from your panel."
