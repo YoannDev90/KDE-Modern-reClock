@@ -91,11 +91,19 @@ void Logger::log(const QString& category, const QString& level, const QString& m
 }
 
 void Logger::debug(const QString& category, const QString& message) {
+#ifdef MODERNRECLOCK_RELEASE
+    Q_UNUSED(category); Q_UNUSED(message);
+#else
     log(category, QStringLiteral("debug"), message);
+#endif
 }
 
 void Logger::info(const QString& category, const QString& message) {
+#ifdef MODERNRECLOCK_RELEASE
+    Q_UNUSED(category); Q_UNUSED(message);
+#else
     log(category, QStringLiteral("info"), message);
+#endif
 }
 
 void Logger::warn(const QString& category, const QString& message) {

@@ -59,7 +59,7 @@ public:
     /// level = "debug"|"info"|"warn"|"error"
     Q_INVOKABLE void log(const QString& category, const QString& level, const QString& message);
 
-    /// Convenience methods
+    /// Convenience methods — debug/info are no-ops in MODERNRECLOCK_RELEASE builds
     Q_INVOKABLE void debug(const QString& category, const QString& message);
     Q_INVOKABLE void info(const QString& category, const QString& message);
     Q_INVOKABLE void warn(const QString& category, const QString& message);

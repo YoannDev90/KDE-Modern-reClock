@@ -66,6 +66,13 @@ private:
     Logger *m_log = nullptr;
     QString m_cacheDir;
     QNetworkAccessManager *m_net;
+    bool m_previewBusy = false;
+    QString m_pendingPreviewConfig;
+    QString m_pendingPreviewWp;
+    int m_pendingPreviewAppletId = -1;
+    QStringList m_pendingPreviewFonts;
+    QString m_pendingPreviewDate;
+    QString m_pendingPreviewDay;
     QString fallbackPreview(const QString &outPath);
     QRect findWidgetGeometry();
     void doFetch(const QUrl &url, const std::function<void(QByteArray)> &onSuccess,
