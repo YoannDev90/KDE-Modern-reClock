@@ -353,6 +353,7 @@ KCM.SimpleKCM {
     // ================= SECTION: LIVE PREVIEW =================
     ColumnLayout {
         id: _appearanceLayout
+        width: parent.width
         spacing: Kirigami.Units.largeSpacing
 
     // C++ plugin warning banner
@@ -477,7 +478,8 @@ KCM.SimpleKCM {
     }
 
     Kirigami.FormLayout {
-        Layout.fillWidth: true
+        Layout.alignment: Qt.AlignHCenter
+        Layout.maximumWidth: parent.width
 
         // ================= SECTION: GLOBAL =================
         Kirigami.Heading {
