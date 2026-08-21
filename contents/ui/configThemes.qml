@@ -23,31 +23,26 @@ KCM.SimpleKCM {
     property bool cfg_show_day: true
     property bool cfg_show_date: true
     property bool cfg_show_time: true
-    property bool cfg_show_custom: false
     property bool cfg_show_timezone: false
 
     property int cfg_day_font_size: 72
     property int cfg_date_font_size: 19
     property int cfg_time_font_size: 19
-    property int cfg_custom_font_size: 19
     property int cfg_timezone_font_size: 19
 
     property int cfg_day_letter_spacing: 17
     property int cfg_date_letter_spacing: 3
     property int cfg_time_letter_spacing: 3
-    property int cfg_custom_letter_spacing: 3
     property int cfg_timezone_letter_spacing: 3
 
     property string cfg_day_font_color: "#FFFFFF"
     property string cfg_date_font_color: "#FFFFFF"
     property string cfg_time_font_color: "#FFFFFF"
-    property string cfg_custom_font_color: "#FFFFFF"
     property string cfg_timezone_font_color: "#FFFFFF"
 
     property bool cfg_day_font_bold: false
     property bool cfg_date_font_bold: false
     property bool cfg_time_font_bold: false
-    property bool cfg_custom_font_bold: false
     property bool cfg_timezone_font_bold: false
 
     property string cfg_day_format: "dddd"
@@ -58,17 +53,14 @@ KCM.SimpleKCM {
     property bool cfg_use_24_hour_format: false
     property bool cfg_uppercase_day: true
     property bool cfg_uppercase_date: true
-    property bool cfg_custom_format: false
-    property string cfg_custom_text: ""
 
     property string cfg_fontFamilyDay: "Anurati"
     property string cfg_fontFamilyDate: "Poppins"
     property string cfg_fontFamilyTime: "Poppins"
-    property string cfg_fontFamilyCustom: "Poppins"
     property string cfg_fontFamilyTimezone: "Poppins"
 
     property int cfg_widget_spacing: 5
-    property string cfg_element_order: "day,date,time,custom,timezone"
+    property string cfg_element_order: "day,date,time,timezone"
     property bool cfg_auto_scale: false
     property string cfg_color_mode: "custom"
     property string cfg_locale: ""
@@ -84,7 +76,7 @@ KCM.SimpleKCM {
     // Keys excluded from theme export (location-specific or user-specific)
     readonly property var exportExclude: [
         "timezone_id", "timezone_label", "timezone_display_text",
-        "custom_text", "locale", "saved_themes"
+        "locale", "saved_themes"
     ]
 
     function getExportConfig() {
@@ -134,7 +126,7 @@ KCM.SimpleKCM {
     property bool previewGenerating: false
 
     // Font families from config (auto-detected for export)
-    property var themeFontKeys: ["fontFamilyDay", "fontFamilyDate", "fontFamilyTime", "fontFamilyCustom", "fontFamilyTimezone"]
+    property var themeFontKeys: ["fontFamilyDay", "fontFamilyDate", "fontFamilyTime", "fontFamilyTimezone"]
     // Bundled fonts shipped with the widget
     property var bundledFonts: [
         Qt.resolvedUrl("../fonts/Anurati.otf").toString().replace("file://", ""),

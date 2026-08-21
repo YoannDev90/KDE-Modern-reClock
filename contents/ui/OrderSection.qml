@@ -33,7 +33,6 @@ Item {
         ListElement { key: "day" }
         ListElement { key: "date" }
         ListElement { key: "time" }
-        ListElement { key: "custom" }
         ListElement { key: "timezone" }
     }
 
@@ -45,7 +44,6 @@ Item {
             if (key === "day") return i18n("Day");
             if (key === "date") return i18n("Date");
             if (key === "time") return i18n("Time");
-            if (key === "custom") return i18n("Custom");
             if (key === "timezone") return i18n("Timezone");
             return key;
         }
@@ -54,7 +52,6 @@ Item {
             if (key === "day") return "weather-clear";
             if (key === "date") return "view-calendar";
             if (key === "time") return "clock";
-            if (key === "custom") return "text-x-generic";
             if (key === "timezone") return "globe";
             return "help";
         }
@@ -67,7 +64,7 @@ Item {
             }
 
             let k = raw.split(",");
-            let valid = ["day", "date", "time", "custom", "timezone"];
+            let valid = ["day", "date", "time", "timezone"];
             k = k.filter(function(v) { return valid.indexOf(v.trim()) !== -1; })
                 .map(function(v) { return v.trim(); });
             if (k.length === 0) {
@@ -118,9 +115,8 @@ Item {
             orderListModel.append({"key": "day"});
             orderListModel.append({"key": "date"});
             orderListModel.append({"key": "time"});
-            orderListModel.append({"key": "custom"});
             orderListModel.append({"key": "timezone"});
-            root.orderChanged("day,date,time,custom,timezone");
+            root.orderChanged("day,date,time,timezone");
         }
     }
 

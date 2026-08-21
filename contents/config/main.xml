@@ -93,40 +93,14 @@
             <default>Poppins</default>
         </entry>
         <entry name="element_order" type="String">
-            <label>Order of elements from top to bottom. Comma-separated list of: day, date, time, custom, timezone</label>
-            <default>day,date,time,custom,timezone</default>
+            <label>Order of elements from top to bottom. Comma-separated list of: day, date, time, timezone</label>
+            <default>day,date,time,timezone</default>
         </entry>
         <entry name="saved_themes" type="String">
             <label>Saved themes as a JSON array</label>
             <default></default>
         </entry>
 
-        <!-- Custom text element -->
-        <entry name="show_custom" type="Bool">
-            <default>false</default>
-        </entry>
-        <entry name="custom_text" type="String">
-            <default></default>
-        </entry>
-        <entry name="custom_format" type="Bool">
-            <label>Interpret custom text as Qt date/time format</label>
-            <default>false</default>
-        </entry>
-        <entry name="fontFamilyCustom" type="String">
-            <default>Poppins</default>
-        </entry>
-        <entry name="custom_font_size" type="Int">
-            <default>19</default>
-        </entry>
-        <entry name="custom_letter_spacing" type="Int">
-            <default>3</default>
-        </entry>
-        <entry name="custom_font_bold" type="Bool">
-            <default>false</default>
-        </entry>
-        <entry name="custom_font_color" type="Color">
-            <default>#FFFFFF</default>
-        </entry>
 
         <!-- Secondary timezone element -->
         <entry name="show_timezone" type="Bool">

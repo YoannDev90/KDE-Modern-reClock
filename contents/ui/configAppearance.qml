@@ -51,7 +51,6 @@ KCM.SimpleKCM {
     property string cfg_fontFamilyDay: "Anurati"
     property string cfg_fontFamilyDate: "Poppins"
     property string cfg_fontFamilyTime: "Poppins"
-    property string cfg_fontFamilyCustom: "Poppins"
     property string cfg_fontFamilyTimezone: "Poppins"
 
     property int cfg_widget_spacing: 5
@@ -60,15 +59,6 @@ KCM.SimpleKCM {
     property bool cfg_auto_scale: false
     property string cfg_alignMode: "none"
     property string cfg_color_mode: "custom"
-
-    // ===== Custom text element properties =====
-    property bool cfg_show_custom: false
-    property string cfg_custom_text: ""
-    property bool cfg_custom_format: false
-    property int cfg_custom_font_size: 19
-    property int cfg_custom_letter_spacing: 3
-    property bool cfg_custom_font_bold: false
-    property string cfg_custom_font_color: "#FFFFFF"
 
     // ===== Timezone element properties =====
     property bool cfg_show_timezone: false
@@ -82,7 +72,7 @@ KCM.SimpleKCM {
     property bool cfg_timezone_font_bold: false
     property string cfg_timezone_font_color: "#FFFFFF"
 
-    property string cfg_element_order: "day,date,time,custom,timezone"
+    property string cfg_element_order: "day,date,time,timezone"
 
     // ===== Saved themes =====
     property string cfg_saved_themes: ""
@@ -210,7 +200,6 @@ KCM.SimpleKCM {
         "day": { show: true, font: "Anurati", size: 72, spacing: 17, format: "dddd", uppercase: true, bold: false, color: "#FFFFFF" },
         "date": { show: true, font: "Poppins", size: 19, spacing: 3, format: "dd MMM yyyy", uppercase: true, bold: false, color: "#FFFFFF" },
         "time": { show: true, font: "Poppins", size: 19, spacing: 3, format: "", uppercase: false, bold: false, color: "#FFFFFF", h24: false, deco: "-" },
-        "custom": { show: false, font: "Poppins", size: 19, spacing: 3, text: "", formatText: false, bold: false, color: "#FFFFFF" },
         "timezone": { show: false, font: "Poppins", size: 19, spacing: 3, id: "", label: "", bold: false, color: "#FFFFFF" }
     })
 
@@ -246,16 +235,7 @@ KCM.SimpleKCM {
             cfg_time_character = d.deco || "-";
             cfg_time_font_bold = d.bold;
             cfg_time_font_color = d.color;
-        } else if (type === "custom") {
-            cfg_show_custom = d.show;
-            cfg_fontFamilyCustom = d.font;
-            cfg_custom_font_size = d.size;
-            cfg_custom_letter_spacing = d.spacing;
-            cfg_custom_text = d.text || "";
-            cfg_custom_format = d.formatText || false;
-            cfg_custom_font_bold = d.bold;
-            cfg_custom_font_color = d.color;
-        } else if (type === "timezone") {
+                } else if (type === "timezone") {
             cfg_show_timezone = d.show;
             cfg_fontFamilyTimezone = d.font;
             cfg_timezone_font_size = d.size;
@@ -301,7 +281,6 @@ KCM.SimpleKCM {
     function resetDay() { resetSection("day"); }
     function resetDate() { resetSection("date"); }
     function resetTime() { resetSection("time"); }
-    function resetCustom() { resetSection("custom"); }
     function resetTimezone() { resetSection("timezone"); }
 
     // ===== THEME FUNCTIONS =====
@@ -1044,111 +1023,6 @@ KCM.SimpleKCM {
         }
     }
 
-        // ================= SECTION: CUSTOM TEXT =================
-        Kirigami.Heading {
-            text: i18n("Custom Text")
-            level: 2
-            horizontalAlignment: Text.AlignHCenter
-            Layout.fillWidth: true
-            Kirigami.FormData.isSection: true
-        }
-    Kirigami.FormLayout {
-        Layout.fillWidth: true
-
-        QQC2.CheckBox {
-            id: showCustom
-            text: i18n("Show custom text")
-            checked: appearancePage.cfg_show_custom
-            onToggled: appearancePage.cfg_show_custom = checked
-        }
-
-        QQC2.TextField {
-            id: customTextField
-            Kirigami.FormData.label: i18n("Text:")
-            Layout.fillWidth: true
-            placeholderText: i18n("e.g. Good Morning, or HH:mm for live time")
-            text: appearancePage.cfg_custom_text
-            onTextChanged: {
-                if (appearancePage.cfg_custom_text !== text) appearancePage.cfg_custom_text = text;
-                regenTimer.restart();
-            }
-            QQC2.ToolTip.text: i18n("Static text, or a Qt date/time format (e.g. dddd, HH:mm, yyyy-MM-dd)")
-            QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.delay: 800
-        }
-
-        QQC2.CheckBox {
-            id: customFormat
-            text: i18n("Interpret as date/time format")
-            checked: appearancePage.cfg_custom_format
-            onToggled: appearancePage.cfg_custom_format = checked
-            QQC2.ToolTip.text: i18n("When enabled, Qt format tokens like dddd or HH:mm are replaced with the current date/time")
-            QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.delay: 800
-        }
-
-        QQC2.ComboBox {
-            id: customFontCombo
-            Kirigami.FormData.label: i18n("Font:")
-            Layout.fillWidth: true
-            model: fontArray
-            currentIndex: fontIndexCache[appearancePage.cfg_fontFamilyCustom] !== undefined ? fontIndexCache[appearancePage.cfg_fontFamilyCustom] : 0
-            editable: true
-            onActivated: appearancePage.cfg_fontFamilyCustom = fontArray[currentIndex]
-            onEditTextChanged: {
-                if (editText !== undefined && fontIndexCache[editText] !== undefined) {
-                    appearancePage.cfg_fontFamilyCustom = editText;
-                }
-            }
-        }
-
-        QQC2.SpinBox {
-            id: customFontSize
-            Kirigami.FormData.label: i18n("Font size:")
-            from: 1
-            to: 999
-            value: appearancePage.cfg_custom_font_size
-            onValueModified: appearancePage.cfg_custom_font_size = value
-        }
-
-        QQC2.SpinBox {
-            id: customLetterSpacing
-            Kirigami.FormData.label: i18n("Letter spacing:")
-            from: 0
-            to: 999
-            value: appearancePage.cfg_custom_letter_spacing
-            onValueModified: appearancePage.cfg_custom_letter_spacing = value
-        }
-
-        QQC2.CheckBox {
-            id: customFontBold
-            text: i18n("Bold")
-            checked: appearancePage.cfg_custom_font_bold
-            onToggled: appearancePage.cfg_custom_font_bold = checked
-        }
-
-        KQControls.ColorButton {
-            id: customFontColor
-            Kirigami.FormData.label: i18n("Font color:")
-            showAlphaChannel: false
-            color: appearancePage.cfg_custom_font_color
-            onColorChanged: {
-                var s = color.toString();
-                if (appearancePage.cfg_custom_font_color !== s) appearancePage.cfg_custom_font_color = s;
-            }
-        }
-
-        QQC2.Button {
-            text: i18n("Reset Custom Text Settings")
-            icon.name: "edit-undo"
-            Layout.alignment: Qt.AlignRight
-            onClicked: appearancePage.resetCustom()
-            QQC2.ToolTip.text: i18n("Restore custom text settings to defaults")
-            QQC2.ToolTip.visible: hovered
-            QQC2.ToolTip.delay: 800
-        }
-    }
-
         // ================= SECTION: TIMEZONE =================
         Kirigami.Heading {
             text: i18n("Secondary Timezone")
@@ -1408,7 +1282,7 @@ KCM.SimpleKCM {
 
         QQC2.Label {
             Layout.fillWidth: true
-            horizontalAlignment: Text.AlignRight
+            horizontalAlignment: Text.AlignHCenter
             text: i18n("No saved themes yet.")
             visible: appearancePage.savedThemes.length === 0
             font.pointSize: Kirigami.Theme.smallFont.pointSize

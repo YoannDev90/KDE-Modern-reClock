@@ -54,27 +54,26 @@ QStringList ThemeManager::configKeys() const
 {
     return {
         QStringLiteral("show_day"), QStringLiteral("show_date"), QStringLiteral("show_time"),
-        QStringLiteral("show_custom"), QStringLiteral("show_timezone"),
+        QStringLiteral("show_timezone"),
         QStringLiteral("day_font_size"), QStringLiteral("date_font_size"),
-        QStringLiteral("time_font_size"), QStringLiteral("custom_font_size"),
+        QStringLiteral("time_font_size"),
         QStringLiteral("timezone_font_size"),
         QStringLiteral("day_letter_spacing"), QStringLiteral("date_letter_spacing"),
-        QStringLiteral("time_letter_spacing"), QStringLiteral("custom_letter_spacing"),
+        QStringLiteral("time_letter_spacing"),
         QStringLiteral("timezone_letter_spacing"),
         QStringLiteral("day_font_color"), QStringLiteral("date_font_color"),
-        QStringLiteral("time_font_color"), QStringLiteral("custom_font_color"),
+        QStringLiteral("time_font_color"),
         QStringLiteral("timezone_font_color"),
         QStringLiteral("day_font_bold"), QStringLiteral("date_font_bold"),
-        QStringLiteral("time_font_bold"), QStringLiteral("custom_font_bold"),
+        QStringLiteral("time_font_bold"),
         QStringLiteral("timezone_font_bold"),
         QStringLiteral("day_format"), QStringLiteral("date_format"),
         QStringLiteral("time_format"), QStringLiteral("timezone_format"),
         QStringLiteral("time_character"),
         QStringLiteral("use_24_hour_format"), QStringLiteral("uppercase_day"),
-        QStringLiteral("uppercase_date"), QStringLiteral("custom_format"),
-        QStringLiteral("custom_text"),
+        QStringLiteral("uppercase_date"),
         QStringLiteral("fontFamilyDay"), QStringLiteral("fontFamilyDate"),
-        QStringLiteral("fontFamilyTime"), QStringLiteral("fontFamilyCustom"),
+        QStringLiteral("fontFamilyTime"),
         QStringLiteral("fontFamilyTimezone"),
         QStringLiteral("widget_spacing"), QStringLiteral("element_order"),
         QStringLiteral("auto_scale"), QStringLiteral("color_mode"), QStringLiteral("locale"),
@@ -489,7 +488,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     if (m_log) m_log->info("theme", QString("widget wallpaper: x=%1 y=%2 w=%3 h=%4").arg(wpX).arg(wpY).arg(wpW).arg(wpH));
 
     // Element order
-    QString orderStr = cfg.value(QStringLiteral("element_order")).toString(QStringLiteral("day,date,time,custom,timezone"));
+    QString orderStr = cfg.value(QStringLiteral("element_order")).toString(QStringLiteral("day,date,time,timezone"));
     QStringList order = orderStr.split(',');
     if (m_log) m_log->info("theme", QString("element_order: %1").arg(orderStr));
 
@@ -551,8 +550,6 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     QString timeSample = locale.toString(now.time(), timeFormat);
     if (!timeChar.trimmed().isEmpty()) timeSample = timeChar + QStringLiteral(" ") + timeSample + QStringLiteral(" ") + timeChar;
     addElement(QStringLiteral("time"), QStringLiteral("Time"), 19, timeSample);
-    addElement(QStringLiteral("custom"), QStringLiteral("Custom"), 19,
-               cfg.value(QStringLiteral("custom_text")).toString(QStringLiteral("Custom Text")));
     QString tzText = cfg.value(QStringLiteral("timezone_display_text")).toString();
     if (tzText.isEmpty()) tzText = cfg.value(QStringLiteral("timezone_label")).toString();
     if (tzText.isEmpty()) tzText = QStringLiteral("UTC+8:00");
@@ -767,7 +764,7 @@ void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
         int wpH = widgetRect.isValid() ? qRound(widgetRect.height() * scaleY) : canvas.height();
 
         // Element order
-        QString orderStr = cfg.value(QStringLiteral("element_order")).toString(QStringLiteral("day,date,time,custom,timezone"));
+        QString orderStr = cfg.value(QStringLiteral("element_order")).toString(QStringLiteral("day,date,time,timezone"));
         QStringList order = orderStr.split(',');
         int configSpacing = qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
 
@@ -809,10 +806,7 @@ void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
         addElement(QStringLiteral("date"), QStringLiteral("Date"), 19, locale.toString(now.date(), dateFormat));
         QString timeSample = locale.toString(now.time(), timeFormat);
         if (!timeChar.trimmed().isEmpty()) timeSample = timeChar + QStringLiteral(" ") + timeSample + QStringLiteral(" ") + timeChar;
-        addElement(QStringLiteral("time"), QStringLiteral("Time"), 19, timeSample);
-        addElement(QStringLiteral("custom"), QStringLiteral("Custom"), 19,
-                   cfg.value(QStringLiteral("custom_text")).toString(QStringLiteral("Custom Text")));
-        QString tzText = cfg.value(QStringLiteral("timezone_display_text")).toString();
+        addElement(QStringLiteral("time"), QStringLiteral("Time"), 19, timeSample);        QString tzText = cfg.value(QStringLiteral("timezone_display_text")).toString();
         if (tzText.isEmpty()) tzText = cfg.value(QStringLiteral("timezone_label")).toString();
         if (tzText.isEmpty()) tzText = QStringLiteral("UTC+8:00");
         addElement(QStringLiteral("timezone"), QStringLiteral("Timezone"), 14, tzText);

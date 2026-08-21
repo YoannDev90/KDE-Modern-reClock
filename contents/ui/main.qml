@@ -62,7 +62,7 @@ PlasmoidItem {
     }
 
     // ===== ELEMENT ORDER =====
-    readonly property var validElements: ["day", "date", "time", "custom", "timezone"]
+    readonly property var validElements: ["day", "date", "time", "timezone"]
     property string elementOrderConfig: plasmoid.configuration.element_order
     property var elementOrderArray: {
         var base;
@@ -75,7 +75,6 @@ PlasmoidItem {
         }
         // Auto-append enabled elements not yet in the order (handles migration from older configs)
         var cfg = plasmoid.configuration;
-        if (cfg.show_custom && base.indexOf("custom") === -1) base.push("custom");
         if (cfg.show_timezone && base.indexOf("timezone") === -1) base.push("timezone");
         return base.length > 0 ? base : validElements.slice();
     }
@@ -111,7 +110,6 @@ PlasmoidItem {
     property string fontFamilyDay: plasmoid.configuration.fontFamilyDay
     property string fontFamilyDate: plasmoid.configuration.fontFamilyDate
     property string fontFamilyTime: plasmoid.configuration.fontFamilyTime
-    property string fontFamilyCustom: plasmoid.configuration.fontFamilyCustom
     property string fontFamilyTimezone: plasmoid.configuration.fontFamilyTimezone
 
     // ===== SYSTEM THEME COLORS =====
@@ -266,21 +264,6 @@ PlasmoidItem {
         return decoration + " " + formattedTime + " " + decoration;
     }
 
-    function customText() {
-        var text = plasmoid.configuration.custom_text || "";
-        if (text.length === 0) return "";
-        var isFormat = plasmoid.configuration.custom_format;
-        log.debug("clock", "customText: text='" + text + "' format=" + isFormat);
-        if (!isFormat) return text;
-        try {
-            var result = Qt.formatDateTime(currentDateTime, text);
-            log.debug("clock", "customText formatted: '" + result + "'");
-            return result && result.length > 0 ? result : text;
-        } catch (e) {
-            log.warn("clock", "custom format failed for '" + text + "': " + e.message);
-            return text;
-        }
-    }
 
     // Derive timezone format from main time format, stripping seconds
     function timezoneFormat() {
@@ -339,7 +322,6 @@ PlasmoidItem {
         if (type === "day") p = { show: cfg.show_day, text: dayText(), font: fontFamilyDay, size: cfg.day_font_size, spacing: cfg.day_letter_spacing, bold: cfg.day_font_bold, color: _resolvedColor(cfg.day_font_color) };
         else if (type === "date") p = { show: cfg.show_date, text: dateText(), font: fontFamilyDate, size: cfg.date_font_size, spacing: cfg.date_letter_spacing, bold: cfg.date_font_bold, color: _resolvedColor(cfg.date_font_color) };
         else if (type === "time") p = { show: cfg.show_time, text: timeText(), font: fontFamilyTime, size: cfg.time_font_size, spacing: cfg.time_letter_spacing, bold: cfg.time_font_bold, color: _resolvedColor(cfg.time_font_color) };
-        else if (type === "custom") p = { show: cfg.show_custom, text: customText(), font: fontFamilyCustom, size: cfg.custom_font_size, spacing: cfg.custom_letter_spacing, bold: cfg.custom_font_bold, color: _resolvedColor(cfg.custom_font_color) };
         else if (type === "timezone") p = { show: cfg.show_timezone, text: timezoneText(), font: fontFamilyTimezone, size: cfg.timezone_font_size, spacing: cfg.timezone_letter_spacing, bold: cfg.timezone_font_bold, color: _resolvedColor(cfg.timezone_font_color) };
         if (p) log.debug("clock", "elementProps " + type + ": show=" + p.show + " font=" + p.font + " size=" + p.size + " color=" + p.color);
         return p;
@@ -377,13 +359,12 @@ PlasmoidItem {
         log.info("clock", "Date format: '" + (dateFormat || "dd MMM yyyy") + "' uppercase=" + uppercaseDate);
         log.info("clock", "Time character: '" + (timeCharacter || "(none)") + "'");
         log.info("clock", "Auto scale: " + autoScale + " spacing: " + plasmoid.configuration.widget_spacing);
-        log.info("clock", "Show: day=" + cfg.show_day + " date=" + cfg.show_date + " time=" + cfg.show_time + " custom=" + cfg.show_custom + " tz=" + cfg.show_timezone);
+        log.info("clock", "Show: day=" + cfg.show_day + " date=" + cfg.show_date + " time=" + cfg.show_time + " tz=" + cfg.show_timezone);
 
         // Element fonts and colors
         log.debug("clock", "Day: font=" + (fontFamilyDay || "Anurati") + " size=" + cfg.day_font_size + " color=" + _resolvedColor(cfg.day_font_color).toString());
         log.debug("clock", "Date: font=" + (fontFamilyDate || "Poppins") + " size=" + cfg.date_font_size + " color=" + _resolvedColor(cfg.date_font_color).toString());
         log.debug("clock", "Time: font=" + (fontFamilyTime || "Poppins") + " size=" + cfg.time_font_size + " color=" + _resolvedColor(cfg.time_font_color).toString());
-        log.debug("clock", "Custom: font=" + (fontFamilyCustom || "Poppins") + " size=" + cfg.custom_font_size + " text='" + (cfg.custom_text || "") + "' fmt=" + cfg.custom_format);
         log.debug("clock", "Tz: id=" + (cfg.timezone_id || "(none)") + " label='" + (cfg.timezone_label || "") + "' font=" + (fontFamilyTimezone || "Poppins") + " size=" + cfg.timezone_font_size);
 
         // Resolved values
