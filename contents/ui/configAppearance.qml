@@ -739,6 +739,8 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             Kirigami.FormData.isSection: true
         }
+    Kirigami.FormLayout {
+        Layout.fillWidth: true
 
         QQC2.CheckBox {
             id: showDay
@@ -826,6 +828,7 @@ KCM.SimpleKCM {
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
         }
+    }
 
         // ================= SECTION: DATE =================
         Kirigami.Heading {
@@ -834,6 +837,8 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             Kirigami.FormData.isSection: true
         }
+    Kirigami.FormLayout {
+        Layout.fillWidth: true
 
         QQC2.CheckBox {
             id: showDate
@@ -921,6 +926,7 @@ KCM.SimpleKCM {
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
         }
+    }
 
         // ================= SECTION: TIME =================
         Kirigami.Heading {
@@ -929,6 +935,8 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             Kirigami.FormData.isSection: true
         }
+    Kirigami.FormLayout {
+        Layout.fillWidth: true
 
         QQC2.CheckBox {
             id: showTime
@@ -1028,6 +1036,7 @@ KCM.SimpleKCM {
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
         }
+    }
 
         // ================= SECTION: CUSTOM TEXT =================
         Kirigami.Heading {
@@ -1036,6 +1045,8 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             Kirigami.FormData.isSection: true
         }
+    Kirigami.FormLayout {
+        Layout.fillWidth: true
 
         QQC2.CheckBox {
             id: showCustom
@@ -1129,6 +1140,7 @@ KCM.SimpleKCM {
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
         }
+    }
 
         // ================= SECTION: TIMEZONE =================
         Kirigami.Heading {
@@ -1137,6 +1149,8 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             Kirigami.FormData.isSection: true
         }
+    Kirigami.FormLayout {
+        Layout.fillWidth: true
 
         QQC2.CheckBox {
             id: showTimezone
@@ -1321,6 +1335,7 @@ KCM.SimpleKCM {
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: 800
         }
+    }
 
         // ================= SECTION: THEMES =================
         Kirigami.Heading {
