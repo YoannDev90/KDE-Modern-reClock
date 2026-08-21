@@ -334,8 +334,9 @@ KCM.SimpleKCM {
     // form sections, buttons) fills this same width for a unified look.
     ColumnLayout {
         id: _appearanceLayout
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: Math.min(parent.width, Kirigami.Units.gridUnit * 32)
+        Layout.fillWidth: true
+        Layout.maximumWidth: Kirigami.Units.gridUnit * 32
+        Layout.alignment: Qt.AlignHCenter
         spacing: Kirigami.Units.largeSpacing
 
     // C++ plugin warning banner
