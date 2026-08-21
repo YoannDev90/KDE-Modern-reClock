@@ -32,6 +32,10 @@ public:
     Q_INVOKABLE void cleanupTempFonts(const QStringList &fontPaths);
     Q_INVOKABLE QString resolveFontPath(const QString &familyName);
 
+    Q_INVOKABLE bool hasThemeWallpaper(const QString &themePath);
+    Q_INVOKABLE QString extractThemeWallpaper(const QString &themePath, const QString &themeId);
+    Q_INVOKABLE void setDesktopWallpaper(const QString &imagePath);
+
     Q_INVOKABLE void fetchIndex();
     Q_INVOKABLE void downloadTheme(const QString &themeId, const QString &url);
     Q_INVOKABLE void clearCache();

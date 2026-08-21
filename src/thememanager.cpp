@@ -24,6 +24,8 @@
 #include <QDBusMessage>
 #include <QDBusObjectPath>
 #include <QRegularExpression>
+#include <QDBusConnection>
+#include <QDBusMessage>
 #include <QGuiApplication>
 #include <QRandomGenerator>
 #include <QDebug>
@@ -165,6 +167,93 @@ QString ThemeManager::parseTheme(const QString &filePath)
         return {};
     }
     return QString::fromUtf8(data);
+}
+
+// ===== THEME WALLPAPER =====
+
+bool ThemeManager::hasThemeWallpaper(const QString &themePath)
+{
+    const auto entries = MrtArchive::read(themePath);
+    for (const auto &entry : entries) {
+        if (entry.name.startsWith(QStringLiteral("wallpaper.")))
+            return true;
+    }
+    return false;
+}
+
+QString ThemeManager::extractThemeWallpaper(const QString &themePath, const QString &themeId)
+{
+    const auto entries = MrtArchive::read(themePath);
+    for (const auto &entry : entries) {
+        if (!entry.name.startsWith(QStringLiteral("wallpaper.")) || entry.data.isEmpty())
+            continue;
+
+        // Sanitize theme id for use in a filename
+        QString safeId = themeId;
+        safeId.remove(QRegularExpression(QStringLiteral("[^A-Za-z0-9_-]")));
+        if (safeId.isEmpty()) safeId = QStringLiteral("theme");
+
+        const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+                            + QStringLiteral("/wallpapers");
+        QDir().mkpath(dir);
+
+        const QString ext = entry.name.mid(QStringLiteral("wallpaper.").length());
+        const QString dest = dir + QStringLiteral("/") + safeId + QStringLiteral(".") + ext;
+
+        QFile out(dest);
+        if (!out.open(QIODevice::WriteOnly)) {
+            if (m_log) m_log->warn("theme", "cannot write wallpaper: " + dest);
+            return {};
+        }
+        out.write(entry.data);
+        out.close();
+        if (m_log) m_log->info("theme", "theme wallpaper extracted: " + dest);
+        return dest;
+    }
+
+    if (m_log) m_log->warn("theme", "no wallpaper entry in theme: " + themePath);
+    return {};
+}
+
+void ThemeManager::setDesktopWallpaper(const QString &imagePath)
+{
+    const QFileInfo fi(imagePath);
+    if (!fi.exists() || !fi.isReadable()) {
+        if (m_log) m_log->warn("theme", "setDesktopWallpaper: unreadable image " + imagePath);
+        return;
+    }
+    const QString fileUrl = QUrl::fromLocalFile(fi.absoluteFilePath()).toString();
+
+    // Apply to the desktop containment(s) hosting our widget; all desktops as fallback.
+    const QString js = QStringLiteral(
+        "(function() {\n"
+        "  var WIDGET = 'com.github.yoanndev90.modernreclock';\n"
+        "  var URL = '%1';\n"
+        "  function apply(d) {\n"
+        "    d.wallpaperPlugin = 'org.kde.image';\n"
+        "    d.currentConfigGroup = ['Wallpaper', 'org.kde.image', 'General'];\n"
+        "    d.writeConfig('Image', URL);\n"
+        "  }\n"
+        "  var targets = [];\n"
+        "  var ds = desktops();\n"
+        "  for (var i = 0; i < ds.length; ++i) {\n"
+        "    var ws = ds[i].widgets();\n"
+        "    for (var j = 0; j < ws.length; ++j) {\n"
+        "      if (String(ws[j].type) === WIDGET) { targets.push(ds[i]); break; }\n"
+        "    }\n"
+        "  }\n"
+        "  if (targets.length === 0) targets = ds;\n"
+        "  for (var k = 0; k < targets.length; ++k) apply(targets[k]);\n"
+        "})();").arg(fileUrl);
+
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+        QStringLiteral("org.kde.plasmashell"), QStringLiteral("/PlasmaShell"),
+        QStringLiteral("org.kde.PlasmaShell"), QStringLiteral("evaluateScript"));
+    msg << js;
+    // Async on purpose: we run inside plasmashell itself — a blocking call
+    // back into the same process could deadlock the main thread.
+    QDBusConnection::sessionBus().asyncCall(msg);
+    if (m_log) m_log->info("theme", "setDesktopWallpaper requested: " + fileUrl);
 }
 
 // ===== FONTS =====

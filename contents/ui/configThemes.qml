@@ -115,6 +115,11 @@ KCM.SimpleKCM {
     // Preview dialog state
     property var previewThemeData: ({})
 
+    // Wallpaper installation on theme apply (proposed, user opt-out)
+    property bool installPreviewWallpaper: true
+    property bool pendingInstallWallpaper: false
+    property bool installImportWallpaper: true
+
     // Export dialog state
     property string exportThemeName: ""
     property string exportThemeDesc: ""
@@ -196,6 +201,14 @@ KCM.SimpleKCM {
                 var jsonStr = themeManager.parseTheme(themePath);
                 if (jsonStr) {
                     themesPage.applyConfig(jsonStr);
+                    if (themesPage.pendingInstallWallpaper && themeManager.hasThemeWallpaper(themePath)) {
+                        var wpFile = themeManager.extractThemeWallpaper(themePath, themeId);
+                        if (wpFile) {
+                            themeManager.setDesktopWallpaper(wpFile);
+                            log.info("gallery", "Wallpaper applied from theme: " + wpFile);
+                        }
+                    }
+                    themesPage.pendingInstallWallpaper = false;
                     log.info("themes", "Applied community theme: " + themeId);
                 }
             } else {
@@ -230,6 +243,14 @@ KCM.SimpleKCM {
             var jsonStr = themeManager.parseTheme(filePath);
             if (jsonStr) {
                 themesPage.applyConfig(jsonStr);
+                if (themesPage.installImportWallpaper && themeManager.hasThemeWallpaper(filePath)) {
+                    var baseName = filePath.split("/").pop().replace(/\.(zip|mrt)$/i, "");
+                    var wpFile = themeManager.extractThemeWallpaper(filePath, baseName);
+                    if (wpFile) {
+                        themeManager.setDesktopWallpaper(wpFile);
+                        log.info("themes", "Wallpaper applied from imported theme: " + wpFile);
+                    }
+                }
                 log.info("themes", "Theme imported from: " + filePath);
             } else {
                 themesPage.importError = i18n("Failed to parse theme file. It may be corrupted.");
@@ -265,6 +286,7 @@ KCM.SimpleKCM {
         function installTheme() {
             var d = themesPage.previewThemeData;
             if (d.mrt_url) {
+                themesPage.pendingInstallWallpaper = themesPage.installPreviewWallpaper;
                 log.info("gallery", "Download theme: " + d.id + " from " + d.mrt_url);
                 themeManager.downloadTheme(d.id, d.mrt_url);
             }
@@ -308,6 +330,12 @@ KCM.SimpleKCM {
                 text: themesPage.previewThemeData.description || ""
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
+            }
+
+            QQC2.CheckBox {
+                text: i18n("Also apply the theme's wallpaper")
+                checked: themesPage.installPreviewWallpaper
+                onToggled: themesPage.installPreviewWallpaper = checked
             }
 
             // Fonts info
@@ -566,6 +594,13 @@ KCM.SimpleKCM {
                 text: i18n("Add Font...")
                 icon.name: "list-add"
                 onClicked: fontFileDialog.open()
+            }
+            QQC2.CheckBox {
+                text: i18n("Apply wallpaper")
+                checked: themesPage.installImportWallpaper
+                onToggled: themesPage.installImportWallpaper = checked
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: i18n("When importing a .zip, also set the theme's bundled wallpaper as your desktop background")
             }
         }
 
