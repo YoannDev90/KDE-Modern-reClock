@@ -356,7 +356,7 @@ KCM.SimpleKCM {
     ColumnLayout {
         id: _appearanceLayout
         anchors.horizontalCenter: parent.horizontalCenter
-        width: Math.min(parent.width, Kirigami.Units.gridUnit * 38)
+        width: Math.min(parent.width, Kirigami.Units.gridUnit * 32)
         spacing: Kirigami.Units.largeSpacing
 
     // C++ plugin warning banner
@@ -437,6 +437,7 @@ KCM.SimpleKCM {
     Kirigami.Heading {
         text: i18n("Preview")
         level: 2
+        horizontalAlignment: Text.AlignHCenter
         Layout.fillWidth: true
     }
 
@@ -736,6 +737,7 @@ KCM.SimpleKCM {
         Kirigami.Heading {
             text: i18n("Day")
             level: 2
+            horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
             Kirigami.FormData.isSection: true
         }
@@ -834,6 +836,7 @@ KCM.SimpleKCM {
         Kirigami.Heading {
             text: i18n("Date")
             level: 2
+            horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
             Kirigami.FormData.isSection: true
         }
@@ -932,6 +935,7 @@ KCM.SimpleKCM {
         Kirigami.Heading {
             text: i18n("Time")
             level: 2
+            horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
             Kirigami.FormData.isSection: true
         }
@@ -1042,6 +1046,7 @@ KCM.SimpleKCM {
         Kirigami.Heading {
             text: i18n("Custom Text")
             level: 2
+            horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
             Kirigami.FormData.isSection: true
         }
@@ -1146,6 +1151,7 @@ KCM.SimpleKCM {
         Kirigami.Heading {
             text: i18n("Secondary Timezone")
             level: 2
+            horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
             Kirigami.FormData.isSection: true
         }
@@ -1341,11 +1347,13 @@ KCM.SimpleKCM {
         Kirigami.Heading {
             text: i18n("Themes")
             level: 2
+            horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
             Kirigami.FormData.isSection: true
         }
 
         QQC2.Button {
+            Layout.alignment: Qt.AlignHCenter
             text: i18n("Save Current Theme")
             icon.name: "document-save"
             onClicked: themeSheets.openSave()
@@ -1404,7 +1412,7 @@ KCM.SimpleKCM {
         }
 
         RowLayout {
-            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignHCenter
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.Button {
