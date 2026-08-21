@@ -79,6 +79,33 @@ if [ "$PLUGIN_INSTALLED" = false ]; then
     echo "Install cmake and kf6-devel packages to build from source, or open an issue."
 fi
 
+# ---- QML precompilation (qmlc) — instant first-load ----
+echo "--- Precompiling QML to bytecode (qmlc) ---"
+QMLC_OK=false
+if [ -f "build/CMakeCache.txt" ] && command -v qmlcachegen >/dev/null 2>&1; then
+    if cmake --build build --target qmlcache 2>/dev/null; then
+        QMLC_OK=true
+    fi
+fi
+if [ "$QMLC_OK" = false ] && command -v qmlcachegen >/dev/null 2>&1; then
+    for qml in contents/ui/*.qml; do
+        qmlc="${qml}c"
+        if qmlcachegen "$qml" -o "$qmlc" 2>/dev/null; then
+            echo "  $(basename "$qmlc") ($(du -h "$qmlc" | cut -f1))"
+            QMLC_OK=true
+        else
+            echo "  skip: $(basename "$qml")"
+            rm -f "$qmlc"
+        fi
+    done
+fi
+if [ "$QMLC_OK" = true ]; then
+    echo "QML bytecode ready — first config open will skip QML parsing."
+    ls -lh contents/ui/*.qmlc 2>/dev/null | awk '{print "  " $9 " " $5}'
+else
+    echo "qmlcachegen not available — runtime QML cache will be used."
+fi
+
 # ---- Translations ----
 echo "--- Preparing translations ---"
 if [ -f "translate/build.sh" ]; then

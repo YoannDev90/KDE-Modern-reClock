@@ -726,6 +726,8 @@ KCM.SimpleKCM {
         OrderSection {
             id: orderSection
             Layout.fillWidth: true
+            Layout.alignment: Qt.AlignHCenter
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 30
             Layout.minimumHeight: 180
             elementOrder: appearancePage.cfg_element_order
             onOrderChanged: function(newOrder) {
@@ -1405,6 +1407,8 @@ KCM.SimpleKCM {
         }
 
         QQC2.Label {
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignRight
             text: i18n("No saved themes yet.")
             visible: appearancePage.savedThemes.length === 0
             font.pointSize: Kirigami.Theme.smallFont.pointSize
