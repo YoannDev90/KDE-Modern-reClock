@@ -261,14 +261,18 @@ KCM.SimpleKCM {
         standardButtons: QQC2.Dialog.Cancel | QQC2.Dialog.Apply
         implicitWidth: Kirigami.Units.gridUnit * 28
 
-        onAccepted: {
+        // "Apply" emits applied() and keeps the dialog open; it never fires accepted()
+        function installTheme() {
             var d = themesPage.previewThemeData;
             if (d.mrt_url) {
                 log.info("gallery", "Download theme: " + d.id + " from " + d.mrt_url);
                 themeManager.downloadTheme(d.id, d.mrt_url);
             }
-            previewDialog.close();
+            close();
         }
+
+        onAccepted: installTheme()
+        onApplied: installTheme()
 
         contentItem: ColumnLayout {
             spacing: Kirigami.Units.largeSpacing
@@ -646,7 +650,7 @@ KCM.SimpleKCM {
                         anchors.margins: Kirigami.Units.smallSpacing
                         radius: Kirigami.Units.cornerRadius
                         color: Kirigami.Theme.backgroundColor
-                        border.color: Kirigami.Theme.separatorColor
+                        border.color: Qt.alpha(Kirigami.Theme.textColor, 0.15)
                         border.width: 1
 
                         ColumnLayout {
