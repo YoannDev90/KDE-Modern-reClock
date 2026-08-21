@@ -351,9 +351,12 @@ KCM.SimpleKCM {
 
 
     // ================= SECTION: LIVE PREVIEW =================
+    // Single centered content column: every child (banner, headings, preview,
+    // form sections, buttons) fills this same width for a unified look.
     ColumnLayout {
         id: _appearanceLayout
-        width: parent.width
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: Math.min(parent.width, Kirigami.Units.gridUnit * 38)
         spacing: Kirigami.Units.largeSpacing
 
     // C++ plugin warning banner
@@ -478,8 +481,7 @@ KCM.SimpleKCM {
     }
 
     Kirigami.FormLayout {
-        Layout.alignment: Qt.AlignHCenter
-        Layout.maximumWidth: parent.width
+        Layout.fillWidth: true
 
         // ================= SECTION: GLOBAL =================
         Kirigami.Heading {
