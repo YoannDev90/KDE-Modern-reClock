@@ -30,7 +30,7 @@ jobs:
         id: cache
         uses: actions/cache@v4
         with:
-          path: modernreclock-timezone_${{ matrix.arch }}.so
+          path: modernreclock-plugins_${{ matrix.arch }}.so
           key: plugin-${{ matrix.arch }}-${{ hashFiles('src/**', 'CMakeLists.txt', 'build/qmldir') }}
 
       - name: Install dependencies
@@ -45,20 +45,20 @@ jobs:
               apt-get update && apt-get install -y cmake g++ qt6-base-dev qt6-declarative-dev libfontconfig-dev &&
               mkdir -p build && cd build && cmake .. -DCMAKE_INSTALL_PREFIX=/usr && make -j\$(nproc)
             "
-            cp build/libmodernreclock_backend.so modernreclock-timezone_aarch64.so
+            cp build/libmodernreclock_backend.so modernreclock-plugins_aarch64.so
           else
             mkdir -p build && cd build
             cmake .. -DCMAKE_INSTALL_PREFIX=/usr
             make -j$(nproc)
             cd ..
-            cp build/libmodernreclock_backend.so modernreclock-timezone_x86_64.so
+            cp build/libmodernreclock_backend.so modernreclock-plugins_x86_64.so
           fi
 
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v4
         with:
           name: plugin-${{ matrix.arch }}
-          path: modernreclock-timezone_*.so
+          path: modernreclock-plugins_*.so
 
   release:
     needs: build-plugin
@@ -147,7 +147,7 @@ jobs:
           # Raw .so files for each arch
           for arch_dir in plugin-artifacts/plugin-*; do
             ARCH=$(basename "$arch_dir" | sed 's/plugin-//')
-            cp "$arch_dir"/*.so "release-assets/modernreclock-timezone_${ARCH}.so"
+            cp "$arch_dir"/*.so "release-assets/modernreclock-plugins_${ARCH}.so"
           done
 
           # Offline install zip for each arch
@@ -161,7 +161,7 @@ jobs:
             else
               printf 'module org.kde.plasma.private.modernreclock\nlinktarget modernreclock_backend\noptional plugin modernreclock_backend\nclassname ModernRecClockPlugin\ndepends Qt6Core 6.4\ndepends Qt6Qml 6.4\n' > "$TMPDIR/$ARCH/qmldir"
             fi
-            (cd "$TMPDIR" && zip -r "$OLDPWD/release-assets/modernreclock-timezone-${VERSION}-${ARCH}.zip" "$ARCH/")
+            (cd "$TMPDIR" && zip -r "$OLDPWD/release-assets/modernreclock-plugins-${VERSION}-${ARCH}.zip" "$ARCH/")
             rm -rf "$TMPDIR"
           done
 
@@ -207,8 +207,8 @@ jobs:
             | File | Description |
             |------|-------------|
             | `*.plasmoid` | Widget package (includes x86_64 C++ plugin) |
-            | `modernreclock-timezone_*.so` | Timezone plugin (raw .so, for aarch64 or manual install) |
-            | `modernreclock-timezone-*.zip` | Offline install zip (plugin + qmldir) |
+            | `modernreclock-plugins_*.so` | Timezone plugin (raw .so, for aarch64 or manual install) |
+            | `modernreclock-plugins-*.zip` | Offline install zip (plugin + qmldir) |
             | `install-dist.sh` | One-line remote install script |
           files: |
             release-assets/*
