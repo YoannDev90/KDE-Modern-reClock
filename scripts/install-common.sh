@@ -48,10 +48,37 @@ detect_build_deps() {
     # Qt6 via pkg-config
     pkg-config --exists Qt6Core Qt6Qml Qt6Gui Qt6Quick Qt6Network Qt6DBus 2>/dev/null && HAS_QT6=true
 
-    # moc (Qt meta-object compiler) — prefer Qt6 moc
-    if command -v /usr/lib/qt6/moc &>/dev/null; then MOC="/usr/lib/qt6/moc"; HAS_MOC=true
-    elif command -v moc-qt6 &>/dev/null; then MOC="moc-qt6"; HAS_MOC=true
-    elif command -v moc &>/dev/null; then MOC="moc"; HAS_MOC=true
+    # moc (Qt meta-object compiler) — search common Qt6 paths
+    for moc_path in \
+        /usr/lib/qt6/libexec/moc \
+        /usr/lib64/qt6/libexec/moc \
+        /usr/lib/x86_64-linux-gnu/qt6/libexec/moc \
+        /usr/lib/qt6/bin/moc \
+        /usr/lib64/qt6/bin/moc; do
+        if [ -x "$moc_path" ]; then
+            MOC="$moc_path"
+            HAS_MOC=true
+            break
+        fi
+    done
+    if [ "$HAS_MOC" = false ]; then
+        # Try via qmake6 to find moc
+        for cmd in qmake6 qt6-config; do
+            if command -v "$cmd" &>/dev/null; then
+                QT_HOST_BINS=$("$cmd" -query QT_HOST_BINS 2>/dev/null)
+                if [ -n "$QT_HOST_BINS" ] && [ -x "$QT_HOST_BINS/moc" ]; then
+                    MOC="$QT_HOST_BINS/moc"
+                    HAS_MOC=true
+                    break
+                fi
+            fi
+        done
+    fi
+    # Fallback to PATH-based search
+    if [ "$HAS_MOC" = false ]; then
+        if command -v moc-qt6 &>/dev/null; then MOC="moc-qt6"; HAS_MOC=true
+        elif command -v moc &>/dev/null; then MOC="moc"; HAS_MOC=true
+        fi
     fi
 
     # fontconfig
