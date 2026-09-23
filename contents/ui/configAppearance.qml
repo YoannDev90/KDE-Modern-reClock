@@ -299,9 +299,7 @@ KCM.SimpleKCM {
 
     // ===== UI: tabbed layout (all pages preloaded) =====
     ColumnLayout {
-        Layout.fillWidth: true
-        Layout.maximumWidth: Kirigami.Units.gridUnit * 32
-        Layout.alignment: Qt.AlignHCenter
+        anchors.fill: parent
         spacing: Kirigami.Units.largeSpacing
 
         QQC2.TabBar {
@@ -320,6 +318,7 @@ KCM.SimpleKCM {
         StackLayout {
             id: stack
             Layout.fillWidth: true
+            Layout.fillHeight: true
             currentIndex: tabBar.currentIndex
             onCurrentIndexChanged: {
                 // Regenerate preview when switching back to the Preview tab
@@ -328,36 +327,43 @@ KCM.SimpleKCM {
 
             Loader {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
                 active: true
                 Component.onCompleted: setSource("configPreviewPage.qml", { ctx: appearancePage })
             }
             Loader {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
                 active: true
                 Component.onCompleted: setSource("configGlobalPage.qml", { ctx: appearancePage })
             }
             Loader {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
                 active: true
                 Component.onCompleted: setSource("configDayPage.qml", { ctx: appearancePage })
             }
             Loader {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
                 active: true
                 Component.onCompleted: setSource("configDatePage.qml", { ctx: appearancePage })
             }
             Loader {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
                 active: true
                 Component.onCompleted: setSource("configTimePage.qml", { ctx: appearancePage })
             }
             Loader {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
                 active: true
                 Component.onCompleted: setSource("configTimezonePage.qml", { ctx: appearancePage })
             }
             Loader {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
                 active: true
                 Component.onCompleted: setSource("configSavedThemesPage.qml", { ctx: appearancePage })
             }
