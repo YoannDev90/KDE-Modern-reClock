@@ -18,6 +18,30 @@ detect_qml_dir() {
     return 1
 }
 
+# Qt 6 qmlcachegen: NEVER use the bare 'qmlcachegen' from PATH — it may be
+# Qt 5, whose .qmlc bytecode is rejected by the Qt 6 runtime (causes
+# "Cannot assign to non-existent property" on local types).
+detect_qmlcachegen() {
+    local bin
+    for cmd in qt6-config qmake6; do
+        if command -v "$cmd" &>/dev/null; then
+            bin=$("$cmd" -query QT_INSTALL_BINS 2>/dev/null)
+            if [ -n "$bin" ] && [ -x "$bin/qmlcachegen" ]; then
+                echo "$bin/qmlcachegen"
+                return 0
+            fi
+        fi
+    done
+    for d in /usr/lib/qt6/bin /usr/lib64/qt6/bin /usr/lib/x86_64-linux-gnu/qt6/bin; do
+        [ -x "$d/qmlcachegen" ] && echo "$d/qmlcachegen" && return 0
+    done
+    # Some distros ship qmlcachegen directly in the QML install dir
+    for d in /usr/lib/qt6 /usr/lib64/qt6; do
+        [ -x "$d/qmlcachegen" ] && echo "$d/qmlcachegen" && return 0
+    done
+    return 1
+}
+
 check_dep() {
     if ! command -v "$1" &>/dev/null; then
         echo "Error: '$1' not found. Install it and retry."
@@ -82,15 +106,21 @@ fi
 # ---- QML precompilation (qmlc) — instant first-load ----
 echo "--- Precompiling QML to bytecode (qmlc) ---"
 QMLC_OK=false
-if [ -f "build/CMakeCache.txt" ] && command -v qmlcachegen >/dev/null 2>&1; then
+QMLCGEN=$(detect_qmlcachegen || true)
+if [ -z "$QMLCGEN" ]; then
+    echo "no Qt6 qmlcachegen found — runtime QML cache will be used."
+else
+    echo "Using qmlcachegen: $QMLCGEN ($("$QMLCGEN" --version 2>/dev/null | head -1))"
+fi
+if [ "$QMLCGEN" != "" ] && [ -f "build/CMakeCache.txt" ]; then
     if cmake --build build --target qmlcache 2>/dev/null; then
         QMLC_OK=true
     fi
 fi
-if [ "$QMLC_OK" = false ] && command -v qmlcachegen >/dev/null 2>&1; then
+if [ "$QMLC_OK" = false ] && [ "$QMLCGEN" != "" ]; then
     for qml in contents/ui/*.qml; do
         qmlc="${qml}c"
-        if qmlcachegen "$qml" -o "$qmlc" 2>/dev/null; then
+        if "$QMLCGEN" "$qml" -o "$qmlc" 2>/dev/null; then
             echo "  $(basename "$qmlc") ($(du -h "$qmlc" | cut -f1))"
             QMLC_OK=true
         else
@@ -103,7 +133,7 @@ if [ "$QMLC_OK" = true ]; then
     echo "QML bytecode ready — first config open will skip QML parsing."
     ls -lh contents/ui/*.qmlc 2>/dev/null | awk '{print "  " $9 " " $5}'
 else
-    echo "qmlcachegen not available — runtime QML cache will be used."
+    echo "No Qt6 qmlcachegen — runtime QML cache will be used."
 fi
 
 # ---- Translations ----
