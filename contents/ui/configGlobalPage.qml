@@ -107,7 +107,7 @@ ColumnLayout {
                 { "text": i18n("Custom"), "locale": "custom" }
             ]
             textRole: "text"
-            onCtxChanged: {
+            Component.onCompleted: {
                 if (!ctx) return;
                 let loc = ctx.cfg_locale;
                 currentIndex = 0;
@@ -145,7 +145,7 @@ ColumnLayout {
                 { "text": i18n("Japanese"), "locale": "ja_JP" }
             ]
             textRole: "text"
-            onCtxChanged: {
+            Component.onCompleted: {
                 if (!ctx) return;
                 let loc = ctx.cfg_locale;
                 currentIndex = 0;
@@ -175,7 +175,7 @@ ColumnLayout {
                 { "text": i18n("Custom"), "date": "custom", "time": "custom" }
             ]
             textRole: "text"
-            onCtxChanged: {
+            Component.onCompleted: {
                 if (!ctx) return;
                 let d = ctx.cfg_date_format;
                 let t = ctx.cfg_time_format;

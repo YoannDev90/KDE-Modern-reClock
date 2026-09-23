@@ -131,7 +131,7 @@ KCM.SimpleKCM {
     }
 
     function _regeneratePreview() {
-        if (!themeManager || !previewTab.active) return;
+        if (!themeManager) return;
         var cfgJson = appearancePage.getFullConfig();
         var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
         log.info("config", "Generating preview (async)...");
@@ -297,7 +297,7 @@ KCM.SimpleKCM {
         return JSON.stringify(savedThemes[index], null, 4);
     }
 
-    // ===== UI: lazy tabbed layout =====
+    // ===== UI: tabbed layout (all pages preloaded) =====
     ColumnLayout {
         Layout.fillWidth: true
         Layout.maximumWidth: Kirigami.Units.gridUnit * 32
@@ -326,54 +326,33 @@ KCM.SimpleKCM {
                 if (currentIndex === 0) regenTimer.restart();
             }
 
-            Loader {
-                id: previewTab
-                active: stack.currentIndex === 0
-                asynchronous: true
-                source: "configPreviewPage.qml"
-                onLoaded: item.ctx = appearancePage
+            configPreviewPage {
+                ctx: appearancePage
+                Layout.fillWidth: true
             }
-            Loader {
-                id: globalTab
-                active: stack.currentIndex === 1
-                asynchronous: true
-                source: "configGlobalPage.qml"
-                onLoaded: item.ctx = appearancePage
+            configGlobalPage {
+                ctx: appearancePage
+                Layout.fillWidth: true
             }
-            Loader {
-                id: dayTab
-                active: stack.currentIndex === 2
-                asynchronous: true
-                source: "configDayPage.qml"
-                onLoaded: item.ctx = appearancePage
+            configDayPage {
+                ctx: appearancePage
+                Layout.fillWidth: true
             }
-            Loader {
-                id: dateTab
-                active: stack.currentIndex === 3
-                asynchronous: true
-                source: "configDatePage.qml"
-                onLoaded: item.ctx = appearancePage
+            configDatePage {
+                ctx: appearancePage
+                Layout.fillWidth: true
             }
-            Loader {
-                id: timeTab
-                active: stack.currentIndex === 4
-                asynchronous: true
-                source: "configTimePage.qml"
-                onLoaded: item.ctx = appearancePage
+            configTimePage {
+                ctx: appearancePage
+                Layout.fillWidth: true
             }
-            Loader {
-                id: timezoneTab
-                active: stack.currentIndex === 5
-                asynchronous: true
-                source: "configTimezonePage.qml"
-                onLoaded: item.ctx = appearancePage
+            configTimezonePage {
+                ctx: appearancePage
+                Layout.fillWidth: true
             }
-            Loader {
-                id: savedThemesTab
-                active: stack.currentIndex === 6
-                asynchronous: true
-                source: "configSavedThemesPage.qml"
-                onLoaded: item.ctx = appearancePage
+            configSavedThemesPage {
+                ctx: appearancePage
+                Layout.fillWidth: true
             }
         }
     }
