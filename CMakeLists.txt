@@ -31,6 +31,7 @@ add_library(${PLUGIN_NAME} MODULE
     src/thememanager.cpp
     src/mrtarchive.cpp
     src/fonthelper.cpp
+    src/clockmodel.cpp
 )
 target_link_libraries(${PLUGIN_NAME} PRIVATE
     Qt6::Core

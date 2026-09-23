@@ -8,6 +8,7 @@
 #include "wallpaperimageprovider.h"
 #include "thememanager.h"
 #include "fonthelper.h"
+#include "clockmodel.h"
 
 class ModernRecClockPlugin : public QQmlExtensionPlugin {
     Q_OBJECT
@@ -39,6 +40,7 @@ public:
             [](QQmlEngine*, QJSEngine*) -> QObject* {
                 return new FontHelper();
             });
+        qmlRegisterType<ClockModel>(uri, 1, 0, "ClockModel");
     }
 
     void initializeEngine(QQmlEngine* engine, const char* uri) override {
