@@ -791,9 +791,11 @@ void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
 
     QString cacheDir = m_cacheDir;
     Logger *log = m_log;
+    QPointer<ThemeManager> guard(this);
 
-    [[maybe_unused]] auto future = QtConcurrent::run([this, jsonConfig, wallpaperPath, loadedFamilies, screenSize, dpr,
+    [[maybe_unused]] auto future = QtConcurrent::run([guard, jsonConfig, wallpaperPath, loadedFamilies, screenSize, dpr,
                         widgetRect, cacheDir, log, customDate, customDayName]() {
+        if (!guard) return;
         QDir().mkpath(cacheDir + QStringLiteral("/previews"));
         QString outPath = cacheDir + QStringLiteral("/previews/export_preview.png");
 
@@ -811,21 +813,26 @@ void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
         QJsonDocument doc = QJsonDocument::fromJson(jsonConfig.toUtf8());
         if (doc.isNull() || !doc.isObject()) {
             if (log) log->info("theme", "ERROR: invalid config JSON");
-            fallbackPreview(outPath);
-            emit previewGenerated(outPath);
-            QMetaObject::invokeMethod(this, [this]() {
-                m_previewBusy = false;
-                if (!m_pendingPreviewConfig.isEmpty()) {
-                    QString cfg = m_pendingPreviewConfig;
-                    QString wp = m_pendingPreviewWp;
-                    int aid = m_pendingPreviewAppletId;
-                    QStringList fonts = m_pendingPreviewFonts;
-                    QString date = m_pendingPreviewDate;
-                    QString day = m_pendingPreviewDay;
-                    m_pendingPreviewConfig.clear();
-                    generatePreviewAsync(cfg, wp, aid, fonts, date, day);
+            if (guard) {
+                guard->fallbackPreview(outPath);
+                if (guard) emit guard->previewGenerated(outPath);
+                if (guard) {
+                    QMetaObject::invokeMethod(guard, [guard]() {
+                        if (!guard) return; // ThemeManager destroyed; drop pending work
+                        guard->m_previewBusy = false;
+                        if (!guard->m_pendingPreviewConfig.isEmpty()) {
+                            QString cfg = guard->m_pendingPreviewConfig;
+                            QString wp = guard->m_pendingPreviewWp;
+                            int aid = guard->m_pendingPreviewAppletId;
+                            QStringList fonts = guard->m_pendingPreviewFonts;
+                            QString date = guard->m_pendingPreviewDate;
+                            QString day = guard->m_pendingPreviewDay;
+                            guard->m_pendingPreviewConfig.clear();
+                            guard->generatePreviewAsync(cfg, wp, aid, fonts, date, day);
+                        }
+                    }, Qt::QueuedConnection);
                 }
-            }, Qt::QueuedConnection);
+            }
             return;
         }
         QJsonObject cfg = doc.object();
@@ -970,22 +977,25 @@ void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
 
         p.end();
         canvas.save(outPath, "PNG");
-        emit previewGenerated(outPath);
+        if (guard) emit guard->previewGenerated(outPath);
 
         // Drain pending request on main thread
-        QMetaObject::invokeMethod(this, [this]() {
-            m_previewBusy = false;
-            if (!m_pendingPreviewConfig.isEmpty()) {
-                QString cfg = m_pendingPreviewConfig;
-                QString wp = m_pendingPreviewWp;
-                int aid = m_pendingPreviewAppletId;
-                QStringList fonts = m_pendingPreviewFonts;
-                QString date = m_pendingPreviewDate;
-                QString day = m_pendingPreviewDay;
-                m_pendingPreviewConfig.clear();
-                generatePreviewAsync(cfg, wp, aid, fonts, date, day);
-            }
-        }, Qt::QueuedConnection);
+        if (guard) {
+            QMetaObject::invokeMethod(guard, [guard]() {
+                if (!guard) return; // ThemeManager destroyed; drop pending work
+                guard->m_previewBusy = false;
+                if (!guard->m_pendingPreviewConfig.isEmpty()) {
+                    QString cfg = guard->m_pendingPreviewConfig;
+                    QString wp = guard->m_pendingPreviewWp;
+                    int aid = guard->m_pendingPreviewAppletId;
+                    QStringList fonts = guard->m_pendingPreviewFonts;
+                    QString date = guard->m_pendingPreviewDate;
+                    QString day = guard->m_pendingPreviewDay;
+                    guard->m_pendingPreviewConfig.clear();
+                    guard->generatePreviewAsync(cfg, wp, aid, fonts, date, day);
+                }
+            }, Qt::QueuedConnection);
+        }
     });
 }
 
