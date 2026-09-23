@@ -70,7 +70,7 @@ PlasmoidItem {
     // Theme colors changed
     Connections {
         target: Kirigami.Theme
-        function onChanged() { clock.setThemeColors(themeText, themeBg); }
+        function onColorsChanged() { clock.setThemeColors(themeText, themeBg); }
     }
 
     // ---- Optional widget alignment on screen (needs the containment) ----
