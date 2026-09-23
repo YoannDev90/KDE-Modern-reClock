@@ -326,36 +326,40 @@ KCM.SimpleKCM {
                 if (currentIndex === 0) regenTimer.restart();
             }
 
-            configPreviewPage {
-                ctx: appearancePage
-                Layout.fillWidth: true
-            }
-            configGlobalPage {
-                ctx: appearancePage
-                Layout.fillWidth: true
-            }
-            configDayPage {
-                ctx: appearancePage
-                Layout.fillWidth: true
-            }
-            configDatePage {
-                ctx: appearancePage
-                Layout.fillWidth: true
-            }
-            configTimePage {
-                ctx: appearancePage
-                Layout.fillWidth: true
-            }
-            configTimezonePage {
-                ctx: appearancePage
-                Layout.fillWidth: true
-            }
             Loader {
-                id: savedThemesTab
                 Layout.fillWidth: true
                 active: true
-                source: "configSavedThemesPage.qml"
-                onLoaded: item.ctx = appearancePage
+                Component.onCompleted: setSource("configPreviewPage.qml", { ctx: appearancePage })
+            }
+            Loader {
+                Layout.fillWidth: true
+                active: true
+                Component.onCompleted: setSource("configGlobalPage.qml", { ctx: appearancePage })
+            }
+            Loader {
+                Layout.fillWidth: true
+                active: true
+                Component.onCompleted: setSource("configDayPage.qml", { ctx: appearancePage })
+            }
+            Loader {
+                Layout.fillWidth: true
+                active: true
+                Component.onCompleted: setSource("configDatePage.qml", { ctx: appearancePage })
+            }
+            Loader {
+                Layout.fillWidth: true
+                active: true
+                Component.onCompleted: setSource("configTimePage.qml", { ctx: appearancePage })
+            }
+            Loader {
+                Layout.fillWidth: true
+                active: true
+                Component.onCompleted: setSource("configTimezonePage.qml", { ctx: appearancePage })
+            }
+            Loader {
+                Layout.fillWidth: true
+                active: true
+                Component.onCompleted: setSource("configSavedThemesPage.qml", { ctx: appearancePage })
             }
         }
     }
