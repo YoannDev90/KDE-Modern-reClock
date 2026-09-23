@@ -192,17 +192,13 @@ KCM.SimpleKCM {
                     }
                 } catch(e) {}
             }
+            // Initial preview (Preview tab is active by default)
+            _regeneratePreview();
         });
     }
 
-    // Refresh preview when the Preview tab becomes visible
-    onActiveTabChanged: {
-        if (activeTab === 0) regenTimer.restart();
-    }
-
-    property int activeTab: 0
-
     // ===== RESET FUNCTIONS (data-driven) =====
+    // Refresh preview when the Preview tab becomes visible
     readonly property var sectionDefaults: ({
         "day": { show: true, font: "Anurati", size: 72, spacing: 17, format: "dddd", uppercase: true, bold: false, color: "#FFFFFF" },
         "date": { show: true, font: "Poppins", size: 19, spacing: 3, format: "dd MMM yyyy", uppercase: true, bold: false, color: "#FFFFFF" },
@@ -325,56 +321,66 @@ KCM.SimpleKCM {
             id: stack
             Layout.fillWidth: true
             currentIndex: tabBar.currentIndex
-            onCurrentIndexChanged: appearancePage.activeTab = currentIndex
+            onCurrentIndexChanged: {
+                // Regenerate preview when switching back to the Preview tab
+                if (currentIndex === 0) regenTimer.restart();
+            }
 
             Loader {
                 id: previewTab
                 active: stack.currentIndex === 0
                 asynchronous: true
-                source: "configPreviewPage.qml"
-                onLoaded: item.ctx = appearancePage
+                sourceComponent: Component {
+                    configPreviewPage { ctx: appearancePage }
+                }
             }
             Loader {
                 id: globalTab
                 active: stack.currentIndex === 1
                 asynchronous: true
-                source: "configGlobalPage.qml"
-                onLoaded: item.ctx = appearancePage
+                sourceComponent: Component {
+                    configGlobalPage { ctx: appearancePage }
+                }
             }
             Loader {
                 id: dayTab
                 active: stack.currentIndex === 2
                 asynchronous: true
-                source: "configDayPage.qml"
-                onLoaded: item.ctx = appearancePage
+                sourceComponent: Component {
+                    configDayPage { ctx: appearancePage }
+                }
             }
             Loader {
                 id: dateTab
                 active: stack.currentIndex === 3
                 asynchronous: true
-                source: "configDatePage.qml"
-                onLoaded: item.ctx = appearancePage
+                sourceComponent: Component {
+                    configDatePage { ctx: appearancePage }
+                }
             }
             Loader {
                 id: timeTab
                 active: stack.currentIndex === 4
                 asynchronous: true
-                source: "configTimePage.qml"
-                onLoaded: item.ctx = appearancePage
+                sourceComponent: Component {
+                    configTimePage { ctx: appearancePage }
+                }
             }
             Loader {
                 id: timezoneTab
                 active: stack.currentIndex === 5
                 asynchronous: true
-                source: "configTimezonePage.qml"
-                onLoaded: item.ctx = appearancePage
+                sourceComponent: Component {
+                    configTimezonePage { ctx: appearancePage }
+                }
             }
             Loader {
                 id: savedThemesTab
                 active: stack.currentIndex === 6
                 asynchronous: true
-                source: "configSavedThemesPage.qml"
-                onLoaded: item.ctx = appearancePage
+                sourceComponent: Component {
+                    configSavedThemesPage { ctx: appearancePage }
+                }
             }
         }
     }
