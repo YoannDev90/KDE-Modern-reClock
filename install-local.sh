@@ -158,7 +158,7 @@ find ~/.cache -name "*.qmlc" -path "*modernreclock*" -delete 2>/dev/null || true
 # Restart is unconditional: QML/.qmlc and plugin changes are only picked up
 # by a fresh plasmashell. (--fr / -force-reload are kept as harmless no-ops.)
 echo "--- Restarting Plasmashell ---"
-plasmashell --replace & disown
+plasmashell --replace 2>&1 | ./filter-kcm-logs.sh & disown
 
 echo "--- Done! ---"
 echo "Add 'Modern reClock' from your panel."
