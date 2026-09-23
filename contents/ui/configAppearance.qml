@@ -350,9 +350,12 @@ KCM.SimpleKCM {
                 ctx: appearancePage
                 Layout.fillWidth: true
             }
-            configSavedThemesPage {
-                ctx: appearancePage
+            Loader {
+                id: savedThemesTab
                 Layout.fillWidth: true
+                active: true
+                source: "configSavedThemesPage.qml"
+                onLoaded: item.ctx = appearancePage
             }
         }
     }
