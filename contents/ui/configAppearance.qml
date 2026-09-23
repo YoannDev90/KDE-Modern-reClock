@@ -330,57 +330,50 @@ KCM.SimpleKCM {
                 id: previewTab
                 active: stack.currentIndex === 0
                 asynchronous: true
-                sourceComponent: Component {
-                    configPreviewPage { ctx: appearancePage }
-                }
+                source: "configPreviewPage.qml"
+                onLoaded: item.ctx = appearancePage
             }
             Loader {
                 id: globalTab
                 active: stack.currentIndex === 1
                 asynchronous: true
-                sourceComponent: Component {
-                    configGlobalPage { ctx: appearancePage }
-                }
+                source: "configGlobalPage.qml"
+                onLoaded: item.ctx = appearancePage
             }
             Loader {
                 id: dayTab
                 active: stack.currentIndex === 2
                 asynchronous: true
-                sourceComponent: Component {
-                    configDayPage { ctx: appearancePage }
-                }
+                source: "configDayPage.qml"
+                onLoaded: item.ctx = appearancePage
             }
             Loader {
                 id: dateTab
                 active: stack.currentIndex === 3
                 asynchronous: true
-                sourceComponent: Component {
-                    configDatePage { ctx: appearancePage }
-                }
+                source: "configDatePage.qml"
+                onLoaded: item.ctx = appearancePage
             }
             Loader {
                 id: timeTab
                 active: stack.currentIndex === 4
                 asynchronous: true
-                sourceComponent: Component {
-                    configTimePage { ctx: appearancePage }
-                }
+                source: "configTimePage.qml"
+                onLoaded: item.ctx = appearancePage
             }
             Loader {
                 id: timezoneTab
                 active: stack.currentIndex === 5
                 asynchronous: true
-                sourceComponent: Component {
-                    configTimezonePage { ctx: appearancePage }
-                }
+                source: "configTimezonePage.qml"
+                onLoaded: item.ctx = appearancePage
             }
             Loader {
                 id: savedThemesTab
                 active: stack.currentIndex === 6
                 asynchronous: true
-                sourceComponent: Component {
-                    configSavedThemesPage { ctx: appearancePage }
-                }
+                source: "configSavedThemesPage.qml"
+                onLoaded: item.ctx = appearancePage
             }
         }
     }

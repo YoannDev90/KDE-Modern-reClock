@@ -104,7 +104,8 @@ ColumnLayout {
                     }
                 }
             }
-            Component.onCompleted: {
+            onCtxChanged: {
+                if (!ctx) return;
                 Qt.callLater(function() {
                     var d = ctx.cfg_timezone_display_text || "";
                     if (d.length > 0) {
