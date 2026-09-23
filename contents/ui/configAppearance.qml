@@ -317,7 +317,7 @@ KCM.SimpleKCM {
             QQC2.TabButton { text: i18n("Saved Themes") }
         }
 
-        QQC2.StackLayout {
+        StackLayout {
             id: stack
             Layout.fillWidth: true
             currentIndex: tabBar.currentIndex
