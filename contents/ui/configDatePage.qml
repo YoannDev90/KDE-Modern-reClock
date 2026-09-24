@@ -28,19 +28,11 @@ ColumnLayout {
             onToggled: ctx.cfg_show_date = checked
         }
 
-        QQC2.ComboBox {
+        FontComboBox {
             id: dateFontCombo
-            Kirigami.FormData.label: i18n("Font:")
-            Layout.fillWidth: true
-            model: ctx.fontArray
-            currentIndex: ctx.fontIndexCache[ctx.cfg_fontFamilyDate] !== undefined ? ctx.fontIndexCache[ctx.cfg_fontFamilyDate] : 0
-            editable: true
-            onActivated: ctx.cfg_fontFamilyDate = ctx.fontArray[currentIndex]
-            onEditTextChanged: {
-                if (editText !== undefined && ctx.fontIndexCache[editText] !== undefined) {
-                    ctx.cfg_fontFamilyDate = editText;
-                }
-            }
+            ctx: datePage.ctx
+            fontKey: "cfg_fontFamilyDate"
+            configValue: ctx.cfg_fontFamilyDate
         }
 
         QQC2.SpinBox {

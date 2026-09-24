@@ -145,19 +145,11 @@ ColumnLayout {
             QQC2.ToolTip.delay: 800
         }
 
-        QQC2.ComboBox {
+        FontComboBox {
             id: timezoneFontCombo
-            Kirigami.FormData.label: i18n("Font:")
-            Layout.fillWidth: true
-            model: ctx.fontArray
-            currentIndex: ctx.fontIndexCache[ctx.cfg_fontFamilyTimezone] !== undefined ? ctx.fontIndexCache[ctx.cfg_fontFamilyTimezone] : 0
-            editable: true
-            onActivated: ctx.cfg_fontFamilyTimezone = ctx.fontArray[currentIndex]
-            onEditTextChanged: {
-                if (editText !== undefined && ctx.fontIndexCache[editText] !== undefined) {
-                    ctx.cfg_fontFamilyTimezone = editText;
-                }
-            }
+            ctx: timezonePage.ctx
+            fontKey: "cfg_fontFamilyTimezone"
+            configValue: ctx.cfg_fontFamilyTimezone
         }
 
         QQC2.SpinBox {

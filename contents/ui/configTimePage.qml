@@ -28,19 +28,11 @@ ColumnLayout {
             onToggled: ctx.cfg_show_time = checked
         }
 
-        QQC2.ComboBox {
+        FontComboBox {
             id: timeFontCombo
-            Kirigami.FormData.label: i18n("Font:")
-            Layout.fillWidth: true
-            model: ctx.fontArray
-            currentIndex: ctx.fontIndexCache[ctx.cfg_fontFamilyTime] !== undefined ? ctx.fontIndexCache[ctx.cfg_fontFamilyTime] : 0
-            editable: true
-            onActivated: ctx.cfg_fontFamilyTime = ctx.fontArray[currentIndex]
-            onEditTextChanged: {
-                if (editText !== undefined && ctx.fontIndexCache[editText] !== undefined) {
-                    ctx.cfg_fontFamilyTime = editText;
-                }
-            }
+            ctx: timePage.ctx
+            fontKey: "cfg_fontFamilyTime"
+            configValue: ctx.cfg_fontFamilyTime
         }
 
         QQC2.SpinBox {

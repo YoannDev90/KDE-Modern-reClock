@@ -95,6 +95,13 @@ KCM.SimpleKCM {
     readonly property var themeManager: ModernRecClock.ThemeManager ?? null
     property string previewImagePath: ""
 
+    // Bundled fonts are only loaded by FontLoader in the widget's main.qml;
+    // the KCM process must load them explicitly or the preview falls back.
+    property var bundledFontPaths: [
+        Qt.resolvedUrl("../fonts/Anurati.otf").toString().replace("file://", ""),
+        Qt.resolvedUrl("../fonts/Poppins.ttf").toString().replace("file://", "")
+    ]
+
     Connections {
         target: appearancePage.themeManager
         function onPreviewGenerated(outPath) {
@@ -135,7 +142,7 @@ KCM.SimpleKCM {
         var cfgJson = appearancePage.getFullConfig();
         var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
         log.info("config", "Generating preview (async)...");
-        themeManager.generatePreviewAsync(cfgJson, wpPath, -1, [], "", "");
+        themeManager.generatePreviewAsync(cfgJson, wpPath, -1, bundledFontPaths, "", "");
     }
 
     // Debounced: only fire after user stops interacting for a while

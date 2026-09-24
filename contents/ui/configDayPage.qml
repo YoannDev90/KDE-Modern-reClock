@@ -28,19 +28,11 @@ ColumnLayout {
             onToggled: ctx.cfg_show_day = checked
         }
 
-        QQC2.ComboBox {
+        FontComboBox {
             id: dayFontCombo
-            Kirigami.FormData.label: i18n("Font:")
-            Layout.fillWidth: true
-            model: ctx.fontArray
-            currentIndex: ctx.fontIndexCache[ctx.cfg_fontFamilyDay] !== undefined ? ctx.fontIndexCache[ctx.cfg_fontFamilyDay] : 0
-            editable: true
-            onActivated: ctx.cfg_fontFamilyDay = ctx.fontArray[currentIndex]
-            onEditTextChanged: {
-                if (editText !== undefined && ctx.fontIndexCache[editText] !== undefined) {
-                    ctx.cfg_fontFamilyDay = editText;
-                }
-            }
+            ctx: dayPage.ctx
+            fontKey: "cfg_fontFamilyDay"
+            configValue: ctx.cfg_fontFamilyDay
         }
 
         QQC2.SpinBox {
