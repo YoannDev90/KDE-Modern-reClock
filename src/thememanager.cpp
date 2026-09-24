@@ -1,6 +1,7 @@
 #include "thememanager.h"
 #include "mrtarchive.h"
 #include "logger.h"
+#include "previewrenderer.h"
 
 #include <QDir>
 #include <QFile>
@@ -12,10 +13,6 @@
 #include <functional>
 #include <QTimer>
 #include <QScreen>
-#include <QImage>
-#include <QPixmap>
-#include <QPainter>
-#include <QTextLayout>
 #include <QProcess>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -27,8 +24,8 @@
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QGuiApplication>
-#include <QRandomGenerator>
 #include <QDebug>
+#include <QPalette>
 #include <fontconfig/fontconfig.h>
 
 static const QString FONTS_CACHE_SUBDIR = QStringLiteral("modernreclock-fonts");
@@ -496,6 +493,9 @@ QRect ThemeManager::findWidgetGeometry()
     return {};
 }
 
+// ===== PREVIEW =====
+// Renderer lives in previewrenderer.{h,cpp} (shared by sync + async paths).
+
 QString ThemeManager::generatePreview(const QString &jsonConfig,
                                        const QString &wallpaperPath,
                                        int appletId,
@@ -508,7 +508,7 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
     QDir().mkpath(m_cacheDir + QStringLiteral("/previews"));
     QString outPath = m_cacheDir + QStringLiteral("/previews/export_preview.png");
 
-    // Load fonts before rendering
+    // Load fonts on calling (main) thread — QFontDatabase is not thread-safe
     QStringList loadedFamilies;
     for (const QString &fp : fontPaths) {
         int id = QFontDatabase::addApplicationFont(fp);
@@ -516,244 +516,25 @@ QString ThemeManager::generatePreview(const QString &jsonConfig,
         if (m_log) m_log->info("theme", QString("font load: %1 id:%2 families:[%3]").arg(fp).arg(id).arg(families.join(", ")));
         loadedFamilies.append(families);
     }
-    if (m_log) m_log->info("theme", QString("all loaded families: [%1]").arg(loadedFamilies.join(", ")));
 
-    auto resolveFamily = [&](const QString &configName) -> QString {
-        if (configName.isEmpty()) return {};
-        if (loadedFamilies.contains(configName)) return configName;
-        QString lower = configName.toLower();
-        for (const QString &f : loadedFamilies) {
-            if (f.toLower() == lower || f.toLower().contains(lower) || lower.contains(f.toLower()))
-                return f;
-        }
-        return configName;
-    };
-
-    QJsonDocument doc = QJsonDocument::fromJson(jsonConfig.toUtf8());
-    if (doc.isNull() || !doc.isObject()) {
-        if (m_log) m_log->info("theme", "ERROR: invalid config JSON");
-        return fallbackPreview(outPath);
-    }
-    QJsonObject cfg = doc.object();
-
-    // Log ALL config values
-    if (m_log) {
-        for (const QString &key : cfg.keys()) {
-            m_log->info("theme", QString("cfg[%1] = %2").arg(key).arg(cfg[key].toVariant().toString().left(50)));
-        }
-    }
-
-    // Load wallpaper full resolution
-    QImage canvas;
-    if (QFile::exists(wallpaperPath)) {
-        canvas = QImage(wallpaperPath);
-        if (m_log) m_log->info("theme", QString("wallpaper: %1x%2 bytes=%3").arg(canvas.width()).arg(canvas.height()).arg(canvas.sizeInBytes()));
-    }
-    if (canvas.isNull()) {
-        canvas = QImage(1920, 1080, QImage::Format_ARGB32);
-        canvas.fill(QColor(42, 42, 50));
-        if (m_log) m_log->info("theme", "wallpaper: FALLBACK 1920x1080");
-    }
-
-    // Scale factor
     QScreen *screen = QGuiApplication::primaryScreen();
-    double scaleX = 1.0, scaleY = 1.0;
-    if (screen && !canvas.isNull()) {
-        QSize screenSize = screen->size();
-        scaleX = (double)canvas.width() / screenSize.width();
-        scaleY = (double)canvas.height() / screenSize.height();
-        if (m_log) m_log->info("theme", QString("screen: %1x%2 dpr=%3 scale: %4x%5").arg(screenSize.width()).arg(screenSize.height()).arg(screen->devicePixelRatio()).arg(scaleX, 0, 'f', 4).arg(scaleY, 0, 'f', 4));
-    }
-
-    // Widget geometry
-    QRect widgetRect = findWidgetGeometry();
-    if (m_log) m_log->info("theme", QString("widget screen: x=%1 y=%2 w=%3 h=%4 valid=%5").arg(widgetRect.x()).arg(widgetRect.y()).arg(widgetRect.width()).arg(widgetRect.height()).arg(widgetRect.isValid()));
-
-    // Widget on wallpaper
-    int wpX = widgetRect.isValid() ? qRound(widgetRect.x() * scaleX) : 0;
-    int wpY = widgetRect.isValid() ? qRound(widgetRect.y() * scaleY) : 0;
-    int wpW = widgetRect.isValid() ? qRound(widgetRect.width() * scaleX) : canvas.width();
-    int wpH = widgetRect.isValid() ? qRound(widgetRect.height() * scaleY) : canvas.height();
-    if (m_log) m_log->info("theme", QString("widget wallpaper: x=%1 y=%2 w=%3 h=%4").arg(wpX).arg(wpY).arg(wpW).arg(wpH));
-
-    // Element order
-    QString orderStr = cfg.value(QStringLiteral("element_order")).toString(QStringLiteral("day,date,time,timezone"));
-    QStringList order = orderStr.split(',');
-    if (m_log) m_log->info("theme", QString("element_order: %1").arg(orderStr));
-
-    // Config spacing
-    int configSpacing = qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
-    if (m_log) m_log->info("theme", QString("widget_spacing: %1").arg(configSpacing));
-
-    // Parse elements
-    struct ClockElement {
-        bool visible;
-        int configSize;
-        int letterSpacing;
-        bool bold;
-        QColor color;
-        QString family;
-        QString sampleText;
-    };
-    QMap<QString, ClockElement> elements;
-
-    auto addElement = [&](const QString &name, const QString &fontKey, int defaultSize, const QString &sample) {
-        ClockElement e;
-        e.visible = cfg.value(QStringLiteral("show_") + name).toBool(true);
-        e.family = cfg.value(QStringLiteral("fontFamily") + fontKey).toString();
-        e.configSize = qRound(cfg.value(name + QStringLiteral("_font_size")).toDouble(defaultSize));
-        e.letterSpacing = qRound(cfg.value(name + QStringLiteral("_letter_spacing")).toDouble(0));
-        e.bold = cfg.value(name + QStringLiteral("_font_bold")).toBool(false);
-        e.color = QColor(cfg.value(name + QStringLiteral("_font_color")).toString(QStringLiteral("#FFFFFF")));
-        if (!e.color.isValid()) e.color = Qt::white;
-        e.sampleText = sample.toUpper(); // Always uppercase
-        elements.insert(name, e);
-        if (m_log) m_log->info("theme", QString("element %1: show=%2 family=%3 size=%4 ls=%5 bold=%6 color=%7 text='%8'")
-            .arg(name).arg(e.visible).arg(e.family).arg(e.configSize).arg(e.letterSpacing)
-            .arg(e.bold).arg(e.color.name()).arg(e.sampleText.left(20)));
-    };
-
-    // Generate random date/time (no user timing info)
-    QDateTime now;
-    if (!customDate.isEmpty()) {
-        now = QDateTime::fromString(customDate, Qt::ISODate);
-    }
-    if (!now.isValid()) {
-        QRandomGenerator *rng = QRandomGenerator::global();
-        int year = 2024 + rng->bounded(5);
-        int month = 1 + rng->bounded(12);
-        int day = 1 + rng->bounded(28);
-        int hour = rng->bounded(24);
-        int min = rng->bounded(60);
-        int sec = rng->bounded(60);
-        now = QDateTime(QDate(year, month, day), QTime(hour, min, sec));
-    }
-    QLocale locale(cfg.value(QStringLiteral("locale")).toString(QStringLiteral("en_US")));
-    QString dateFormat = cfg.value(QStringLiteral("date_format")).toString(QStringLiteral("dd MMM yyyy"));
-    QString timeFormat = cfg.value(QStringLiteral("time_format")).toString(QStringLiteral("HH:mm:ss"));
-    QString timeChar = cfg.value(QStringLiteral("time_character")).toString();
-
-    addElement(QStringLiteral("day"), QStringLiteral("Day"), 72,
-               customDayName.isEmpty() ? locale.toString(now.date(), QStringLiteral("dddd")) : customDayName);
-    addElement(QStringLiteral("date"), QStringLiteral("Date"), 19, locale.toString(now.date(), dateFormat));
-    QString timeSample = locale.toString(now.time(), timeFormat);
-    if (!timeChar.trimmed().isEmpty()) timeSample = timeChar + QStringLiteral(" ") + timeSample + QStringLiteral(" ") + timeChar;
-    addElement(QStringLiteral("time"), QStringLiteral("Time"), 19, timeSample);
-    QString tzText = cfg.value(QStringLiteral("timezone_display_text")).toString();
-    if (tzText.isEmpty()) tzText = cfg.value(QStringLiteral("timezone_label")).toString();
-    if (tzText.isEmpty()) tzText = QStringLiteral("UTC+8:00");
-    addElement(QStringLiteral("timezone"), QStringLiteral("Timezone"), 14, tzText);
-
-    // Measure natural text
-    if (m_log) m_log->info("theme", "--- measuring natural text ---");
-    int naturalWidth = 0;
-    int naturalHeight = 0;
-    for (const QString &el : order) {
-        if (!elements.contains(el)) continue;
-        auto &e = elements[el];
-        if (!e.visible) continue;
-
-        QString resolvedFam = resolveFamily(e.family);
-        QFont mf;
-        if (!resolvedFam.isEmpty()) mf = QFont(resolvedFam, qMax(8, e.configSize));
-        else mf = QFont(QStringLiteral("sans-serif"), qMax(8, e.configSize));
-        mf.setPixelSize(qMax(8, e.configSize));
-        mf.setBold(e.bold);
-        if (e.letterSpacing != 0) mf.setLetterSpacing(QFont::AbsoluteSpacing, e.letterSpacing);
-
-        QTextLayout layout(e.sampleText, mf);
-        layout.beginLayout();
-        QTextLine line = layout.createLine();
-        layout.endLayout();
-        int tw = qCeil(line.naturalTextWidth());
-        QFontMetrics fm(mf);
-        int th = fm.height();
-        if (tw > naturalWidth) naturalWidth = tw;
-        naturalHeight += th;
-        if (m_log) m_log->info("theme", QString("  %1: text='%2' tw=%3 th=%4 fam=%5 px=%6 bold=%7 ls=%8")
-            .arg(el, e.sampleText.left(25)).arg(tw).arg(th)
-            .arg(resolvedFam).arg(e.configSize).arg(e.bold).arg(e.letterSpacing));
-    }
-    naturalHeight += configSpacing * qMax(0, order.count() - 1);
-    if (m_log) m_log->info("theme", QString("natural TOTAL: %1x%2 (spacing=%3 x %4)").arg(naturalWidth).arg(naturalHeight).arg(configSpacing).arg(order.count() - 1));
-
-    // Auto-scale
-    double widgetFontScale = 1.0;
-    if (naturalWidth > 0 && naturalHeight > 0 && widgetRect.isValid()) {
-        double sw = widgetRect.width() - 16;
-        double sh = widgetRect.height() - 16;
-        widgetFontScale = qMin(sw / naturalWidth, sh / naturalHeight);
-        if (m_log) m_log->info("theme", QString("autoscale: sw=%1 sh=%2 natW=%3 natH=%4 → %5").arg(sw).arg(sh).arg(naturalWidth).arg(naturalHeight).arg(widgetFontScale, 0, 'f', 4));
-    }
-    double finalScale = widgetFontScale * scaleX;
-    if (m_log) m_log->info("theme", QString("finalScale: %1 * %2 = %3").arg(widgetFontScale, 0, 'f', 4).arg(scaleX, 0, 'f', 4).arg(finalScale, 0, 'f', 4));
-
-    // Render
-    if (m_log) m_log->info("theme", "--- rendering ---");
-    QPainter p(&canvas);
-    p.setRenderHint(QPainter::TextAntialiasing);
-    p.setRenderHint(QPainter::Antialiasing);
-
-    int totalRenderedHeight = 0;
-    for (const QString &el : order) {
-        if (!elements.contains(el)) continue;
-        auto &e = elements[el];
-        if (!e.visible) continue;
-        totalRenderedHeight += qMax(8, qRound(e.configSize * finalScale));
-    }
-    totalRenderedHeight += qRound(configSpacing * finalScale) * qMax(0, order.count() - 1);
-    int y = wpY + qMax(0, (wpH - totalRenderedHeight) / 2);
-    if (m_log) m_log->info("theme", QString("totalH=%1 centerY=%2 startY=%3").arg(totalRenderedHeight).arg(wpH / 2).arg(y));
-
-    for (const QString &el : order) {
-        if (!elements.contains(el)) continue;
-        auto &e = elements[el];
-        if (!e.visible) continue;
-
-        int scaledSize = qMax(8, qRound(e.configSize * finalScale));
-        int scaledSpacing = qRound(e.letterSpacing * finalScale);
-        int scaledElemSpacing = qRound(configSpacing * finalScale);
-
-        QString resolvedFamily = resolveFamily(e.family);
-        QFont f;
-        if (!resolvedFamily.isEmpty()) f = QFont(resolvedFamily, qMax(8, scaledSize));
-        else f = QFont(QStringLiteral("sans-serif"), qMax(8, scaledSize));
-        f.setPixelSize(qMax(8, scaledSize));
-        f.setBold(e.bold);
-        if (scaledSpacing != 0) f.setLetterSpacing(QFont::AbsoluteSpacing, scaledSpacing);
-
-        p.setFont(f);
-        p.setPen(e.color);
-        QFontMetrics fm = p.fontMetrics();
-        int textWidth = fm.horizontalAdvance(e.sampleText);
-        int textX = wpX + qMax(0, (wpW - textWidth) / 2);
-        int textH = fm.height();
-
-        if (m_log) m_log->info("theme", QString("  DRAW %1: x=%2 y=%3 w=%4 h=%5 size=%6 ls=%7 text='%8'")
-            .arg(el).arg(textX).arg(y).arg(textWidth).arg(textH)
-            .arg(scaledSize).arg(scaledSpacing).arg(e.sampleText.left(15)));
-        p.drawText(QRect(textX, y, textWidth + 10, textH), Qt::AlignLeft | Qt::AlignVCenter, e.sampleText);
-        y += scaledSize + scaledElemSpacing;
-    }
-
-    p.end();
-    canvas.save(outPath, "PNG");
-    qint64 size = QFileInfo(outPath).size();
-    if (m_log) m_log->info("theme", QString("=== saved: %1 bytes=%2 ===").arg(outPath).arg(size));
-    return outPath;
+    PreviewParams params;
+    params.jsonConfig = jsonConfig;
+    params.wallpaperPath = wallpaperPath;
+    params.screenSize = screen ? screen->size() : QSize(1920, 1080);
+    params.widgetRect = findWidgetGeometry();
+    params.loadedFamilies = loadedFamilies;
+    params.themeTextColor = QGuiApplication::palette().color(QPalette::WindowText);
+    params.outPath = outPath;
+    params.customDate = customDate;
+    params.customDayName = customDayName;
+    params.log = m_log;
+    return renderPreviewImage(params);
 }
 
 QString ThemeManager::fallbackPreview(const QString &outPath)
 {
-    QPixmap fb(400, 225);
-    fb.fill(QColor(42, 42, 50));
-    QPainter p(&fb);
-    p.setPen(Qt::white);
-    p.setFont(QFont(QStringLiteral("sans-serif"), 12));
-    p.drawText(fb.rect(), Qt::AlignCenter, QStringLiteral("Preview"));
-    p.end();
-    fb.toImage().save(outPath, "PNG");
-    return outPath;
+    return writeFallbackPreview(outPath);
 }
 
 void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
@@ -774,6 +555,7 @@ void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
         return;
     }
     m_previewBusy = true;
+
     // Pre-load fonts on main thread (QFontDatabase is not thread-safe)
     QStringList loadedFamilies;
     for (const QString &fp : fontPaths) {
@@ -781,222 +563,55 @@ void ThemeManager::generatePreviewAsync(const QString &jsonConfig,
         loadedFamilies.append(QFontDatabase::applicationFontFamilies(id));
     }
 
-    // Capture screen info on main thread (QGuiApplication::primaryScreen not thread-safe)
+    // Capture thread-unsafe state on main thread
     QScreen *screen = QGuiApplication::primaryScreen();
     QSize screenSize = screen ? screen->size() : QSize(1920, 1080);
-    double dpr = screen ? screen->devicePixelRatio() : 1.0;
-
-    // Capture widget geometry on main thread
     QRect widgetRect = findWidgetGeometry();
+    QColor themeTextColor = QGuiApplication::palette().color(QPalette::WindowText);
 
     QString cacheDir = m_cacheDir;
     Logger *log = m_log;
     QPointer<ThemeManager> guard(this);
 
-    [[maybe_unused]] auto future = QtConcurrent::run([guard, jsonConfig, wallpaperPath, loadedFamilies, screenSize, dpr,
-                        widgetRect, cacheDir, log, customDate, customDayName]() {
-        if (!guard) return;
-        QDir().mkpath(cacheDir + QStringLiteral("/previews"));
-        QString outPath = cacheDir + QStringLiteral("/previews/export_preview.png");
+    [[maybe_unused]] auto future = QtConcurrent::run(
+        [guard, jsonConfig, wallpaperPath, loadedFamilies, screenSize, widgetRect,
+         cacheDir, log, customDate, customDayName, themeTextColor]() {
+            if (!guard) return;
+            QDir().mkpath(cacheDir + QStringLiteral("/previews"));
 
-        auto resolveFamily = [&](const QString &configName) -> QString {
-            if (configName.isEmpty()) return {};
-            if (loadedFamilies.contains(configName)) return configName;
-            QString lower = configName.toLower();
-            for (const QString &f : loadedFamilies) {
-                if (f.toLower() == lower || f.toLower().contains(lower) || lower.contains(f.toLower()))
-                    return f;
-            }
-            return configName;
-        };
+            PreviewParams params;
+            params.jsonConfig = jsonConfig;
+            params.wallpaperPath = wallpaperPath;
+            params.screenSize = screenSize;
+            params.widgetRect = widgetRect;
+            params.loadedFamilies = loadedFamilies;
+            params.themeTextColor = themeTextColor;
+            params.outPath = cacheDir + QStringLiteral("/previews/export_preview.png");
+            params.customDate = customDate;
+            params.customDayName = customDayName;
+            params.log = log;
 
-        QJsonDocument doc = QJsonDocument::fromJson(jsonConfig.toUtf8());
-        if (doc.isNull() || !doc.isObject()) {
-            if (log) log->info("theme", "ERROR: invalid config JSON");
+            const QString outPath = renderPreviewImage(params);
+            if (guard) emit guard->previewGenerated(outPath);
+
+            // Drain pending request on main thread
             if (guard) {
-                guard->fallbackPreview(outPath);
-                if (guard) emit guard->previewGenerated(outPath);
-                if (guard) {
-                    QMetaObject::invokeMethod(guard, [guard]() {
-                        if (!guard) return; // ThemeManager destroyed; drop pending work
-                        guard->m_previewBusy = false;
-                        if (!guard->m_pendingPreviewConfig.isEmpty()) {
-                            QString cfg = guard->m_pendingPreviewConfig;
-                            QString wp = guard->m_pendingPreviewWp;
-                            int aid = guard->m_pendingPreviewAppletId;
-                            QStringList fonts = guard->m_pendingPreviewFonts;
-                            QString date = guard->m_pendingPreviewDate;
-                            QString day = guard->m_pendingPreviewDay;
-                            guard->m_pendingPreviewConfig.clear();
-                            guard->generatePreviewAsync(cfg, wp, aid, fonts, date, day);
-                        }
-                    }, Qt::QueuedConnection);
-                }
+                QMetaObject::invokeMethod(guard, [guard]() {
+                    if (!guard) return; // ThemeManager destroyed; drop pending work
+                    guard->m_previewBusy = false;
+                    if (!guard->m_pendingPreviewConfig.isEmpty()) {
+                        QString cfg = guard->m_pendingPreviewConfig;
+                        QString wp = guard->m_pendingPreviewWp;
+                        int aid = guard->m_pendingPreviewAppletId;
+                        QStringList fonts = guard->m_pendingPreviewFonts;
+                        QString date = guard->m_pendingPreviewDate;
+                        QString day = guard->m_pendingPreviewDay;
+                        guard->m_pendingPreviewConfig.clear();
+                        guard->generatePreviewAsync(cfg, wp, aid, fonts, date, day);
+                    }
+                }, Qt::QueuedConnection);
             }
-            return;
-        }
-        QJsonObject cfg = doc.object();
-
-        // Load wallpaper
-        QImage canvas;
-        if (QFile::exists(wallpaperPath))
-            canvas = QImage(wallpaperPath);
-        if (canvas.isNull()) {
-            canvas = QImage(1920, 1080, QImage::Format_ARGB32);
-            canvas.fill(QColor(42, 42, 50));
-        }
-
-        // Scale factor
-        double scaleX = 1.0, scaleY = 1.0;
-        if (!canvas.isNull()) {
-            scaleX = (double)canvas.width() / screenSize.width();
-            scaleY = (double)canvas.height() / screenSize.height();
-        }
-
-        // Widget on wallpaper
-        int wpX = widgetRect.isValid() ? qRound(widgetRect.x() * scaleX) : 0;
-        int wpY = widgetRect.isValid() ? qRound(widgetRect.y() * scaleY) : 0;
-        int wpW = widgetRect.isValid() ? qRound(widgetRect.width() * scaleX) : canvas.width();
-        int wpH = widgetRect.isValid() ? qRound(widgetRect.height() * scaleY) : canvas.height();
-
-        // Element order
-        QString orderStr = cfg.value(QStringLiteral("element_order")).toString(QStringLiteral("day,date,time,timezone"));
-        QStringList order = orderStr.split(',');
-        int configSpacing = qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5));
-
-        // Parse elements
-        struct ClockElement {
-            bool visible; int configSize; int letterSpacing;
-            bool bold; QColor color; QString family; QString sampleText;
-        };
-        QMap<QString, ClockElement> elements;
-
-        auto addElement = [&](const QString &name, const QString &fontKey, int defaultSize, const QString &sample) {
-            ClockElement e;
-            e.visible = cfg.value(QStringLiteral("show_") + name).toBool(true);
-            e.family = cfg.value(QStringLiteral("fontFamily") + fontKey).toString();
-            e.configSize = qRound(cfg.value(name + QStringLiteral("_font_size")).toDouble(defaultSize));
-            e.letterSpacing = qRound(cfg.value(name + QStringLiteral("_letter_spacing")).toDouble(0));
-            e.bold = cfg.value(name + QStringLiteral("_font_bold")).toBool(false);
-            e.color = QColor(cfg.value(name + QStringLiteral("_font_color")).toString(QStringLiteral("#FFFFFF")));
-            if (!e.color.isValid()) e.color = Qt::white;
-            e.sampleText = sample.toUpper();
-            elements.insert(name, e);
-        };
-
-        QDateTime now;
-        if (!customDate.isEmpty())
-            now = QDateTime::fromString(customDate, Qt::ISODate);
-        if (!now.isValid()) {
-            QRandomGenerator *rng = QRandomGenerator::global();
-            now = QDateTime(QDate(2024 + rng->bounded(5), 1 + rng->bounded(12), 1 + rng->bounded(28)),
-                            QTime(rng->bounded(24), rng->bounded(60), rng->bounded(60)));
-        }
-        QLocale locale(cfg.value(QStringLiteral("locale")).toString(QStringLiteral("en_US")));
-        QString dateFormat = cfg.value(QStringLiteral("date_format")).toString(QStringLiteral("dd MMM yyyy"));
-        QString timeFormat = cfg.value(QStringLiteral("time_format")).toString(QStringLiteral("HH:mm:ss"));
-        QString timeChar = cfg.value(QStringLiteral("time_character")).toString();
-
-        addElement(QStringLiteral("day"), QStringLiteral("Day"), 72,
-                   customDayName.isEmpty() ? locale.toString(now.date(), QStringLiteral("dddd")) : customDayName);
-        addElement(QStringLiteral("date"), QStringLiteral("Date"), 19, locale.toString(now.date(), dateFormat));
-        QString timeSample = locale.toString(now.time(), timeFormat);
-        if (!timeChar.trimmed().isEmpty()) timeSample = timeChar + QStringLiteral(" ") + timeSample + QStringLiteral(" ") + timeChar;
-        addElement(QStringLiteral("time"), QStringLiteral("Time"), 19, timeSample);        QString tzText = cfg.value(QStringLiteral("timezone_display_text")).toString();
-        if (tzText.isEmpty()) tzText = cfg.value(QStringLiteral("timezone_label")).toString();
-        if (tzText.isEmpty()) tzText = QStringLiteral("UTC+8:00");
-        addElement(QStringLiteral("timezone"), QStringLiteral("Timezone"), 14, tzText);
-
-        // Measure natural text
-        int naturalWidth = 0, naturalHeight = 0;
-        for (const QString &el : order) {
-            if (!elements.contains(el)) continue;
-            auto &e = elements[el];
-            if (!e.visible) continue;
-            QString resolvedFam = resolveFamily(e.family);
-            QFont mf(!resolvedFam.isEmpty() ? resolvedFam : QStringLiteral("sans-serif"), qMax(8, e.configSize));
-            mf.setPixelSize(qMax(8, e.configSize));
-            mf.setBold(e.bold);
-            if (e.letterSpacing != 0) mf.setLetterSpacing(QFont::AbsoluteSpacing, e.letterSpacing);
-            QTextLayout layout(e.sampleText, mf);
-            layout.beginLayout();
-            QTextLine line = layout.createLine();
-            layout.endLayout();
-            int tw = qCeil(line.naturalTextWidth());
-            QFontMetrics fm(mf);
-            if (tw > naturalWidth) naturalWidth = tw;
-            naturalHeight += fm.height();
-        }
-        naturalHeight += configSpacing * qMax(0, order.count() - 1);
-
-        // Auto-scale
-        double widgetFontScale = 1.0;
-        if (naturalWidth > 0 && naturalHeight > 0 && widgetRect.isValid()) {
-            double sw = widgetRect.width() - 16;
-            double sh = widgetRect.height() - 16;
-            widgetFontScale = qMin(sw / naturalWidth, sh / naturalHeight);
-        }
-        double finalScale = widgetFontScale * scaleX;
-
-        // Render
-        QPainter p(&canvas);
-        p.setRenderHint(QPainter::TextAntialiasing);
-        p.setRenderHint(QPainter::Antialiasing);
-
-        int totalRenderedHeight = 0;
-        for (const QString &el : order) {
-            if (!elements.contains(el)) continue;
-            auto &e = elements[el];
-            if (!e.visible) continue;
-            totalRenderedHeight += qMax(8, qRound(e.configSize * finalScale));
-        }
-        totalRenderedHeight += qRound(configSpacing * finalScale) * qMax(0, order.count() - 1);
-        int y = wpY + qMax(0, (wpH - totalRenderedHeight) / 2);
-
-        for (const QString &el : order) {
-            if (!elements.contains(el)) continue;
-            auto &e = elements[el];
-            if (!e.visible) continue;
-            int scaledSize = qMax(8, qRound(e.configSize * finalScale));
-            int scaledSpacing = qRound(e.letterSpacing * finalScale);
-            int scaledElemSpacing = qRound(configSpacing * finalScale);
-            QString resolvedFamily = resolveFamily(e.family);
-            QFont f(!resolvedFamily.isEmpty() ? resolvedFamily : QStringLiteral("sans-serif"), qMax(8, scaledSize));
-            f.setPixelSize(qMax(8, scaledSize));
-            f.setBold(e.bold);
-            if (scaledSpacing != 0) f.setLetterSpacing(QFont::AbsoluteSpacing, scaledSpacing);
-            p.setFont(f);
-            p.setPen(e.color);
-            QFontMetrics fm = p.fontMetrics();
-            int textWidth = fm.horizontalAdvance(e.sampleText);
-            int textX = wpX + qMax(0, (wpW - textWidth) / 2);
-            int textH = fm.height();
-            p.drawText(QRect(textX, y, textWidth + 10, textH), Qt::AlignLeft | Qt::AlignVCenter, e.sampleText);
-            y += scaledSize + scaledElemSpacing;
-        }
-
-        p.end();
-        canvas.save(outPath, "PNG");
-        if (guard) emit guard->previewGenerated(outPath);
-
-        // Drain pending request on main thread
-        if (guard) {
-            QMetaObject::invokeMethod(guard, [guard]() {
-                if (!guard) return; // ThemeManager destroyed; drop pending work
-                guard->m_previewBusy = false;
-                if (!guard->m_pendingPreviewConfig.isEmpty()) {
-                    QString cfg = guard->m_pendingPreviewConfig;
-                    QString wp = guard->m_pendingPreviewWp;
-                    int aid = guard->m_pendingPreviewAppletId;
-                    QStringList fonts = guard->m_pendingPreviewFonts;
-                    QString date = guard->m_pendingPreviewDate;
-                    QString day = guard->m_pendingPreviewDay;
-                    guard->m_pendingPreviewConfig.clear();
-                    guard->generatePreviewAsync(cfg, wp, aid, fonts, date, day);
-                }
-            }, Qt::QueuedConnection);
-        }
-    });
+        });
 }
 
 // ===== FONT PERSISTENCE =====

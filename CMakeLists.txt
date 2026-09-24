@@ -33,6 +33,7 @@ add_library(${PLUGIN_NAME} MODULE
     src/wallpaperconfig.cpp
     src/logger.cpp
     src/thememanager.cpp
+    src/previewrenderer.cpp
     src/mrtarchive.cpp
     src/fonthelper.cpp
     src/clockmodel.cpp
