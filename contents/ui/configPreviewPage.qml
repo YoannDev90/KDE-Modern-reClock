@@ -8,6 +8,8 @@ ColumnLayout {
     id: previewPage
     property var ctx: null
 
+    Layout.fillWidth: true
+    Layout.fillHeight: true
     spacing: Kirigami.Units.largeSpacing
 
     // C++ plugin warning banner
@@ -91,12 +93,12 @@ ColumnLayout {
         Layout.fillWidth: true
     }
 
-    // Centered preview — fixed 350px height, 16:9 width
+    // Centered preview — fills available height, keeps 16:9 ratio
     Rectangle {
         id: previewFrame
         Layout.fillWidth: true
-        Layout.preferredHeight: 350
-        Layout.maximumWidth: 350 * 16 / 9
+        Layout.fillHeight: true
+        Layout.maximumWidth: parent.width * 0.9
         Layout.alignment: Qt.AlignHCenter
         color: "#2a2a2a"
         border.color: "#555"
@@ -106,9 +108,7 @@ ColumnLayout {
 
         Image {
             id: previewImage
-            anchors.centerIn: parent
-            width: Math.min(parent.width - Kirigami.Units.gridUnit, 350 * 16 / 9)
-            height: parent.height
+            anchors.fill: parent
             fillMode: Image.PreserveAspectFit
             source: ctx ? ctx.previewImagePath : ""
             onStatusChanged: {
