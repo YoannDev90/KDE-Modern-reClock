@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 set -e
 
-cd "$(dirname "$0")"
+# Resolve plasmoid root: the script may live at the root (release zip) or in
+# scripts/ (git checkout) — cd to whichever dir holds metadata.json.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/metadata.json" ]; then
+    cd "$SCRIPT_DIR"
+elif [ -f "$SCRIPT_DIR/../metadata.json" ]; then
+    cd "$SCRIPT_DIR/.."
+else
+    echo "Error: plasmoid root (metadata.json) not found near $SCRIPT_DIR" >&2
+    exit 1
+fi
 
 # ---- Helpers ----
 detect_qml_dir() {
@@ -158,7 +168,13 @@ find ~/.cache -name "*.qmlc" -path "*modernreclock*" -delete 2>/dev/null || true
 # Restart is unconditional: QML/.qmlc and plugin changes are only picked up
 # by a fresh plasmashell. (--fr / -force-reload are kept as harmless no-ops.)
 echo "--- Restarting Plasmashell ---"
-plasmashell --replace 2>&1 | ./filter-kcm-logs.sh & disown
+FILTER_LOG="./filter-kcm-logs.sh"
+[ -f "$FILTER_LOG" ] || FILTER_LOG="scripts/filter-kcm-logs.sh"
+if [ -f "$FILTER_LOG" ]; then
+    plasmashell --replace 2>&1 | "$FILTER_LOG" & disown
+else
+    plasmashell --replace & disown
+fi
 
 echo "--- Done! ---"
 echo "Add 'Modern reClock' from your panel."

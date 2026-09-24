@@ -2,9 +2,9 @@
 cmake = "latest"
 
 [tasks.clear-qmlcache]
-run = "rm -rf /contents/ui/*.qmlc"
+run = "rm -rf contents/ui/*.qmlc"
 description = "Clear QML cache and compiled QML files"
 
 [tasks.build]
-run = "./install-local.sh"
+run = "scripts/install-local.sh"
 description = "Install local build"

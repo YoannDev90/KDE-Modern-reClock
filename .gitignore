@@ -1,4 +1,6 @@
 *.plasmoid
+*.so
+qmldir
 *.bak
 *.swp
 *~

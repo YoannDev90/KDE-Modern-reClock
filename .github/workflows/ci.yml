@@ -50,7 +50,7 @@ jobs:
               MISSING=$((MISSING + 1))
             fi
           done
-          for f in install-local.sh install-dist.sh translate/build.sh translate/merge.sh; do
+          for f in scripts/install-local.sh scripts/build-plasmoid.sh translate/build.sh translate/merge.sh; do
             if [ -f "$f" ]; then
               if [ -x "$f" ]; then
                 echo "  ✓ $f (executable)" >> "$LOG"

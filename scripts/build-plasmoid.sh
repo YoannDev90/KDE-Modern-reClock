@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")"
+# Resolve plasmoid root: the script may live at the root or in scripts/.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/metadata.json" ]; then
+    cd "$SCRIPT_DIR"
+elif [ -f "$SCRIPT_DIR/../metadata.json" ]; then
+    cd "$SCRIPT_DIR/.."
+else
+    echo "Error: plasmoid root (metadata.json) not found near $SCRIPT_DIR" >&2
+    exit 1
+fi
 
 # ---- Defaults ----
 WITH_PLUGIN=true
