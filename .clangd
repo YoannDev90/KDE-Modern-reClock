@@ -1,0 +1,14 @@
+# Point clangd at the CMake compilation database (generated with
+# CMAKE_EXPORT_COMPILE_COMMANDS). Without this, clangd falls back to a bare
+# `clang` command with no Qt/KDE include paths and reports ~100 bogus errors.
+CompileFlags:
+  CompilationDatabase: build
+  # GCC-only flag produced by the toolchain; clang/clangd rejects it.
+  Remove: [-mno-direct-extern-access]
+
+Diagnostics:
+  # Qt headers trip IncludeCleaner ("Failed to get an entry for resolved
+  # path ..."); those are noise, not real unused-include findings.
+  Suppress:
+    - unused-includes
+    - missing-includes

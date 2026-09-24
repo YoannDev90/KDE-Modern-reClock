@@ -5,6 +5,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
+# Emit build/compile_commands.json so clangd/IDEs get real flags (Qt includes,
+# defines, moc paths) instead of falling back to a bare `clang` invocation.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 include(GNUInstallDirs)
 
 # Qt 6
