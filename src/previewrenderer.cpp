@@ -61,30 +61,63 @@ QColor wallpaperDerivedTextColor(const QImage &canvas)
     return brightness < 0.5 ? QColor(Qt::white) : QColor(Qt::black);
 }
 
-// Mirrors ClockModel::timezoneText / timezoneTimeFormat.
-// Ignores timezone_display_text (UI ComboBox only).
-QString timezoneSampleText(const QDateTime &now, const QJsonObject &cfg, const QString &timeFormat)
+// Mirrors ClockModel::timezoneLineText / timezoneTimeFormat.
+// Returns {day, date, time} samples — "" when the line is hidden or the zone
+// is unset. Ignores timezone_display_text (UI ComboBox only).
+QStringList timezoneSamples(const QDateTime &now, const QJsonObject &cfg, const QString &timeFormat)
 {
+    QStringList out{QString(), QString(), QString()};
     QString tzId = cfg.value(QStringLiteral("timezone_id")).toString();
     if (tzId.isEmpty())
-        return {};
-    QString label = cfg.value(QStringLiteral("timezone_label")).toString();
+        return out;
 
-    QString tzFmt = timeFormat;
-    tzFmt.remove(QRegularExpression(QStringLiteral("[sz]{1,3}")));
-    tzFmt.remove(QRegularExpression(QStringLiteral("[:\\s.]+$")));
-    if (tzFmt.trimmed().isEmpty()) {
-        tzFmt = cfg.value(QStringLiteral("use_24_hour_format")).toBool()
-            ? QStringLiteral("HH:mm") : QStringLiteral("hh:mm");
-    }
+    // timezone_locale empty → follow the main locale (same rule as ClockModel).
+    QString locStr = cfg.value(QStringLiteral("timezone_locale")).toString().trimmed();
+    if (locStr.isEmpty())
+        locStr = cfg.value(QStringLiteral("locale")).toString().trimmed();
+    QLocale loc = locStr.isEmpty()
+        ? QLocale()
+        : QLocale(QString(locStr).replace(QLatin1Char('-'), QLatin1Char('_')));
 
     QTimeZone tz(tzId.toUtf8());
-    QString formatted;
-    if (tz.isValid())
-        formatted = now.toTimeZone(tz).toString(tzFmt);
-    if (formatted.isEmpty())
-        formatted = QStringLiteral("??");
-    return label.isEmpty() ? formatted : label + QStringLiteral(" ") + formatted;
+    QDateTime zoned = tz.isValid() ? now.toTimeZone(tz) : QDateTime();
+
+    if (zoned.isValid()) {
+        if (cfg.value(QStringLiteral("timezone_show_day")).toBool()) {
+            QString fmt = cfg.value(QStringLiteral("timezone_day_format")).toString().trimmed();
+            if (fmt.isEmpty()) fmt = QStringLiteral("dddd");
+            QString text = loc.toString(zoned, fmt);
+            if (text.isEmpty()) text = QLocale().toString(zoned, fmt);
+            if (cfg.value(QStringLiteral("timezone_uppercase_day")).toBool(true))
+                text = text.toUpper();
+            out[0] = text;
+        }
+        if (cfg.value(QStringLiteral("timezone_show_date")).toBool()) {
+            QString fmt = cfg.value(QStringLiteral("timezone_date_format")).toString().trimmed();
+            if (fmt.isEmpty()) fmt = QStringLiteral("dd MMM yyyy");
+            QString text = loc.toString(zoned, fmt);
+            if (text.isEmpty()) text = QLocale().toString(zoned, fmt);
+            if (cfg.value(QStringLiteral("timezone_uppercase_date")).toBool(true))
+                text = text.toUpper();
+            out[1] = text;
+        }
+    }
+    if (cfg.value(QStringLiteral("timezone_show_time")).toBool(true)) {
+        QString tzFmt = cfg.value(QStringLiteral("timezone_format")).toString().trimmed();
+        if (tzFmt.isEmpty()) {
+            // Legacy derivation (pre timezone_format key): strip seconds.
+            tzFmt = timeFormat;
+            tzFmt.remove(QRegularExpression(QStringLiteral("[sz]{1,3}")));
+            tzFmt.remove(QRegularExpression(QStringLiteral("[:\\s.]+$")));
+            if (tzFmt.trimmed().isEmpty()) {
+                tzFmt = cfg.value(QStringLiteral("use_24_hour_format")).toBool()
+                    ? QStringLiteral("HH:mm") : QStringLiteral("hh:mm");
+            }
+        }
+        QString time = zoned.isValid() ? zoned.toString(tzFmt) : QString();
+        out[2] = time.isEmpty() ? QStringLiteral("??") : time;
+    }
+    return out;
 }
 
 } // namespace
@@ -165,6 +198,21 @@ QString renderPreviewImage(const PreviewParams &p)
         order.append(QStringLiteral("timezone"));
     if (order.isEmpty())
         order = valid;
+    // Stored order keeps "timezone" as one group; render it as three elements
+    // so each line can carry its counterpart element's font (like the widget).
+    {
+        QStringList expanded;
+        for (const QString &t : order) {
+            if (t == QLatin1String("timezone")) {
+                expanded << QStringLiteral("tz_day")
+                         << QStringLiteral("tz_date")
+                         << QStringLiteral("tz_time");
+            } else {
+                expanded << t;
+            }
+        }
+        order = expanded;
+    }
 
     const int configSpacing = qMax(0, qRound(cfg.value(QStringLiteral("widget_spacing")).toDouble(5)));
 
@@ -273,8 +321,40 @@ QString renderPreviewImage(const PreviewParams &p)
     if (!timeChar.isEmpty())
         timeSample = timeChar + QStringLiteral(" ") + timeSample + QStringLiteral(" ") + timeChar;
     addElement(QStringLiteral("time"), QStringLiteral("Time"), 19, timeSample, false, true);
-    addElement(QStringLiteral("timezone"), QStringLiteral("Timezone"), 19,
-               timezoneSampleText(now, cfg, timeFormat), false, false);
+
+    // Secondary timezone lines: counterpart element's family (Day → Anurati,
+    // Date/Time → Poppins), timezone block style for size/spacing/bold/color.
+    QStringList tzSamples = timezoneSamples(now, cfg, timeFormat);
+    const QString tzLabel = cfg.value(QStringLiteral("timezone_label")).toString();
+    if (!tzLabel.isEmpty()) {
+        for (int i = 0; i < tzSamples.count(); ++i) {
+            if (!tzSamples.at(i).isEmpty()) {
+                tzSamples[i] = tzLabel + QStringLiteral(" ") + tzSamples.at(i);
+                break;
+            }
+        }
+    }
+    auto addTimezoneLine = [&](const QString &name, const QString &fontKey,
+                               const QString &defaultFamilyName, bool showLine,
+                               const QString &sample) {
+        ClockElement e;
+        e.visible = showTimezone && showLine;
+        QString fam = cfg.value(QStringLiteral("fontFamily") + fontKey).toString().trimmed();
+        e.family = fam.isEmpty() ? defaultFamilyName : fam;
+        e.configSize = qMax(1, qRound(cfg.value(QStringLiteral("timezone_font_size")).toDouble(19)));
+        e.letterSpacing = qMax(0, qRound(cfg.value(QStringLiteral("timezone_letter_spacing")).toDouble(0)));
+        e.bold = cfg.value(QStringLiteral("timezone_font_bold")).toBool(false);
+        e.color = resolveColor(QColor(cfg.value(QStringLiteral("timezone_font_color"))
+                                          .toString(QStringLiteral("#FFFFFF"))));
+        e.sampleText = sample;
+        elements.insert(name, e);
+    };
+    addTimezoneLine(QStringLiteral("tz_day"), QStringLiteral("Day"), QStringLiteral("Anurati"),
+                    cfg.value(QStringLiteral("timezone_show_day")).toBool(), tzSamples.value(0));
+    addTimezoneLine(QStringLiteral("tz_date"), QStringLiteral("Date"), QStringLiteral("Poppins"),
+                    cfg.value(QStringLiteral("timezone_show_date")).toBool(), tzSamples.value(1));
+    addTimezoneLine(QStringLiteral("tz_time"), QStringLiteral("Time"), QStringLiteral("Poppins"),
+                    cfg.value(QStringLiteral("timezone_show_time")).toBool(true), tzSamples.value(2));
 
     if (log) {
         for (auto it = elements.constBegin(); it != elements.constEnd(); ++it) {
