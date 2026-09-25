@@ -145,11 +145,126 @@ ColumnLayout {
             QQC2.ToolTip.delay: 800
         }
 
-        FontComboBox {
-            id: timezoneFontCombo
-            ctx: timezonePage.ctx
-            fontKey: "cfg_fontFamilyTimezone"
-            configValue: ctx.cfg_fontFamilyTimezone
+        Kirigami.Heading {
+            text: i18n("Content")
+            level: 2
+            Layout.fillWidth: true
+            Kirigami.FormData.isSection: true
+        }
+
+        QQC2.ComboBox {
+            id: timezoneLocaleCombo
+            Kirigami.FormData.label: i18n("Locale:")
+            Layout.fillWidth: true
+            model: [
+                { "text": i18n("System Default"), "locale": "" },
+                { "text": i18n("French"), "locale": "fr_FR" },
+                { "text": i18n("English (US)"), "locale": "en_US" },
+                { "text": i18n("English (UK)"), "locale": "en_GB" },
+                { "text": i18n("German"), "locale": "de_DE" },
+                { "text": i18n("Spanish"), "locale": "es_ES" },
+                { "text": i18n("Italian"), "locale": "it_IT" },
+                { "text": i18n("Dutch"), "locale": "nl_NL" },
+                { "text": i18n("Polish"), "locale": "pl_PL" },
+                { "text": i18n("Portuguese"), "locale": "pt_PT" },
+                { "text": i18n("Russian"), "locale": "ru_RU" },
+                { "text": i18n("Japanese"), "locale": "ja_JP" },
+                { "text": i18n("Custom"), "locale": "custom" }
+            ]
+            textRole: "text"
+            Component.onCompleted: {
+                if (!ctx) return;
+                let loc = ctx.cfg_timezone_locale || "";
+                currentIndex = 0;
+                for (let i = 0; i < model.length; i++) { if (model[i].locale === loc) { currentIndex = i; break; } }
+                if (currentIndex === 0 && loc !== "") currentIndex = model.length - 1;
+            }
+            onActivated: {
+                let item = model[currentIndex];
+                if (item.locale !== "custom")
+                    ctx.cfg_timezone_locale = item.locale;
+            }
+            QQC2.ToolTip.text: i18n("Formatting locale for day and date names in this timezone. Follows the main locale when empty.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        QQC2.CheckBox {
+            id: showTimezoneDay
+            text: i18n("Show day")
+            checked: ctx.cfg_timezone_show_day
+            onToggled: ctx.cfg_timezone_show_day = checked
+        }
+
+        QQC2.TextField {
+            id: timezoneDayFormat
+            Kirigami.FormData.label: i18n("Day format:")
+            Layout.fillWidth: true
+            placeholderText: "dddd"
+            text: ctx.cfg_timezone_day_format
+            onEditingFinished: ctx.cfg_timezone_day_format = text
+            QQC2.ToolTip.text: i18n("Use Qt date formats. For example: dddd = full weekday name, ddd = short weekday name.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        QQC2.CheckBox {
+            id: timezoneUppercaseDay
+            text: i18n("Uppercase day")
+            checked: ctx.cfg_timezone_uppercase_day
+            onToggled: ctx.cfg_timezone_uppercase_day = checked
+        }
+
+        QQC2.CheckBox {
+            id: showTimezoneDate
+            text: i18n("Show date")
+            checked: ctx.cfg_timezone_show_date
+            onToggled: ctx.cfg_timezone_show_date = checked
+        }
+
+        QQC2.TextField {
+            id: timezoneDateFormat
+            Kirigami.FormData.label: i18n("Date format:")
+            Layout.fillWidth: true
+            placeholderText: "dd MMM yyyy"
+            text: ctx.cfg_timezone_date_format
+            onEditingFinished: ctx.cfg_timezone_date_format = text
+            QQC2.ToolTip.text: i18n("Use Qt date formats. For example: dd MMM yyyy = 24 Sep 2026, dddd d MMMM yyyy = Wednesday 24 September 2026.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        QQC2.CheckBox {
+            id: timezoneUppercaseDate
+            text: i18n("Uppercase date")
+            checked: ctx.cfg_timezone_uppercase_date
+            onToggled: ctx.cfg_timezone_uppercase_date = checked
+        }
+
+        QQC2.CheckBox {
+            id: showTimezoneTime
+            text: i18n("Show time")
+            checked: ctx.cfg_timezone_show_time
+            onToggled: ctx.cfg_timezone_show_time = checked
+        }
+
+        QQC2.TextField {
+            id: timezoneTimeFormat
+            Kirigami.FormData.label: i18n("Time format:")
+            Layout.fillWidth: true
+            placeholderText: "HH:mm"
+            text: ctx.cfg_timezone_format
+            onEditingFinished: ctx.cfg_timezone_format = text
+            QQC2.ToolTip.text: i18n("Use Qt time formats, for example: HH:mm = 14:05, h:mm AP = 2:05 PM. Leave empty to match the main clock format.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
+        Kirigami.Heading {
+            text: i18n("Style")
+            level: 2
+            Layout.fillWidth: true
+            Kirigami.FormData.isSection: true
         }
 
         QQC2.SpinBox {

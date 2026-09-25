@@ -50,7 +50,6 @@ KCM.SimpleKCM {
     property string cfg_fontFamilyDay: "Anurati"
     property string cfg_fontFamilyDate: "Poppins"
     property string cfg_fontFamilyTime: "Poppins"
-    property string cfg_fontFamilyTimezone: "Poppins"
 
     property int cfg_widget_spacing: 5
 
@@ -65,7 +64,15 @@ KCM.SimpleKCM {
     property string cfg_timezone_label: ""
     property string cfg_timezone_display_text: ""
     property string cfg_custom_preview_date: ""
-    property string cfg_timezone_format: "HH:mm"
+    property string cfg_timezone_format: ""
+    property bool cfg_timezone_show_day: false
+    property string cfg_timezone_day_format: "dddd"
+    property bool cfg_timezone_uppercase_day: true
+    property bool cfg_timezone_show_date: false
+    property string cfg_timezone_date_format: "dd MMM yyyy"
+    property bool cfg_timezone_uppercase_date: true
+    property bool cfg_timezone_show_time: true
+    property string cfg_timezone_locale: ""
     property int cfg_timezone_font_size: 19
     property int cfg_timezone_letter_spacing: 3
     property bool cfg_timezone_font_bold: false
@@ -248,13 +255,20 @@ KCM.SimpleKCM {
             cfg_time_font_color = d.color;
         } else if (type === "timezone") {
             cfg_show_timezone = d.show;
-            cfg_fontFamilyTimezone = d.font;
             cfg_timezone_font_size = d.size;
             cfg_timezone_letter_spacing = d.spacing;
             cfg_timezone_id = d.id || "";
             cfg_timezone_display_text = "";
             cfg_timezone_label = d.label || "";
-            cfg_timezone_format = "HH:mm";
+            cfg_timezone_format = "";
+            cfg_timezone_show_day = false;
+            cfg_timezone_day_format = "dddd";
+            cfg_timezone_uppercase_day = true;
+            cfg_timezone_show_date = false;
+            cfg_timezone_date_format = "dd MMM yyyy";
+            cfg_timezone_uppercase_date = true;
+            cfg_timezone_show_time = true;
+            cfg_timezone_locale = "";
             cfg_timezone_font_bold = d.bold;
             cfg_timezone_font_color = d.color;
         }
