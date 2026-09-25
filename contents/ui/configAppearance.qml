@@ -142,6 +142,7 @@ KCM.SimpleKCM {
         var cfgJson = appearancePage.getFullConfig();
         var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
         log.info("config", "Generating preview (async)...");
+        log.info("config", "preview cfgJson: " + cfgJson);
         themeManager.generatePreviewAsync(cfgJson, wpPath, -1, bundledFontPaths, "", "");
     }
 

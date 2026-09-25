@@ -3,6 +3,8 @@
 #include <QObject>
 #include <QAbstractListModel>
 #include <QDateTime>
+#include <QFile>
+#include <QMutex>
 #include <QVector>
 
 struct LogEntry {
@@ -59,11 +61,15 @@ public:
     /// level = "debug"|"info"|"warn"|"error"
     Q_INVOKABLE void log(const QString& category, const QString& level, const QString& message);
 
-    /// Convenience methods — debug/info are no-ops in MODERNRECLOCK_RELEASE builds
+    /// Convenience methods — always written to the log file (all builds);
+    /// qDebug mirror stays active in non-release builds only.
     Q_INVOKABLE void debug(const QString& category, const QString& message);
     Q_INVOKABLE void info(const QString& category, const QString& message);
     Q_INVOKABLE void warn(const QString& category, const QString& message);
     Q_INVOKABLE void error(const QString& category, const QString& message);
+
+    /// Path of the on-disk log file (GenericCacheLocation/modernreclock/reclock.log)
+    Q_INVOKABLE static QString logFilePath();
 
     /// Clear all entries
     Q_INVOKABLE void clear();
@@ -89,7 +95,10 @@ signals:
 
 private:
     bool shouldLog(const QString& level) const;
+    void appendToFile(const QString& line);
     LogModel* m_model;
     int m_maxEntries = 500;
     QString m_logLevel = "debug"; // debug|info|warn|error
+    QMutex m_fileMutex;
+    QFile m_file;
 };

@@ -1,6 +1,9 @@
 #include "logger.h"
 #include <QDateTime>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
+#include <QMutexLocker>
 #include <QTextStream>
 #include <QTimeZone>
 #include <QProcess>
@@ -78,6 +81,46 @@ bool Logger::shouldLog(const QString& level) const {
     return msgIdx >= cfgIdx;
 }
 
+// ===== On-disk log =====
+// GenericCacheLocation (not CacheLocation) so plasmashell AND any KCM host
+// process write to the same file: ~/.cache/modernreclock/reclock.log
+
+QString Logger::logFilePath() {
+    return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation)
+        + QStringLiteral("/modernreclock/reclock.log");
+}
+
+void Logger::appendToFile(const QString& line) {
+    QMutexLocker lock(&m_fileMutex);
+    if (!m_file.isOpen()) {
+        const QString path = logFilePath();
+        QDir().mkpath(QFileInfo(path).absolutePath());
+        // Rotate a leftover file from a previous run if it grew too big.
+        QFileInfo fi(path);
+        if (fi.exists() && fi.size() > 4LL * 1024 * 1024) {
+            const QString bak = path + QStringLiteral(".1");
+            QFile::remove(bak);
+            QFile::rename(path, bak);
+        }
+        m_file.setFileName(path);
+        if (!m_file.open(QIODevice::Append | QIODevice::Text))
+            return;
+    } else if (m_file.size() > 4LL * 1024 * 1024) {
+        // Grew past the limit during this session — rotate and reopen.
+        const QString path = m_file.fileName();
+        m_file.close();
+        const QString bak = path + QStringLiteral(".1");
+        QFile::remove(bak);
+        QFile::rename(path, bak);
+        m_file.setFileName(path);
+        if (!m_file.open(QIODevice::Append | QIODevice::Text))
+            return;
+    }
+    m_file.write(line.toUtf8());
+    m_file.write("\n");
+    m_file.flush();
+}
+
 void Logger::log(const QString& category, const QString& level, const QString& message) {
     if (!shouldLog(level)) return;
     LogEntry entry;
@@ -87,23 +130,18 @@ void Logger::log(const QString& category, const QString& level, const QString& m
     entry.message = message;
     m_model->addEntry(entry);
     emit countChanged();
+    appendToFile(entry.timestamp.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss.zzz"))
+                 + QStringLiteral(" [") + level + QStringLiteral("] [")
+                 + category + QStringLiteral("] ") + message);
     qDebug() << "[ModernRecClock]" << category << level << message;
 }
 
 void Logger::debug(const QString& category, const QString& message) {
-#ifdef MODERNRECLOCK_RELEASE
-    Q_UNUSED(category); Q_UNUSED(message);
-#else
     log(category, QStringLiteral("debug"), message);
-#endif
 }
 
 void Logger::info(const QString& category, const QString& message) {
-#ifdef MODERNRECLOCK_RELEASE
-    Q_UNUSED(category); Q_UNUSED(message);
-#else
     log(category, QStringLiteral("info"), message);
-#endif
 }
 
 void Logger::warn(const QString& category, const QString& message) {

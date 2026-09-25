@@ -69,15 +69,9 @@ Four configurable color modes:
 - **Element reorder** — numbered list (① ② ③ ④ ⑤) with KDE-style arrows to reorder day, date, time, custom, and timezone
 - **Organized UI** — sections for Preview, Global, Day, Date, Time, Custom Text, Timezone, and Themes
 
-### Debug Page
-- **System diagnostics** — displays Qt version, platform, screen resolution, locale
-- **Plugin status** — shows whether TimeZone and Wallpaper C++ plugins are loaded
-- **Theme color detection** — reports Plasma theme colors when available (shows "N/A" in standalone KCM context)
-- **Wallpaper info** — current wallpaper path, detected brightness (dark/light), color scheme
-- **Font browser** — lists up to 339 available system fonts
-- **Log viewer** — full log history displayed inline, with copy button
-- **Async log fetch** — fetch Plasma Shell logs via `journalctl` asynchronously (non-blocking)
-- **Export to file** — save complete debug info to `/tmp/modernreclock_log_export.txt`
+### Logging
+- **File-based logs** — every log line (debug included, all builds) is appended to `~/.cache/modernreclock/reclock.log`, format `timestamp [level] [category] message`
+- **Rotation** — the file rotates to `reclock.log.1` past 4 MB
 
 ### Internationalization
 - **13 language presets** — locale presets for date/time formatting: English, French, German, Spanish, Italian, Dutch, Polish, Portuguese, Russian, Japanese, and more
@@ -156,14 +150,12 @@ Other architectures: compile from source with `cmake` and `kf6-coreaddons-dev`.
 
 ## Debugging
 
-Open the widget's configuration panel and navigate to the **Debug** tab. You can:
+All widget and config logs are written to `~/.cache/modernreclock/reclock.log`
+(format: `timestamp [level] [category] message`, all levels, every build).
 
-1. View system info, plugin status, and wallpaper diagnostics
-2. Browse available system fonts
-3. Review the full log history for all widget components
-4. Copy debug info to clipboard for bug reports
-5. Export logs to `/tmp/modernreclock_log_export.txt` for sharing
-6. Fetch recent Plasma Shell logs asynchronously (requires `journalctl` access)
+```bash
+tail -f ~/.cache/modernreclock/reclock.log
+```
 
 ## Translations
 
