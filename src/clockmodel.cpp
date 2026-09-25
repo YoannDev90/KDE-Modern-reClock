@@ -12,7 +12,7 @@ ClockModel::ClockModel(QObject* parent)
     m_timer.setSingleShot(true);
     m_timer.setTimerType(Qt::PreciseTimer);
     connect(&m_timer, &QTimer::timeout, this, &ClockModel::tick);
-    m_order = {"day", "date", "time", "timezone"};
+    m_order = {"day", "date", "time", "tz_day", "tz_date", "tz_time"};
     rebuildElements();
     scheduleNextTick();
 }
@@ -63,6 +63,12 @@ static QString capped(const QString& type) {
     return c;
 }
 
+// The tz_* lines share the timezone block's style keys (sizeTimezone, ...).
+static QString styleCap(const QString& type) {
+    return type.startsWith(QLatin1String("tz_")) ? QStringLiteral("Timezone")
+                                                 : capped(type);
+}
+
 static QColor configColor(const QVariantMap& cfg, const QString& key, const QColor& fallback) {
     const QVariant v = cfg.value(key);
     if (!v.isValid())
@@ -102,7 +108,18 @@ void ClockModel::setConfig(const QVariantMap& config) {
         base.append("timezone");
     if (base.isEmpty())
         base = valid;
-    m_order = base;
+    // The stored order keeps "timezone" as one group; the model renders it
+    // as three elements so each line can carry its counterpart's font.
+    m_order.clear();
+    for (const QString& t : base) {
+        if (t == QLatin1String("timezone")) {
+            m_order << QStringLiteral("tz_day")
+                    << QStringLiteral("tz_date")
+                    << QStringLiteral("tz_time");
+        } else {
+            m_order << t;
+        }
+    }
 
     m_now = currentDateTime();
     rebuildElements();
@@ -145,7 +162,7 @@ QDateTime ClockModel::currentDateTime() const {
 
 void ClockModel::recomputeElements() {
     for (Element& e : m_elements) {
-        e.color = resolveColor(e.type, configColor(m_cfg, "color" + capped(e.type), QColor(Qt::white)));
+        e.color = resolveColor(e.type, configColor(m_cfg, "color" + styleCap(e.type), QColor(Qt::white)));
     }
     if (!m_elements.isEmpty())
         emit dataChanged(index(0), index(m_elements.size() - 1), {ColorRole});
@@ -156,22 +173,28 @@ void ClockModel::rebuildElements() {
     m_elements.clear();
 
     auto showRole = [this](const QString& type) {
+        if (type.startsWith(QLatin1String("tz_")))
+            return m_cfg.value("showTimezone").toBool()
+                && m_cfg.value("showTimezone" + capped(type.mid(3))).toBool();
         return m_cfg.value("show" + capped(type)).toBool();
     };
+    // tz_* lines borrow their counterpart element's family: Day → Anurati,
+    // Date/Time → Poppins.
     auto fontRole = [this](const QString& type) {
-        QString f = m_cfg.value("font" + capped(type)).toString().trimmed();
+        const QString base = type.startsWith(QLatin1String("tz_")) ? type.mid(3) : type;
+        QString f = m_cfg.value("font" + capped(base)).toString().trimmed();
         if (f.isEmpty())
-            f = type == "day" ? QStringLiteral("Anurati") : QStringLiteral("Poppins");
+            f = base == QLatin1String("day") ? QStringLiteral("Anurati") : QStringLiteral("Poppins");
         return f;
     };
     auto sizeRole = [this](const QString& type) {
-        return m_cfg.value("size" + capped(type)).toInt();
+        return m_cfg.value("size" + styleCap(type)).toInt();
     };
     auto spacingRole = [this](const QString& type) {
-        return m_cfg.value("spacing" + capped(type)).toInt();
+        return m_cfg.value("spacing" + styleCap(type)).toInt();
     };
     auto boldRole = [this](const QString& type) {
-        return m_cfg.value("bold" + capped(type)).toBool();
+        return m_cfg.value("bold" + styleCap(type)).toBool();
     };
 
     for (const QString& type : m_order) {
@@ -182,7 +205,7 @@ void ClockModel::rebuildElements() {
         e.fontSize = sizeRole(type);
         e.spacing = spacingRole(type);
         e.bold = boldRole(type);
-        e.color = resolveColor(type, configColor(m_cfg, "color" + capped(type), QColor(Qt::white)));
+        e.color = resolveColor(type, configColor(m_cfg, "color" + styleCap(type), QColor(Qt::white)));
         m_elements.append(e);
     }
     endResetModel();
@@ -191,11 +214,30 @@ void ClockModel::rebuildElements() {
 }
 
 void ClockModel::recomputeTexts() {
+    // Secondary timezone: up to three lines; the label prefixes the first
+    // visible one (matches the pre-split single-element behavior).
+    QString tz[3] = {
+        timezoneLineText(QStringLiteral("day")),
+        timezoneLineText(QStringLiteral("date")),
+        timezoneLineText(QStringLiteral("time"))
+    };
+    const QString label = m_cfg.value("timezoneLabel").toString();
+    if (!label.isEmpty()) {
+        for (int i = 0; i < 3; ++i) {
+            if (!tz[i].isEmpty()) {
+                tz[i] = label + QStringLiteral(" ") + tz[i];
+                break;
+            }
+        }
+    }
+
     for (Element& e : m_elements) {
         if (e.type == "day") e.text = dayText();
         else if (e.type == "date") e.text = dateText();
         else if (e.type == "time") e.text = timeText();
-        else if (e.type == "timezone") e.text = timezoneText();
+        else if (e.type == "tz_day") e.text = tz[0];
+        else if (e.type == "tz_date") e.text = tz[1];
+        else if (e.type == "tz_time") e.text = tz[2];
     }
     if (!m_elements.isEmpty())
         emit dataChanged(index(0), index(m_elements.size() - 1), {TextRole});
@@ -207,7 +249,10 @@ void ClockModel::recomputeTexts() {
 
 void ClockModel::scheduleNextTick() {
     const QDateTime now = QDateTime::currentDateTime();
-    m_usesSeconds = currentTimeFormat().contains('s');
+    m_usesSeconds = currentTimeFormat().contains('s')
+        || (m_cfg.value("showTimezone").toBool()
+            && m_cfg.value("showTimezoneTime").toBool()
+            && timezoneTimeFormat().contains('s'));
 
     int delay;
     if (m_usesSeconds) {
@@ -232,7 +277,14 @@ QLocale ClockModel::effectiveLocale() const {
     QString custom = m_cfg.value("locale").toString().trimmed();
     if (custom.isEmpty())
         return QLocale();
-    return QLocale(custom.replace(QStringLiteral("-"), QStringLiteral("_")));
+    return QLocale(QString(custom).replace(QStringLiteral("-"), QStringLiteral("_")));
+}
+
+QLocale ClockModel::timezoneLocale() const {
+    QString custom = m_cfg.value("timezoneLocale").toString().trimmed();
+    if (custom.isEmpty())
+        return effectiveLocale();
+    return QLocale(QString(custom).replace(QStringLiteral("-"), QStringLiteral("_")));
 }
 
 QString ClockModel::currentTimeFormat() const {
@@ -244,6 +296,10 @@ QString ClockModel::currentTimeFormat() const {
 }
 
 QString ClockModel::timezoneTimeFormat() const {
+    QString custom = m_cfg.value("timezoneFormat").toString().trimmed();
+    if (!custom.isEmpty())
+        return custom;
+    // Legacy fallback (pre timezone_format key): derive from the main format.
     QString base = currentTimeFormat();
     base.remove(QRegularExpression(QStringLiteral("[sz]{1,3}")));
     base.remove(QRegularExpression(QStringLiteral("[:\\s.]+$")));
@@ -289,21 +345,49 @@ QString ClockModel::timeText() const {
     return deco + " " + text + " " + deco;
 }
 
-QString ClockModel::timezoneText() const {
-    QString tzId = m_cfg.value("timezoneId").toString();
-    QString label = m_cfg.value("timezoneLabel").toString();
-    if (tzId.isEmpty())
+QString ClockModel::timezoneLineText(const QString& line) const {
+    bool show;
+    QString fmtKey, fmtDefault;
+    if (line == QLatin1String("day")) {
+        show = m_cfg.value("showTimezoneDay").toBool();
+        fmtKey = QStringLiteral("timezoneDayFormat");
+        fmtDefault = QStringLiteral("dddd");
+    } else if (line == QLatin1String("date")) {
+        show = m_cfg.value("showTimezoneDate").toBool();
+        fmtKey = QStringLiteral("timezoneDateFormat");
+        fmtDefault = QStringLiteral("dd MMM yyyy");
+    } else {
+        show = m_cfg.value("showTimezoneTime").toBool();
+    }
+    if (!show)
         return QString();
 
+    QString tzId = m_cfg.value("timezoneId").toString();
+    if (tzId.isEmpty())
+        return QString();
     QTimeZone tz(tzId.toUtf8());
-    QString formatted;
-    if (tz.isValid()) {
-        QDateTime zoned = m_now.toTimeZone(tz);
-        formatted = zoned.toString(timezoneTimeFormat());
+    QDateTime zoned = tz.isValid() ? m_now.toTimeZone(tz) : QDateTime();
+
+    if (line != QLatin1String("time")) {
+        if (!zoned.isValid())
+            return QString();
+        QLocale loc = timezoneLocale();
+        QString fmt = m_cfg.value(fmtKey).toString().trimmed();
+        if (fmt.isEmpty())
+            fmt = fmtDefault;
+        QString text = loc.toString(zoned, fmt);
+        if (text.isEmpty())
+            text = QLocale().toString(zoned, fmt);
+        const bool upper = m_cfg.value(line == QLatin1String("day")
+                                           ? QStringLiteral("uppercaseTimezoneDay")
+                                           : QStringLiteral("uppercaseTimezoneDate")).toBool();
+        return upper ? text.toUpper() : text;
     }
-    if (formatted.isEmpty())
-        formatted = QStringLiteral("??");
-    return label.isEmpty() ? formatted : label + " " + formatted;
+
+    if (!zoned.isValid())
+        return QStringLiteral("??");
+    QString time = zoned.toString(timezoneTimeFormat());
+    return time.isEmpty() ? QStringLiteral("??") : time;
 }
 
 // ---------------------------------------------------------------------------

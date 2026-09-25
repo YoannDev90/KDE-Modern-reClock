@@ -58,13 +58,14 @@ private:
     QString dayText() const;
     QString dateText() const;
     QString timeText() const;
-    QString timezoneText() const;
+    QString timezoneLineText(const QString& line) const;   // "day" | "date" | "time"
     QString currentTimeFormat() const;
     QString timezoneTimeFormat() const;
     QString formatDate(const QDateTime& dt, const QString& format, bool uppercase) const;
     QString formatTime(const QDateTime& dt, const QString& format) const;
     QColor resolveColor(const QString& type, const QColor& custom) const;
     QLocale effectiveLocale() const;
+    QLocale timezoneLocale() const;
     QDateTime currentDateTime() const;
 
     QVector<Element> m_elements;

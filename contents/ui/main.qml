@@ -36,7 +36,7 @@ PlasmoidItem {
             showDay: c.show_day, showDate: c.show_date,
             showTime: c.show_time, showTimezone: c.show_timezone,
             fontDay: c.fontFamilyDay, fontDate: c.fontFamilyDate,
-            fontTime: c.fontFamilyTime, fontTimezone: c.fontFamilyTimezone,
+            fontTime: c.fontFamilyTime,
             sizeDay: c.day_font_size, sizeDate: c.date_font_size,
             sizeTime: c.time_font_size, sizeTimezone: c.timezone_font_size,
             spacingDay: c.day_letter_spacing, spacingDate: c.date_letter_spacing,
@@ -51,6 +51,15 @@ PlasmoidItem {
             locale: c.locale, elementOrder: c.element_order,
             colorMode: c.color_mode, adaptToTheme: c.adapt_to_theme,
             timezoneId: c.timezone_id, timezoneLabel: c.timezone_label,
+            timezoneFormat: c.timezone_format,
+            showTimezoneDay: c.timezone_show_day,
+            timezoneDayFormat: c.timezone_day_format,
+            uppercaseTimezoneDay: c.timezone_uppercase_day,
+            showTimezoneDate: c.timezone_show_date,
+            timezoneDateFormat: c.timezone_date_format,
+            uppercaseTimezoneDate: c.timezone_uppercase_date,
+            showTimezoneTime: c.timezone_show_time,
+            timezoneLocale: c.timezone_locale,
             customDate: c.custom_preview_date
         });
     }

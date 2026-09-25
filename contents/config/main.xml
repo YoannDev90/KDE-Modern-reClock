@@ -119,11 +119,35 @@
             <default></default>
         </entry>
         <entry name="timezone_format" type="String">
-            <label>Time format for the timezone display</label>
-            <default>HH:mm</default>
+            <label>Time format for the timezone display. Empty follows the main clock format (seconds removed)</label>
+            <default></default>
         </entry>
-        <entry name="fontFamilyTimezone" type="String">
-            <default>Poppins</default>
+        <entry name="timezone_show_day" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="timezone_day_format" type="String">
+            <label>Day format for the timezone display</label>
+            <default>dddd</default>
+        </entry>
+        <entry name="timezone_uppercase_day" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="timezone_show_date" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="timezone_date_format" type="String">
+            <label>Date format for the timezone display</label>
+            <default>dd MMM yyyy</default>
+        </entry>
+        <entry name="timezone_uppercase_date" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="timezone_show_time" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="timezone_locale" type="String">
+            <label>Locale for timezone day/date names. Empty follows the main locale</label>
+            <default></default>
         </entry>
         <entry name="timezone_font_size" type="Int">
             <default>19</default>
