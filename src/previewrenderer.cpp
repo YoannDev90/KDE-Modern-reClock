@@ -123,6 +123,13 @@ QString renderPreviewImage(const PreviewParams &p)
         canvas.fill(QColor(42, 42, 50));
         if (log) log->info("theme", "wallpaper: FALLBACK 1920x1080");
     }
+    // QPainter scales letter spacing by the device DPI (integer-truncated), so a
+    // wallpaper pHYs chunk of 72 DPI zeroes it while glyph sizes stay absolute.
+    // Normalize to Qt's default 96 DPI — same factor (1) as the on-screen widget.
+    if (log) log->info("theme", QString("canvas: %1x%2 dpmY=%3 → normalize 3780")
+                          .arg(canvas.width()).arg(canvas.height()).arg(canvas.dotsPerMeterY()));
+    canvas.setDotsPerMeterX(3780);
+    canvas.setDotsPerMeterY(3780);
 
     // Screen → wallpaper scale (widget pixels map onto the wallpaper image)
     double scaleX = 1.0, scaleY = 1.0;
@@ -269,6 +276,16 @@ QString renderPreviewImage(const PreviewParams &p)
     addElement(QStringLiteral("timezone"), QStringLiteral("Timezone"), 19,
                timezoneSampleText(now, cfg, timeFormat), false, false);
 
+    if (log) {
+        for (auto it = elements.constBegin(); it != elements.constEnd(); ++it) {
+            const ClockElement &e = it.value();
+            log->info("theme", QString("element %1: visible=%2 family=\"%3\" size=%4 letterSpacing=%5 bold=%6 color=%7")
+                                   .arg(it.key()).arg(e.visible).arg(e.family)
+                                   .arg(e.configSize).arg(e.letterSpacing)
+                                   .arg(e.bold ? 1 : 0).arg(e.color.name()));
+        }
+    }
+
     auto makeFont = [&](const ClockElement &e, int pixelSize) -> QFont {
         QString resolved = resolveFamilyName(e.family, p.loadedFamilies);
         QFont f(resolved.isEmpty() ? defaultFamily(QString()) : resolved);
@@ -336,6 +353,10 @@ QString renderPreviewImage(const PreviewParams &p)
         int h = fm.height();
         items.append({&e, scaledSize, qRound(e.letterSpacing * finalScale), h});
         totalRenderedHeight += h;
+        if (log) {
+            log->info("theme", QString("item %1: pixelSize=%2 letterSpacing=%3 h=%4")
+                          .arg(el).arg(scaledSize).arg(items.last().letterSpacing).arg(h));
+        }
     }
     totalRenderedHeight += qRound(configSpacing * finalScale) * qMax(0, items.count() - 1);
 
@@ -361,6 +382,11 @@ QString renderPreviewImage(const PreviewParams &p)
         int textWidth = fm.horizontalAdvance(e.sampleText);
         int textX = wpX + qMax(0, (wpW - textWidth) / 2);
         int textH = fm.height();
+        if (log) {
+            log->info("theme", QString("paint: family=\"%1\" f.spacing=%2 item.spacing=%3 textWidth=%4 textX=%5 sample=\"%6\"")
+                          .arg(f.family()).arg(f.letterSpacing())
+                          .arg(item.letterSpacing).arg(textWidth).arg(textX).arg(e.sampleText));
+        }
         painter.drawText(QRect(textX, y, textWidth + 10, textH),
                          Qt::AlignLeft | Qt::AlignVCenter, e.sampleText);
         y += textH + qRound(configSpacing * finalScale);
