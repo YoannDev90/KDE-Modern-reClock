@@ -97,9 +97,9 @@ path = sys.argv[1]
 defaults = {
     "day_font_size": "18",
     "day_letter_spacing": "3",
-    "date_font_size": "9",
+    "date_font_size": "12",
     "date_letter_spacing": "1",
-    "time_font_size": "9",
+    "time_font_size": "12",
     "time_letter_spacing": "1",
     "timezone_font_size": "9",
     "timezone_letter_spacing": "1",

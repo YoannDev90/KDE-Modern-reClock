@@ -178,13 +178,13 @@ void ClockModel::rebuildElements() {
                 && m_cfg.value("showTimezone" + capped(type.mid(3))).toBool();
         return m_cfg.value("show" + capped(type)).toBool();
     };
-    // tz_* lines borrow their counterpart element's family: Day → Anurati,
-    // Date/Time → Poppins.
+    // tz_* lines borrow their counterpart element's family: all default to
+    // Poppins (bundled).
     auto fontRole = [this](const QString& type) {
         const QString base = type.startsWith(QLatin1String("tz_")) ? type.mid(3) : type;
         QString f = m_cfg.value("font" + capped(base)).toString().trimmed();
         if (f.isEmpty())
-            f = base == QLatin1String("day") ? QStringLiteral("Anurati") : QStringLiteral("Poppins");
+            f = QStringLiteral("Poppins");
         return f;
     };
     auto sizeRole = [this](const QString& type) {

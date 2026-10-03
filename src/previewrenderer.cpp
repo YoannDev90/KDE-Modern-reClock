@@ -292,9 +292,8 @@ QString renderPreviewImage(const PreviewParams &p)
     };
     QMap<QString, ClockElement> elements;
 
-    auto defaultFamily = [](const QString &name) -> QString {
-        return name == QLatin1String("day") ? QStringLiteral("Anurati")
-                                             : QStringLiteral("Poppins");
+    auto defaultFamily = [](const QString &) -> QString {
+        return QStringLiteral("Poppins");
     };
 
     auto addElement = [&](const QString &name, const QString &fontKey, int defaultSize,
@@ -314,16 +313,16 @@ QString renderPreviewImage(const PreviewParams &p)
     addElement(QStringLiteral("day"), QStringLiteral("Day"), 72,
                p.customDayName.isEmpty() ? locale.toString(now.date(), dayFormat) : p.customDayName,
                cfg.value(QStringLiteral("uppercase_day")).toBool(true), true);
-    addElement(QStringLiteral("date"), QStringLiteral("Date"), 19,
+    addElement(QStringLiteral("date"), QStringLiteral("Date"), 12,
                locale.toString(now.date(), dateFormat),
                cfg.value(QStringLiteral("uppercase_date")).toBool(true), true);
     QString timeSample = locale.toString(now.time(), timeFormat);
     if (!timeChar.isEmpty())
         timeSample = timeChar + QStringLiteral(" ") + timeSample + QStringLiteral(" ") + timeChar;
-    addElement(QStringLiteral("time"), QStringLiteral("Time"), 19, timeSample, false, true);
+    addElement(QStringLiteral("time"), QStringLiteral("Time"), 12, timeSample, false, true);
 
-    // Secondary timezone lines: counterpart element's family (Day → Anurati,
-    // Date/Time → Poppins), timezone block style for size/spacing/bold/color.
+    // Secondary timezone lines: counterpart element's family (all default to
+    // Poppins), timezone block style for size/spacing/bold/color.
     QStringList tzSamples = timezoneSamples(now, cfg, timeFormat);
     const QString tzLabel = cfg.value(QStringLiteral("timezone_label")).toString();
     if (!tzLabel.isEmpty()) {
@@ -349,7 +348,7 @@ QString renderPreviewImage(const PreviewParams &p)
         e.sampleText = sample;
         elements.insert(name, e);
     };
-    addTimezoneLine(QStringLiteral("tz_day"), QStringLiteral("Day"), QStringLiteral("Anurati"),
+    addTimezoneLine(QStringLiteral("tz_day"), QStringLiteral("Day"), QStringLiteral("Poppins"),
                     cfg.value(QStringLiteral("timezone_show_day")).toBool(), tzSamples.value(0));
     addTimezoneLine(QStringLiteral("tz_date"), QStringLiteral("Date"), QStringLiteral("Poppins"),
                     cfg.value(QStringLiteral("timezone_show_date")).toBool(), tzSamples.value(1));

@@ -1,4 +1,4 @@
-import QtQuick
+import QtQuick 2.15
 
 /**
  * Variant flag — scripts/stage-variant.sh rewrites `taskbar: true` when

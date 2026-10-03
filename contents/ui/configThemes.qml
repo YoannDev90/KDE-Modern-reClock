@@ -20,14 +20,14 @@ KCM.SimpleKCM {
     readonly property var themeManager: ModernRecClock.ThemeManager ?? null
 
     // ===== Config keys — plain properties (no hidden controls needed) =====
-    property bool cfg_show_day: true
+    property bool cfg_show_day: false
     property bool cfg_show_date: true
     property bool cfg_show_time: true
     property bool cfg_show_timezone: false
 
     property int cfg_day_font_size: 72
-    property int cfg_date_font_size: 19
-    property int cfg_time_font_size: 19
+    property int cfg_date_font_size: 12
+    property int cfg_time_font_size: 12
     property int cfg_timezone_font_size: 19
 
     property int cfg_day_letter_spacing: 17
@@ -62,7 +62,7 @@ KCM.SimpleKCM {
     property bool cfg_uppercase_day: true
     property bool cfg_uppercase_date: true
 
-    property string cfg_fontFamilyDay: "Anurati"
+    property string cfg_fontFamilyDay: "Poppins"
     property string cfg_fontFamilyDate: "Poppins"
     property string cfg_fontFamilyTime: "Poppins"
 

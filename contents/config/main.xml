@@ -12,10 +12,10 @@
             <default>17</default>
         </entry>
         <entry name="show_day" type="Bool">
-            <default>true</default>
+            <default>false</default>
         </entry>
         <entry name="date_font_size" type="Int">
-            <default>19</default>
+            <default>12</default>
         </entry>
         <entry name="date_letter_spacing" type="Int">
             <default>3</default>
@@ -30,7 +30,7 @@
             <default>true</default>
         </entry>
         <entry name="time_font_size" type="Int">
-            <default>19</default>
+            <default>12</default>
         </entry>
         <entry name="time_letter_spacing" type="Int">
             <default>3</default>
@@ -81,8 +81,8 @@
             <default>false</default>
         </entry>
         <entry name="fontFamilyDay" type="String">
-            <label>Font family for day name. e.g "Arial", "Anurati"</label>
-            <default>Anurati</default>
+            <label>Font family for day name. e.g "Arial", "Poppins"</label>
+            <default>Poppins</default>
         </entry>
         <entry name="fontFamilyDate" type="String">
             <label>Font family for date. e.g "Arial", "Poppins"</label>

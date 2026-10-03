@@ -22,13 +22,13 @@ KCM.SimpleKCM {
     readonly property bool taskbar: variant.taskbar
 
     // ===== Config keys — plain properties (no hidden controls needed) =====
-    property bool cfg_show_day: true
+    property bool cfg_show_day: false
     property bool cfg_show_date: true
     property bool cfg_show_time: true
 
     property int cfg_day_font_size: 72
-    property int cfg_date_font_size: 19
-    property int cfg_time_font_size: 19
+    property int cfg_date_font_size: 12
+    property int cfg_time_font_size: 12
 
     property int cfg_day_letter_spacing: 17
     property int cfg_date_letter_spacing: 3
@@ -51,7 +51,7 @@ KCM.SimpleKCM {
     property bool cfg_date_font_bold: false
     property bool cfg_time_font_bold: false
 
-    property string cfg_fontFamilyDay: "Anurati"
+    property string cfg_fontFamilyDay: "Poppins"
     property string cfg_fontFamilyDate: "Poppins"
     property string cfg_fontFamilyTime: "Poppins"
 
@@ -178,7 +178,7 @@ KCM.SimpleKCM {
             // plasmashell session in a background thread at plugin init, so subsequent
             // config opens are instant.
             var fonts = ModernRecClock.Fonts.fontFamilies();
-            var all = ["Anurati", "Poppins"];
+            var all = ["Poppins", "Anurati"];
             for (var i = 0; i < fonts.length; i++) {
                 if (all.indexOf(fonts[i]) === -1)
                     all.push(fonts[i]);
@@ -219,14 +219,14 @@ KCM.SimpleKCM {
     // ===== RESET FUNCTIONS (data-driven) =====
     // Refresh preview when the Preview tab becomes visible
     readonly property var sectionDefaults: taskbar ? ({
-        "day": { show: true, font: "Anurati", size: 18, spacing: 3, format: "dddd", uppercase: true, bold: false, color: "#FFFFFF" },
-        "date": { show: true, font: "Poppins", size: 9, spacing: 1, format: "dd MMM yyyy", uppercase: true, bold: false, color: "#FFFFFF" },
-        "time": { show: true, font: "Poppins", size: 9, spacing: 1, format: "", uppercase: false, bold: false, color: "#FFFFFF", h24: false, deco: "-" },
+        "day": { show: false, font: "Poppins", size: 18, spacing: 3, format: "dddd", uppercase: true, bold: false, color: "#FFFFFF" },
+        "date": { show: true, font: "Poppins", size: 12, spacing: 1, format: "dd MMM yyyy", uppercase: true, bold: false, color: "#FFFFFF" },
+        "time": { show: true, font: "Poppins", size: 12, spacing: 1, format: "", uppercase: false, bold: false, color: "#FFFFFF", h24: false, deco: "-" },
         "timezone": { show: false, font: "Poppins", size: 9, spacing: 1, id: "", label: "", bold: false, color: "#FFFFFF" }
     }) : ({
-        "day": { show: true, font: "Anurati", size: 72, spacing: 17, format: "dddd", uppercase: true, bold: false, color: "#FFFFFF" },
-        "date": { show: true, font: "Poppins", size: 19, spacing: 3, format: "dd MMM yyyy", uppercase: true, bold: false, color: "#FFFFFF" },
-        "time": { show: true, font: "Poppins", size: 19, spacing: 3, format: "", uppercase: false, bold: false, color: "#FFFFFF", h24: false, deco: "-" },
+        "day": { show: false, font: "Poppins", size: 72, spacing: 17, format: "dddd", uppercase: true, bold: false, color: "#FFFFFF" },
+        "date": { show: true, font: "Poppins", size: 12, spacing: 3, format: "dd MMM yyyy", uppercase: true, bold: false, color: "#FFFFFF" },
+        "time": { show: true, font: "Poppins", size: 12, spacing: 3, format: "", uppercase: false, bold: false, color: "#FFFFFF", h24: false, deco: "-" },
         "timezone": { show: false, font: "Poppins", size: 19, spacing: 3, id: "", label: "", bold: false, color: "#FFFFFF" }
     })
 

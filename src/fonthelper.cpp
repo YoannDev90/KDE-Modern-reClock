@@ -37,10 +37,10 @@ QString FontHelper::jsonPath()
 }
 
 // Bundled fonts are not in QFontDatabase until the widget loads them, but the
-// config must always offer them first (Anurati = day default, Poppins = rest).
+// config must always offer them first (Poppins = default, Anurati optional).
 QStringList FontHelper::withBundledFirst(const QStringList &families)
 {
-    QStringList out{QStringLiteral("Anurati"), QStringLiteral("Poppins")};
+    QStringList out{QStringLiteral("Poppins"), QStringLiteral("Anurati")};
     out.reserve(families.size() + 2);
     for (const QString &f : families) {
         if (!out.contains(f, Qt::CaseInsensitive))
