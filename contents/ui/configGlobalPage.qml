@@ -8,6 +8,18 @@ ColumnLayout {
     id: globalPage
     property var ctx: null
 
+    // Wallpaper-derived color needs the desktop wallpaper — dropped in the taskbar variant
+    readonly property var colorModeModel: (ctx && ctx.taskbar) ? [
+        { text: i18n("Custom"), value: "custom" },
+        { text: i18n("Follow system theme"), value: "theme" },
+        { text: i18n("Inverse system theme"), value: "theme_inverse" }
+    ] : [
+        { text: i18n("Custom"), value: "custom" },
+        { text: i18n("Follow system theme"), value: "theme" },
+        { text: i18n("Inverse system theme"), value: "theme_inverse" },
+        { text: i18n("Wallpaper-derived"), value: "wallpaper" }
+    ]
+
     spacing: Kirigami.Units.largeSpacing
 
     Kirigami.FormLayout {
@@ -28,8 +40,9 @@ ColumnLayout {
             onToggled: ctx.cfg_auto_scale = checked
         }
 
-        // Alignment mode
+        // Alignment mode (screen containment — meaningless in a panel)
         RowLayout {
+            visible: !ctx.taskbar
             Kirigami.FormData.label: i18n("Alignment:")
             spacing: Kirigami.Units.smallSpacing
 
@@ -52,12 +65,7 @@ ColumnLayout {
             id: colorModeCombo
             Kirigami.FormData.label: i18n("Color mode:")
             Layout.fillWidth: true
-            model: [
-                { text: i18n("Custom"), value: "custom" },
-                { text: i18n("Follow system theme"), value: "theme" },
-                { text: i18n("Inverse system theme"), value: "theme_inverse" },
-                { text: i18n("Wallpaper-derived"), value: "wallpaper" }
-            ]
+            model: globalPage.colorModeModel
             textRole: "text"
             valueRole: "value"
             currentIndex: {
@@ -266,7 +274,7 @@ ColumnLayout {
     function resetGlobal() {
         ctx.cfg_auto_scale = false;
         ctx.cfg_color_mode = "custom";
-        ctx.cfg_widget_spacing = 5;
+        ctx.cfg_widget_spacing = ctx.taskbar ? 2 : 5;
         ctx.cfg_locale = "";
         orderSection.resetRequested();
         ctx.refreshPreview();

@@ -17,6 +17,10 @@ KCM.SimpleKCM {
         error: function(cat, msg) {}
     })
 
+    // Variant flag — stamped to true in the taskbar package
+    Variant { id: variant }
+    readonly property bool taskbar: variant.taskbar
+
     // ===== Config keys — plain properties (no hidden controls needed) =====
     property bool cfg_show_day: true
     property bool cfg_show_date: true
@@ -145,7 +149,7 @@ KCM.SimpleKCM {
     }
 
     function _regeneratePreview() {
-        if (!themeManager) return;
+        if (taskbar || !themeManager) return;
         var cfgJson = appearancePage.getFullConfig();
         var wpPath = ModernRecClock.Wallpaper ? (ModernRecClock.Wallpaper.wallpaperPath() || "") : "";
         log.info("config", "Generating preview (async)...");
@@ -214,7 +218,12 @@ KCM.SimpleKCM {
 
     // ===== RESET FUNCTIONS (data-driven) =====
     // Refresh preview when the Preview tab becomes visible
-    readonly property var sectionDefaults: ({
+    readonly property var sectionDefaults: taskbar ? ({
+        "day": { show: true, font: "Anurati", size: 18, spacing: 3, format: "dddd", uppercase: true, bold: false, color: "#FFFFFF" },
+        "date": { show: true, font: "Poppins", size: 9, spacing: 1, format: "dd MMM yyyy", uppercase: true, bold: false, color: "#FFFFFF" },
+        "time": { show: true, font: "Poppins", size: 9, spacing: 1, format: "", uppercase: false, bold: false, color: "#FFFFFF", h24: false, deco: "-" },
+        "timezone": { show: false, font: "Poppins", size: 9, spacing: 1, id: "", label: "", bold: false, color: "#FFFFFF" }
+    }) : ({
         "day": { show: true, font: "Anurati", size: 72, spacing: 17, format: "dddd", uppercase: true, bold: false, color: "#FFFFFF" },
         "date": { show: true, font: "Poppins", size: 19, spacing: 3, format: "dd MMM yyyy", uppercase: true, bold: false, color: "#FFFFFF" },
         "time": { show: true, font: "Poppins", size: 19, spacing: 3, format: "", uppercase: false, bold: false, color: "#FFFFFF", h24: false, deco: "-" },
@@ -328,13 +337,15 @@ KCM.SimpleKCM {
             id: tabBar
             Layout.fillWidth: true
 
-            QQC2.TabButton { text: i18n("Preview") }
+            Component.onCompleted: currentIndex = appearancePage.taskbar ? 1 : 0
+
+            QQC2.TabButton { text: i18n("Preview"); visible: !appearancePage.taskbar }
             QQC2.TabButton { text: i18n("Global") }
             QQC2.TabButton { text: i18n("Day") }
             QQC2.TabButton { text: i18n("Date") }
             QQC2.TabButton { text: i18n("Time") }
             QQC2.TabButton { text: i18n("Timezone") }
-            QQC2.TabButton { text: i18n("Saved Themes") }
+            QQC2.TabButton { text: i18n("Saved Themes"); visible: !appearancePage.taskbar }
         }
 
         StackLayout {
@@ -350,8 +361,8 @@ KCM.SimpleKCM {
             Loader {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                active: true
-                Component.onCompleted: setSource("configPreviewPage.qml", { ctx: appearancePage })
+                active: !appearancePage.taskbar
+                Component.onCompleted: if (active) setSource("configPreviewPage.qml", { ctx: appearancePage })
             }
             Loader {
                 Layout.fillWidth: true
@@ -386,26 +397,19 @@ KCM.SimpleKCM {
             Loader {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                active: true
-                Component.onCompleted: setSource("configSavedThemesPage.qml", { ctx: appearancePage })
+                active: !appearancePage.taskbar
+                Component.onCompleted: if (active) setSource("configSavedThemesPage.qml", { ctx: appearancePage })
             }
         }
     }
 
     // ===== Theme Sheets (kept on the shell; used by Preview/Saved Themes tabs) =====
-    ThemeSheets {
-        id: themeSheets
-        getFullConfig: appearancePage.getFullConfig
-        applyConfig: appearancePage.applyConfig
-        updatePreview: function() { regenTimer.restart(); }
-        saveThemeFn: appearancePage.saveCurrentTheme
-        deleteThemeFn: appearancePage.deleteTheme
-        loadThemeFn: appearancePage.loadThemeConfig
-        themeToJSONFn: appearancePage.themeToJSON
-        themes: appearancePage.savedThemes
-        setThemesJson: function(json) {
-            appearancePage.savedThemesJson = json;
-            cfg_saved_themes = json;
-        }
+    // Host file so the taskbar package can strip ThemeSheets.qml entirely.
+    Loader {
+        id: themeSheetsLoader
+        active: !appearancePage.taskbar
+        Component.onCompleted: if (active) setSource("ThemeSheetsHost.qml", { ctx: appearancePage })
     }
+
+    readonly property var themeSheets: themeSheetsLoader.item && themeSheetsLoader.item.sheets
 }

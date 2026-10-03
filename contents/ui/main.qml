@@ -18,6 +18,9 @@ PlasmoidItem {
     // All clock logic lives here (timer, formatting, order, colors)
     ModernRecClock.ClockModel { id: clock }
 
+    // Variant flag — stamped to true in the taskbar package
+    Variant { id: variant }
+
     // Theme-derived colors (inverse of the system text color)
     readonly property color themeText: Kirigami.Theme.textColor
     readonly property color themeBg: Qt.rgba(1 - themeText.r, 1 - themeText.g, 1 - themeText.b, 1.0)
@@ -160,7 +163,9 @@ PlasmoidItem {
                     color: model.color
                     anchors.horizontalCenter: parent.horizontalCenter
                     horizontalAlignment: Text.AlignHCenter
-                    renderType: Text.CurveRendering
+                    // CurveRendering (glyph atlas) looks bad on ~10px panel text;
+                    // the taskbar variant rasterizes natively instead.
+                    renderType: variant.taskbar ? Text.NativeRendering : Text.CurveRendering
                 }
             }
         }
