@@ -13,6 +13,22 @@ else
     exit 1
 fi
 
+# ---- Args ----
+VARIANT="full"
+for arg in "$@"; do
+    case "$arg" in
+        --taskbar) VARIANT="taskbar" ;;
+        --full)    VARIANT="full" ;;
+        -h|--help)
+            echo "Usage: $0 [--full|--taskbar]"
+            echo ""
+            echo "  --full      Install 'Modern reClock' (desktop widget, default)"
+            echo "  --taskbar   Install 'Modern reClock Taskbar' (panel variant)"
+            exit 0 ;;
+        *) echo "Unknown option: $arg"; exit 1 ;;
+    esac
+done
+
 # ---- Helpers ----
 detect_qml_dir() {
     for cmd in qt6-config qmake6; do
@@ -113,6 +129,24 @@ if [ "$PLUGIN_INSTALLED" = false ]; then
     echo "Install cmake and kf6-devel packages to build from source, or open an issue."
 fi
 
+# ---- Translations ----
+echo "--- Preparing translations ---"
+if [ -f "translate/build.sh" ]; then
+    chmod +x translate/build.sh
+    ./translate/build.sh
+fi
+
+# ---- Stage variant ----
+TARGET_DIR="."
+STAGE_DIR=""
+if [ "$VARIANT" = "taskbar" ]; then
+    echo "--- Staging taskbar variant ---"
+    STAGE_DIR=$(mktemp -d)
+    trap 'rm -rf "$STAGE_DIR"' EXIT
+    bash scripts/stage-variant.sh taskbar "$STAGE_DIR"
+    TARGET_DIR="$STAGE_DIR"
+fi
+
 # ---- QML precompilation (qmlc) — instant first-load ----
 echo "--- Precompiling QML to bytecode (qmlc) ---"
 QMLC_OK=false
@@ -122,13 +156,15 @@ if [ -z "$QMLCGEN" ]; then
 else
     echo "Using qmlcachegen: $QMLCGEN ($("$QMLCGEN" --version 2>/dev/null | head -1))"
 fi
-if [ "$QMLCGEN" != "" ] && [ -f "build/CMakeCache.txt" ]; then
+# The cmake qmlcache target only covers the in-repo (full) tree — for the
+# taskbar variant always compile the staged files per file below.
+if [ "$VARIANT" = "full" ] && [ "$QMLCGEN" != "" ] && [ -f "build/CMakeCache.txt" ]; then
     if cmake --build build --target qmlcache 2>/dev/null; then
         QMLC_OK=true
     fi
 fi
-if [ "$QMLC_OK" = false ] && [ "$QMLCGEN" != "" ]; then
-    for qml in contents/ui/*.qml; do
+if [ "$QMLC_OK" = false ] && [ -n "$QMLCGEN" ]; then
+    for qml in "$TARGET_DIR"/contents/ui/*.qml; do
         qmlc="${qml}c"
         if "$QMLCGEN" "$qml" -o "$qmlc" 2>/dev/null; then
             echo "  $(basename "$qmlc") ($(du -h "$qmlc" | cut -f1))"
@@ -141,22 +177,14 @@ if [ "$QMLC_OK" = false ] && [ "$QMLCGEN" != "" ]; then
 fi
 if [ "$QMLC_OK" = true ]; then
     echo "QML bytecode ready — first config open will skip QML parsing."
-    ls -lh contents/ui/*.qmlc 2>/dev/null | awk '{print "  " $9 " " $5}'
+    ls -lh "$TARGET_DIR"/contents/ui/*.qmlc 2>/dev/null | awk '{print "  " $9 " " $5}'
 else
     echo "No Qt6 qmlcachegen — runtime QML cache will be used."
 fi
 
-# ---- Translations ----
-echo "--- Preparing translations ---"
-if [ -f "translate/build.sh" ]; then
-    chmod +x translate/build.sh
-    ./translate/build.sh
-fi
-
-
 # ---- Widget ----
-echo "--- Installing the widget ---"
-kpackagetool6 -t Plasma/Applet -u . || kpackagetool6 -t Plasma/Applet -i .
+echo "--- Installing the widget ($VARIANT) ---"
+kpackagetool6 -t Plasma/Applet -u "$TARGET_DIR" || kpackagetool6 -t Plasma/Applet -i "$TARGET_DIR"
 
 # ---- Cache ----
 echo "--- Cleaning cache ---"
@@ -177,4 +205,8 @@ else
 fi
 
 echo "--- Done! ---"
-echo "Add 'Modern reClock' from your panel."
+if [ "$VARIANT" = "taskbar" ]; then
+    echo "Add 'Modern reClock Taskbar' from your panel."
+else
+    echo "Add 'Modern reClock' from your panel."
+fi

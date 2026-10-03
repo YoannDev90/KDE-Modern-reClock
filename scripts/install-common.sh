@@ -267,8 +267,21 @@ try_download_precompiled() {
 # ---- Widget Install ----
 
 install_widget() {
-    echo "--- Installing the widget ---"
-    kpackagetool6 -t Plasma/Applet -u . || kpackagetool6 -t Plasma/Applet -i .
+    local variant="${VARIANT:-full}"
+    local widget_name="Modern reClock"
+    [ "$variant" = "taskbar" ] && widget_name="Modern reClock Taskbar"
+    echo "--- Installing the widget ($widget_name) ---"
+    if [ "$variant" = "taskbar" ]; then
+        local stage_dir script
+        stage_dir=$(mktemp -d)
+        script="scripts/stage-variant.sh"
+        [ -f "$script" ] || script="stage-variant.sh"
+        bash "$script" taskbar "$stage_dir"
+        kpackagetool6 -t Plasma/Applet -u "$stage_dir" || kpackagetool6 -t Plasma/Applet -i "$stage_dir"
+        rm -rf "$stage_dir"
+    else
+        kpackagetool6 -t Plasma/Applet -u . || kpackagetool6 -t Plasma/Applet -i .
+    fi
 }
 
 # ---- Main ----
@@ -348,5 +361,9 @@ main_install() {
 
     echo ""
     echo "--- Done! ---"
-    echo "Add 'Modern reClock' from your panel. Remove and re-add if already active."
+    if [ "${VARIANT:-full}" = "taskbar" ]; then
+        echo "Add 'Modern reClock Taskbar' from your panel. Remove and re-add if already active."
+    else
+        echo "Add 'Modern reClock' from your panel. Remove and re-add if already active."
+    fi
 }

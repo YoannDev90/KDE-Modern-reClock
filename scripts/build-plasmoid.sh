@@ -15,19 +15,24 @@ fi
 # ---- Defaults ----
 WITH_PLUGIN=true
 OUTPUT_DIR="."
+VARIANT="full"
 
 # ---- Parse args ----
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --without-plugin) WITH_PLUGIN=false; shift ;;
         --with-plugin)    WITH_PLUGIN=true; shift ;;
+        --taskbar)        VARIANT="taskbar"; shift ;;
+        --full)           VARIANT="full"; shift ;;
         --output=*)       OUTPUT_DIR="${1#*=}"; shift ;;
         --output)         OUTPUT_DIR="$2"; shift 2 ;;
         -h|--help)
-            echo "Usage: $0 [--with-plugin|--without-plugin] [--output=DIR]"
+            echo "Usage: $0 [--with-plugin|--without-plugin] [--full|--taskbar] [--output=DIR]"
             echo ""
             echo "  --with-plugin     Build C++ plugin and include it (default)"
             echo "  --without-plugin  Skip C++ plugin, generate QML-only .plasmoid"
+            echo "  --full            Package the desktop widget (default)"
+            echo "  --taskbar         Package 'Modern reClock Taskbar' variant"
             echo "  --output=DIR      Output directory (default: .)"
             exit 0 ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -39,7 +44,7 @@ VERSION=$(python3 -c "import json,sys; print(json.load(open('metadata.json'))['K
 PLASMOID_ID=$(python3 -c "import json,sys; print(json.load(open('metadata.json'))['KPlugin']['Id'])")
 PLASMOID_NAME="com.github.yoanndev90.modernreclock"
 
-echo "=== Building ${PLASMOID_NAME} v${VERSION} ==="
+echo "=== Building ${PLASMOID_NAME} v${VERSION} [${VARIANT}] ==="
 
 # ---- Compile translations ----
 echo "[1/3] Compiling translations..."
@@ -75,9 +80,17 @@ echo "[3/3] Creating .plasmoid package..."
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
-# Copy widget files
-cp metadata.json "$TMPDIR/"
-cp -r contents "$TMPDIR/"
+# Stage widget files: plain copy for full, stamped variant for taskbar
+STAGE_SCRIPT="scripts/stage-variant.sh"
+[ -f "$STAGE_SCRIPT" ] || STAGE_SCRIPT="stage-variant.sh"
+if [ ! -f "$STAGE_SCRIPT" ]; then
+    echo "Error: stage-variant.sh not found" >&2
+    exit 1
+fi
+bash "$STAGE_SCRIPT" "$VARIANT" "$TMPDIR"
+
+# Output name follows the staged Id (same for full, .taskbar suffix otherwise)
+PLASMOID_ID=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['KPlugin']['Id'])" "$TMPDIR/metadata.json")
 
 # Include plugin if built
 if [ "$PLUGIN_INSTALLED" = true ] && [ -f "build/libmodernreclock_backend.so" ]; then
@@ -102,14 +115,13 @@ else
 fi
 
 # Create zip
+OUTFILE="${OUTPUT_DIR}/${PLASMOID_ID}-${VERSION}.plasmoid"
+OUTFILE_ABS="$(realpath -m "$OUTFILE")"
 if [ "$WITH_PLUGIN" = true ] && [ "$PLUGIN_INSTALLED" = true ]; then
-    OUTFILE="${OUTPUT_DIR}/${PLASMOID_NAME}-${VERSION}.plasmoid"
     echo "  Plugin included — user will need to run install command on first load"
-else
-    OUTFILE="${OUTPUT_DIR}/${PLASMOID_NAME}-${VERSION}.plasmoid"
 fi
 
-(cd "$TMPDIR" && zip -r "$OLDPWD/$OUTFILE" . -x '*.DS_Store' '*/__MACOSX/*')
+(cd "$TMPDIR" && zip -r "$OUTFILE_ABS" . -x '*.DS_Store' '*/__MACOSX/*')
 echo ""
 echo "=== Done! ==="
 echo "Output: $OUTFILE"

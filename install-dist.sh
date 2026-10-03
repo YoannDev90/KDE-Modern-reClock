@@ -3,6 +3,23 @@ set -e
 
 REPO_URL="https://github.com/YoannDev90/KDE-Modern-reClock"
 
+# ---- Parse args ----
+VARIANT="full"
+for arg in "$@"; do
+    case "$arg" in
+        --taskbar) VARIANT="taskbar" ;;
+        --full)    VARIANT="full" ;;
+        -h|--help)
+            echo "Usage: $0 [--full|--taskbar]"
+            echo ""
+            echo "  --full      Install 'Modern reClock' (desktop widget, default)"
+            echo "  --taskbar   Install 'Modern reClock Taskbar' (panel variant)"
+            exit 0 ;;
+        *) echo "Unknown option: $arg"; exit 1 ;;
+    esac
+done
+export VARIANT
+
 # ---- Detect distro ----
 detect_distro() {
     local id id_like
