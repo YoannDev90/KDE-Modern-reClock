@@ -80,12 +80,21 @@ Four configurable color modes:
 
 ## Installation
 
+Two variants ship with every release:
+
+| Variant | Widget id | Target |
+|---------|-----------|--------|
+| **Modern reClock** (full) | `com.github.yoanndev90.modernreclock` | Desktop / any containment — Preview, Saved Themes, Themes, wallpaper color modes |
+| **Modern reClock Taskbar** | `com.github.yoanndev90.modernreclock.taskbar` | Panel — compact defaults, no Preview/Themes, native text rendering |
+
+Both are built from the same source tree (`scripts/stage-variant.sh` packages the taskbar variant).
+
 ### From KDE Store (Recommended)
 
 Install directly from the KDE Store in your Plasma desktop:
 1. Right-click your desktop or panel → "Add Widgets"
 2. Click "Get New Widgets..." → "Download New Plasma Widgets"
-3. Search for "Modern reClock"
+3. Search for "Modern reClock" (or "Modern reClock Taskbar" for the panel variant)
 4. Click "Install"
 
 ### Quick install (Recommended)
@@ -94,9 +103,15 @@ Install directly from the KDE Store in your Plasma desktop:
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/YoannDev90/KDE-Modern-reClock/main/install-dist.sh)"
 ```
 
+Panel variant:
+
+```bash
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/YoannDev90/KDE-Modern-reClock/main/install-dist.sh)" sh --taskbar
+```
+
 ### From a release
 
-1. Download `com.github.yoanndev90.modernreclock-VERSION.plasmoid` from the [latest release](https://github.com/YoannDev90/KDE-Modern-reClock/releases/latest)
+1. Download `com.github.yoanndev90.modernreclock-VERSION.plasmoid` (full) or `com.github.yoanndev90.modernreclock.taskbar-VERSION.plasmoid` (panel variant) from the [latest release](https://github.com/YoannDev90/KDE-Modern-reClock/releases/latest)
 2. Install:
    ```bash
    kpackagetool6 -t Plasma/Applet -i com.github.yoanndev90.modernreclock-VERSION.plasmoid
@@ -110,21 +125,27 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/YoannDev90/KDE-Modern-reCl
 ### Offline install (no internet required)
 
 1. Download from the release:
-   - `com.github.yoanndev90.modernreclock-VERSION.plasmoid`
+   - `com.github.yoanndev90.modernreclock-VERSION.plasmoid` (or the `.taskbar.` one)
    - `modernreclock-plugins-VERSION-ARCH.zip` (matching your architecture)
-2. Extract the zip, run `install-local.sh` from the extracted folder
+2. Extract the zip, run `scripts/install-local.sh` from the extracted folder
 
 ### From source (for developers)
 
 ```bash
 git clone https://github.com/YoannDev90/KDE-Modern-reClock
 cd KDE-Modern-reClock
-./install-local.sh
+bash scripts/install-local.sh
 ```
 
-Use `--fr` to restart Plasma automatically:
+Install the panel variant instead:
+
 ```bash
-./install-local.sh --fr
+bash scripts/install-local.sh --taskbar
+```
+
+`--fr` / `--force-reload` are accepted as legacy no-ops (plasmashell restarts unconditionally):
+```bash
+bash scripts/install-local.sh --fr
 ```
 
 ## C++ Plugins

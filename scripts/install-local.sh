@@ -19,6 +19,7 @@ for arg in "$@"; do
     case "$arg" in
         --taskbar) VARIANT="taskbar" ;;
         --full)    VARIANT="full" ;;
+        --fr|-force-reload|--force-reload) ;;  # historical no-op, kept for compat
         -h|--help)
             echo "Usage: $0 [--full|--taskbar]"
             echo ""
