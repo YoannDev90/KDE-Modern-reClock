@@ -136,6 +136,14 @@ jobs:
           # Exclude non-plasmoid folders and files
           zip -r com.github.yoanndev90.modernreclock-$VERSION.plasmoid . -x "community_themes/*" "translate/*" "assets/*" ".git/*" ".github/*" "README.md" "LICENSE" "install-*.sh" "CMakeLists.txt" "src/*" "build/*" "bin/*" "plugin-artifacts/*" "com.github.yoanndev90.modernreclock-*.plasmoid"
 
+          # Taskbar variant — staged copy (inherits the plugin from contents/code)
+          echo "Creating taskbar variant..."
+          TB_TMP=$(mktemp -d)
+          bash scripts/stage-variant.sh taskbar "$TB_TMP"
+          (cd "$TB_TMP" && zip -qr "$OLDPWD/com.github.yoanndev90.modernreclock.taskbar-$VERSION.plasmoid" .)
+          rm -rf "$TB_TMP"
+          echo "Taskbar variant created"
+
       - name: Prepare release assets
         run: |
           VERSION=${{ steps.get_version.outputs.version }}
@@ -192,9 +200,13 @@ jobs:
             ```bash
             sh -c "$(curl -fsSL https://github.com/YoannDev90/KDE-Modern-reClock/releases/download/v${{ steps.get_version.outputs.version }}/install-dist.sh)"
             ```
+            Panel variant ("Modern reClock Taskbar"):
+            ```bash
+            sh -c "$(curl -fsSL https://github.com/YoannDev90/KDE-Modern-reClock/releases/download/v${{ steps.get_version.outputs.version }}/install-dist.sh)" sh --taskbar
+            ```
 
             #### Manual install
-            1. Download `com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid`
+            1. Download `com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid` (desktop widget) or `com.github.yoanndev90.modernreclock.taskbar-${{ steps.get_version.outputs.version }}.plasmoid` (panel variant)
             2. Install:
                ```bash
                kpackagetool6 -t Plasma/Applet -i com.github.yoanndev90.modernreclock-${{ steps.get_version.outputs.version }}.plasmoid
@@ -207,9 +219,10 @@ jobs:
             | File | Description |
             |------|-------------|
             | `*.plasmoid` | Widget package (includes x86_64 C++ plugin) |
+            | `*.taskbar-*.plasmoid` | Panel variant "Modern reClock Taskbar" (compact, no Preview/Themes) |
             | `modernreclock-plugins_*.so` | Timezone plugin (raw .so, for aarch64 or manual install) |
             | `modernreclock-plugins-*.zip` | Offline install zip (plugin + qmldir) |
-            | `install-dist.sh` | One-line remote install script |
+            | `install-dist.sh` | One-line remote install script (`--taskbar` for the panel variant) |
           files: |
             release-assets/*
           prerelease: ${{ github.event.inputs.prerelease || false }}
