@@ -38,6 +38,8 @@ jobs:
             "contents/ui/configDebug.qml"
             "contents/ui/OrderSection.qml"
             "contents/ui/ThemeSheets.qml"
+            "contents/ui/ThemeSheetsHost.qml"
+            "contents/ui/Variant.qml"
             "contents/config/main.xml"
             "contents/config/config.qml"
             "src/plugin.cpp"
@@ -50,7 +52,7 @@ jobs:
               MISSING=$((MISSING + 1))
             fi
           done
-          for f in scripts/install-local.sh scripts/build-plasmoid.sh translate/build.sh translate/merge.sh; do
+          for f in scripts/install-local.sh scripts/build-plasmoid.sh scripts/stage-variant.sh translate/build.sh translate/merge.sh; do
             if [ -f "$f" ]; then
               if [ -x "$f" ]; then
                 echo "  ✓ $f (executable)" >> "$LOG"
@@ -272,27 +274,91 @@ jobs:
             echo "  ✓ Translations compiled ($MO_COUNT .mo files)" | tee -a "$LOG"
           fi
 
-      # ── [9] Build package ─────────────────────────────────────
-      - name: "[9/10] Build plasmoid package"
+      # ── [9] Build packages (full + taskbar) ───────────────────
+      - name: "[9/10] Build plasmoid packages"
         run: |
           LOG="ci-report.txt"
           echo "" >> "$LOG"
-          echo "--- [9/10] Building plasmoid package ---" | tee -a "$LOG"
-          rm -f /tmp/test-build.plasmoid
-          zip -r /tmp/test-build.plasmoid . \
-            -x ".git/*" ".github/*" "translate/*" "assets/*" \
-            "install-*.sh" "README.md" "LICENSE" "ci-report.txt" \
-            >/dev/null 2>&1
-          if [ -f /tmp/test-build.plasmoid ]; then
-            SIZE=$(stat -c%s /tmp/test-build.plasmoid)
-            SIZE_KB=$((SIZE / 1024))
-            FILE_COUNT=$(zipinfo -1 /tmp/test-build.plasmoid | wc -l)
-            echo "✓ Package built: ${SIZE_KB}KB, $FILE_COUNT files" | tee -a "$LOG"
-            if [ "$SIZE" -gt 5242880 ]; then
-              echo "  ⚠ Package >5MB — check for bundled assets" | tee -a "$LOG"
+          echo "--- [9/10] Building plasmoid packages (full + taskbar) ---" | tee -a "$LOG"
+          mkdir -p /tmp/ci-build
+          FAIL=0
+
+          build_variant() {
+            local variant="$1"
+            if bash scripts/build-plasmoid.sh --without-plugin "--$variant" --output=/tmp/ci-build; then
+              echo "✓ $variant package built" | tee -a "$LOG"
+            else
+              echo "✗ $variant build FAILED" | tee -a "$LOG"
+              FAIL=1
             fi
-          else
-            echo "✗ Build FAILED" | tee -a "$LOG"
+          }
+
+          report_zip() {
+            local zip="$1"
+            if [ -f "$zip" ]; then
+              local count size_kb
+              count=$(zipinfo -1 "$zip" | wc -l)
+              size_kb=$(( $(stat -c%s "$zip") / 1024 ))
+              echo "  $(basename "$zip"): ${size_kb}KB, $count files" | tee -a "$LOG"
+            else
+              echo "✗ missing artifact: $zip" | tee -a "$LOG"
+              FAIL=1
+            fi
+          }
+
+          build_variant full
+          build_variant taskbar
+
+          VERSION=$(python3 -c "import json; print(json.load(open('metadata.json'))['KPlugin']['Version'])")
+          FULL_ZIP="/tmp/ci-build/com.github.yoanndev90.modernreclock-${VERSION}.plasmoid"
+          TB_ZIP="/tmp/ci-build/com.github.yoanndev90.modernreclock.taskbar-${VERSION}.plasmoid"
+          report_zip "$FULL_ZIP"
+          report_zip "$TB_ZIP"
+
+          # Full package must keep its 7-tab tree
+          if [ -f "$FULL_ZIP" ] && ! zipinfo -1 "$FULL_ZIP" | grep -q "contents/ui/ThemeSheets.qml"; then
+            echo "✗ full package missing ThemeSheets.qml" | tee -a "$LOG"
+            FAIL=1
+          fi
+
+          if [ -f "$TB_ZIP" ]; then
+            # Strip check: full-only files must be gone
+            for f in contents/ui/ThemeSheets.qml contents/ui/ThemeSheetsHost.qml \
+                     contents/ui/configPreviewPage.qml contents/ui/configSavedThemesPage.qml \
+                     contents/ui/configThemes.qml; do
+              if zipinfo -1 "$TB_ZIP" | grep -q "$f"; then
+                echo "✗ taskbar package still contains $f" | tee -a "$LOG"
+                FAIL=1
+              fi
+            done
+            if unzip -p "$TB_ZIP" metadata.json | grep -q '"Id": "com.github.yoanndev90.modernreclock.taskbar"'; then
+              echo "✓ taskbar metadata stamped" | tee -a "$LOG"
+            else
+              echo "✗ taskbar metadata Id NOT stamped" | tee -a "$LOG"
+              FAIL=1
+            fi
+            if unzip -p "$TB_ZIP" contents/ui/Variant.qml | grep -q "taskbar: true"; then
+              echo "✓ taskbar Variant flag set" | tee -a "$LOG"
+            else
+              echo "✗ taskbar Variant flag NOT set" | tee -a "$LOG"
+              FAIL=1
+            fi
+            if unzip -p "$TB_ZIP" contents/config/config.qml | grep -q "configThemes"; then
+              echo "✗ taskbar config.qml still references configThemes" | tee -a "$LOG"
+              FAIL=1
+            else
+              echo "✓ taskbar config.qml has no Themes category" | tee -a "$LOG"
+            fi
+            if ! unzip -p "$TB_ZIP" contents/config/main.xml | grep -q "<default>18</default>"; then
+              echo "✗ taskbar defaults not stamped (day_font_size)" | tee -a "$LOG"
+              FAIL=1
+            else
+              echo "✓ taskbar defaults stamped" | tee -a "$LOG"
+            fi
+          fi
+
+          if [ "$FAIL" -ne 0 ]; then
+            echo "✗ Package build checks FAILED" | tee -a "$LOG"
             echo "RESULT=FAIL" >> "$LOG"
           fi
 
