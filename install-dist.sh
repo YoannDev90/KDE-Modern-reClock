@@ -54,9 +54,15 @@ fi
 echo "Detected: $DISTRO"
 
 # ---- Clone repo ----
+# MODERNRECLOCK_REF pins a branch/tag (used for prereleases, e.g. MODERNRECLOCK_REF=v10.10.11)
 TEMP_DIR=$(mktemp -d)
 echo "--- Downloading Modern reClock ---"
-git clone --depth 1 "$REPO_URL" "$TEMP_DIR"
+if [ -n "${MODERNRECLOCK_REF:-}" ]; then
+    echo "Ref: $MODERNRECLOCK_REF"
+    git clone --depth 1 --branch "$MODERNRECLOCK_REF" "$REPO_URL" "$TEMP_DIR"
+else
+    git clone --depth 1 "$REPO_URL" "$TEMP_DIR"
+fi
 cd "$TEMP_DIR"
 
 # ---- Run distro script ----

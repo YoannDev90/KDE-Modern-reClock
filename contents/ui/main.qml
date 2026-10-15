@@ -53,6 +53,7 @@ PlasmoidItem {
             uppercaseDay: c.uppercase_day, uppercaseDate: c.uppercase_date,
             locale: c.locale, elementOrder: c.element_order,
             colorMode: c.color_mode, adaptToTheme: c.adapt_to_theme,
+            clockTimezone: c.clock_timezone,
             timezoneId: c.timezone_id, timezoneLabel: c.timezone_label,
             timezoneFormat: c.timezone_format,
             showTimezoneDay: c.timezone_show_day,

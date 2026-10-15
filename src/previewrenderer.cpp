@@ -255,6 +255,16 @@ QString renderPreviewImage(const PreviewParams &p)
                         QTime(rng->bounded(24), rng->bounded(60), rng->bounded(60)));
     }
 
+    // Main clock timezone override (empty = system) — same as ClockModel::currentDateTime
+    {
+        const QString clockTzId = cfg.value(QStringLiteral("clock_timezone")).toString().trimmed();
+        if (!clockTzId.isEmpty()) {
+            QTimeZone clockTz(clockTzId.toUtf8());
+            if (clockTz.isValid())
+                now = now.toTimeZone(clockTz);
+        }
+    }
+
     // Color mode — migration + resolution like ClockModel::resolveColor
     QString colorMode = cfg.value(QStringLiteral("color_mode")).toString();
     if (cfg.value(QStringLiteral("adapt_to_theme")).toBool()

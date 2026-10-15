@@ -145,15 +145,27 @@ void ClockModel::refresh() {
 
 QDateTime ClockModel::currentDateTime() const {
     QString custom = m_cfg.value("customDate").toString().trimmed();
-    if (custom.isEmpty())
-        return QDateTime::currentDateTime();
-    QDateTime parsed = QDateTime::fromString(custom, Qt::ISODate);
-    if (!parsed.isValid()) {
-        QDate d = QDate::fromString(custom, Qt::ISODate);
-        if (d.isValid())
-            parsed = QDateTime(d, QTime(0, 0));
+    QDateTime base;
+    if (custom.isEmpty()) {
+        base = QDateTime::currentDateTime();
+    } else {
+        base = QDateTime::fromString(custom, Qt::ISODate);
+        if (!base.isValid()) {
+            QDate d = QDate::fromString(custom, Qt::ISODate);
+            if (d.isValid())
+                base = QDateTime(d, QTime(0, 0));
+        }
+        if (!base.isValid())
+            base = QDateTime::currentDateTime();
     }
-    return parsed.isValid() ? parsed : QDateTime::currentDateTime();
+    // Main clock timezone override (empty = system)
+    const QString tzId = m_cfg.value("clockTimezone").toString().trimmed();
+    if (!tzId.isEmpty()) {
+        QTimeZone tz(tzId.toUtf8());
+        if (tz.isValid())
+            base = base.toTimeZone(tz);
+    }
+    return base;
 }
 
 // ---------------------------------------------------------------------------

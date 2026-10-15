@@ -61,6 +61,7 @@ KCM.SimpleKCM {
     property bool cfg_auto_scale: false
     property string cfg_alignMode: "none"
     property string cfg_color_mode: "custom"
+    property string cfg_clock_timezone: ""
 
     // ===== Timezone element properties =====
     property bool cfg_show_timezone: false

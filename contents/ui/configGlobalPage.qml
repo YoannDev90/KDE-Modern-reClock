@@ -94,6 +94,91 @@ ColumnLayout {
             onValueModified: ctx.cfg_widget_spacing = value
         }
 
+        QQC2.ComboBox {
+            id: clockTimezoneCombo
+            Kirigami.FormData.label: i18n("Timezone:")
+            Layout.fillWidth: true
+            editable: true
+            model: ListModel {
+                ListElement { text: "—"; value: "" }
+                ListElement { text: "UTC+0:00 — London / Dublin / Lisbon"; value: "Europe/London" }
+                ListElement { text: "UTC+1:00 — Paris / Berlin / Rome / Madrid"; value: "Europe/Paris" }
+                ListElement { text: "UTC+1:00 — Amsterdam / Brussels / Zurich / Vienna"; value: "Europe/Amsterdam" }
+                ListElement { text: "UTC+1:00 — Warsaw / Prague / Budapest"; value: "Europe/Warsaw" }
+                ListElement { text: "UTC+2:00 — Athens / Helsinki / Bucharest"; value: "Europe/Athens" }
+                ListElement { text: "UTC+2:00 — Istanbul"; value: "Europe/Istanbul" }
+                ListElement { text: "UTC+3:00 — Moscow"; value: "Europe/Moscow" }
+                ListElement { text: "UTC+3:00 — Riyadh / Kuwait / Baghdad"; value: "Asia/Riyadh" }
+                ListElement { text: "UTC+3:30 — Tehran"; value: "Asia/Tehran" }
+                ListElement { text: "UTC+4:00 — Dubai / Abu Dhabi"; value: "Asia/Dubai" }
+                ListElement { text: "UTC+4:30 — Kabul"; value: "Asia/Kabul" }
+                ListElement { text: "UTC+5:00 — Karachi / Lahore"; value: "Asia/Karachi" }
+                ListElement { text: "UTC+5:30 — Mumbai / Delhi / Kolkata"; value: "Asia/Kolkata" }
+                ListElement { text: "UTC+5:45 — Kathmandu"; value: "Asia/Kathmandu" }
+                ListElement { text: "UTC+6:00 — Dhaka / Almaty"; value: "Asia/Dhaka" }
+                ListElement { text: "UTC+6:30 — Yangon"; value: "Asia/Yangon" }
+                ListElement { text: "UTC+7:00 — Bangkok / Ho Chi Minh / Jakarta"; value: "Asia/Bangkok" }
+                ListElement { text: "UTC+8:00 — Shanghai / Beijing"; value: "Asia/Shanghai" }
+                ListElement { text: "UTC+8:00 — Hong Kong / Singapore"; value: "Asia/Hong_Kong" }
+                ListElement { text: "UTC+8:00 — Perth / Taipei"; value: "Asia/Perth" }
+                ListElement { text: "UTC+9:00 — Tokyo / Seoul"; value: "Asia/Tokyo" }
+                ListElement { text: "UTC+9:30 — Adelaide"; value: "Australia/Adelaide" }
+                ListElement { text: "UTC+10:00 — Sydney / Melbourne"; value: "Australia/Sydney" }
+                ListElement { text: "UTC+10:00 — Brisbane / Guam"; value: "Australia/Brisbane" }
+                ListElement { text: "UTC+12:00 — Auckland / Wellington"; value: "Pacific/Auckland" }
+                ListElement { text: "UTC+12:00 — Fiji"; value: "Pacific/Fiji" }
+                ListElement { text: "UTC-5:00 — New York / Toronto / Montreal"; value: "America/New_York" }
+                ListElement { text: "UTC-6:00 — Chicago / Mexico City"; value: "America/Chicago" }
+                ListElement { text: "UTC-7:00 — Denver / Phoenix"; value: "America/Denver" }
+                ListElement { text: "UTC-8:00 — Los Angeles / Vancouver"; value: "America/Los_Angeles" }
+                ListElement { text: "UTC-9:00 — Anchorage"; value: "America/Anchorage" }
+                ListElement { text: "UTC-10:00 — Honolulu"; value: "Pacific/Honolulu" }
+                ListElement { text: "UTC-3:00 — São Paulo / Buenos Aires"; value: "America/Sao_Paulo" }
+                ListElement { text: "UTC-3:30 — St. John's"; value: "America/St_Johns" }
+                ListElement { text: "UTC-4:00 — Halifax"; value: "America/Halifax" }
+            }
+            textRole: "text"
+            valueRole: "value"
+            onActivated: ctx.cfg_clock_timezone = model.get(currentIndex).value;
+            onEditTextChanged: {
+                if (editText === undefined) return;
+                if (editText.length === 0 || editText === "—") {
+                    ctx.cfg_clock_timezone = "";
+                    return;
+                }
+                var matched = false;
+                for (var i = 0; i < model.count; i++) {
+                    if (model.get(i).text === editText || model.get(i).value === editText) {
+                        ctx.cfg_clock_timezone = model.get(i).value;
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched)
+                    ctx.cfg_clock_timezone = editText;
+            }
+            Component.onCompleted: {
+                if (!ctx) return;
+                Qt.callLater(function() {
+                    var id = ctx.cfg_clock_timezone || "";
+                    if (id.length === 0) {
+                        clockTimezoneCombo.currentIndex = 0;
+                        return;
+                    }
+                    for (var i = 0; i < clockTimezoneCombo.model.count; i++) {
+                        if (clockTimezoneCombo.model.get(i).value === id) {
+                            clockTimezoneCombo.currentIndex = i;
+                            return;
+                        }
+                    }
+                    clockTimezoneCombo.editText = id;
+                });
+            }
+            QQC2.ToolTip.text: i18n("Timezone for the main clock. Leave empty to follow the system timezone.")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: 800
+        }
+
         // ===== LOCALE SECTION =====
         QQC2.ComboBox {
             id: localePresetCombo
@@ -276,6 +361,7 @@ ColumnLayout {
         ctx.cfg_color_mode = "custom";
         ctx.cfg_widget_spacing = ctx.taskbar ? 2 : 5;
         ctx.cfg_locale = "";
+        ctx.cfg_clock_timezone = "";
         orderSection.resetRequested();
         ctx.refreshPreview();
     }

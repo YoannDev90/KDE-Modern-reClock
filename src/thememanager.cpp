@@ -80,6 +80,7 @@ QStringList ThemeManager::configKeys() const
         QStringLiteral("fontFamilyTime"),
         QStringLiteral("widget_spacing"), QStringLiteral("element_order"),
         QStringLiteral("auto_scale"), QStringLiteral("color_mode"), QStringLiteral("locale"),
+        QStringLiteral("clock_timezone"),
         QStringLiteral("timezone_id"), QStringLiteral("timezone_label"),
         QStringLiteral("timezone_display_text")
     };

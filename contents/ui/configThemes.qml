@@ -71,6 +71,7 @@ KCM.SimpleKCM {
     property bool cfg_auto_scale: false
     property string cfg_color_mode: "custom"
     property string cfg_locale: ""
+    property string cfg_clock_timezone: ""
 
     property string cfg_saved_themes: ""
     property string cfg_timezone_id: ""
@@ -83,7 +84,7 @@ KCM.SimpleKCM {
     // Keys excluded from theme export (location-specific or user-specific)
     readonly property var exportExclude: [
         "timezone_id", "timezone_label", "timezone_display_text",
-        "timezone_locale", "locale", "saved_themes"
+        "timezone_locale", "locale", "clock_timezone", "saved_themes"
     ]
 
     function getExportConfig() {

@@ -23,6 +23,10 @@
         <entry name="locale" type="String">
             <default></default>
         </entry>
+        <entry name="clock_timezone" type="String">
+            <label>IANA timezone for the main clock, e.g. Australia/Sydney. Empty follows the system timezone</label>
+            <default></default>
+        </entry>
         <entry name="date_format" type="String">
             <default>dd MMM yyyy</default>
         </entry>
